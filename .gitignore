@@ -1,0 +1,38 @@
+## .NET / C#
+**/bin/
+**/obj/
+**/out/
+**/publish/
+*.user
+*.suo
+*.userprefs
+*.lock.json
+*.log
+TestResults/
+appsettings.Development.json
+appsettings.Production.json
+!appsettings.json
+
+## Node / React
+**/node_modules/
+**/dist/
+**/build/
+**/.env
+**/.env.local
+**/.env.production.local
+**/.vite/
+**/.cache/
+
+## OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+## IDE
+.idea/
+.vs/
+.vscode/
+*.swp
+.cursorrules
+
+ref/
