@@ -1,3 +1,4 @@
+using WebOfWork.Api.Integrations.Sms;
 
 namespace WebOfWork.Api;
 
@@ -7,16 +8,27 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
-        builder.Services.AddAuthorization();
+        // ── Controllers ──────────────────────────────────────────────────────────
+        builder.Services.AddControllers();
 
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+        // ── API Explorer + Swagger ───────────────────────────────────────────────
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        // ── Android SMS Gateway — typed HttpClient (Step 0.10) ───────────────────
+        // Full credentials wired in Phase 1 via strongly-typed options.
+        // Base address set here so the client is resolvable from DI at startup.
+        builder.Services.AddHttpClient<AndroidSmsGatewayClient>(client =>
+        {
+            client.BaseAddress = new Uri(
+                builder.Configuration["AndroidSmsGateway:Url"]
+                ?? "https://api.sms-gate.app/3rdparty/v1");
+        });
+
+        // ────────────────────────────────────────────────────────────────────────
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
+        // ── Middleware pipeline ──────────────────────────────────────────────────
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
@@ -24,28 +36,8 @@ public class Program
         }
 
         app.UseHttpsRedirection();
-
         app.UseAuthorization();
-
-        var summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
-        app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-        {
-            var forecast =  Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                {
-                    Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    TemperatureC = Random.Shared.Next(-20, 55),
-                    Summary = summaries[Random.Shared.Next(summaries.Length)]
-                })
-                .ToArray();
-            return forecast;
-        })
-        .WithName("GetWeatherForecast")
-        .WithOpenApi();
+        app.MapControllers();
 
         app.Run();
     }

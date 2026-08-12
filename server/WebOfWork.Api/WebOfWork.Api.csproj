@@ -7,8 +7,42 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.31" />
+    <!-- API Explorer + Swagger (0.5) -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+
+    <!-- Postgres + EF Core 8 (0.3) -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- JWT + BCrypt (0.4) -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <!-- Google OAuth token verification (Phase 3 Google login) -->
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+
+
+    <!-- Serilog (0.5) -->
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+
+    <!-- Redis + Hangfire (0.6) -->
+    <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.15" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.9" />
+
+    <!-- Cloudinary + PayPal (0.7) -->
+    <PackageReference Include="CloudinaryDotNet" Version="1.27.0" />
+    <PackageReference Include="PayPalCheckoutSdk" Version="1.0.4" />
+
+    <!-- FluentValidation (0.8) -->
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+
+    <!-- MailKit (0.9) -->
+    <PackageReference Include="MailKit" Version="4.8.0" />
   </ItemGroup>
 
 </Project>
