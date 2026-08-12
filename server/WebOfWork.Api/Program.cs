@@ -1,4 +1,17 @@
+using System.Text;
+using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Serilog;
+using StackExchange.Redis;
+using WebOfWork.Api.Authorization;
+using WebOfWork.Api.Configuration;
+using WebOfWork.Api.Hubs;
+using WebOfWork.Api.Integrations.Email;
 using WebOfWork.Api.Integrations.Sms;
+using WebOfWork.Api.Jobs;
+using WebOfWork.Api.Middleware;
 
 namespace WebOfWork.Api;
 
@@ -6,39 +19,191 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        // ── Serilog Bootstrap (Step 1.8) ─────────────────────────────────────────
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
 
-        // ── Controllers ──────────────────────────────────────────────────────────
-        builder.Services.AddControllers();
-
-        // ── API Explorer + Swagger ───────────────────────────────────────────────
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
-
-        // ── Android SMS Gateway — typed HttpClient (Step 0.10) ───────────────────
-        // Full credentials wired in Phase 1 via strongly-typed options.
-        // Base address set here so the client is resolvable from DI at startup.
-        builder.Services.AddHttpClient<AndroidSmsGatewayClient>(client =>
+        try
         {
-            client.BaseAddress = new Uri(
-                builder.Configuration["AndroidSmsGateway:Url"]
-                ?? "https://api.sms-gate.app/3rdparty/v1");
-        });
+            var builder = WebApplication.CreateBuilder(args);
 
-        // ────────────────────────────────────────────────────────────────────────
-        var app = builder.Build();
+            // ── Host Configuration ───────────────────────────────────────────────
+            builder.Host.UseSerilog((context, services, configuration) => configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File("logs/project_activity.log", rollingInterval: RollingInterval.Day));
 
-        // ── Middleware pipeline ──────────────────────────────────────────────────
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
+            // ── Options Binding (Step 1.2) ───────────────────────────────────────
+            builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.Section));
+            builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.Section));
+            builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection(RedisOptions.Section));
+            builder.Services.Configure<MailOptions>(builder.Configuration.GetSection(MailOptions.Section));
+            builder.Services.Configure<AndroidSmsGatewayOptions>(builder.Configuration.GetSection(AndroidSmsGatewayOptions.Section));
+            builder.Services.Configure<PayPalOptions>(builder.Configuration.GetSection(PayPalOptions.Section));
+            builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.Section));
+            builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.Section));
+            builder.Services.Configure<AgenticAiOptions>(builder.Configuration.GetSection(AgenticAiOptions.Section));
+            builder.Services.Configure<InternalApiOptions>(builder.Configuration.GetSection(InternalApiOptions.Section));
+            builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.Section));
+            builder.Services.Configure<PlatformOptions>(builder.Configuration.GetSection(PlatformOptions.Section));
+
+            var dbOptions = builder.Configuration.GetSection(DatabaseOptions.Section).Get<DatabaseOptions>() ?? new DatabaseOptions();
+            var jwtOptions = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>() ?? new JwtOptions();
+
+            // ── Redis Multiplexer (Step 1.11) ────────────────────────────────────
+            if (!string.IsNullOrEmpty(dbOptions.Redis))
+            {
+                builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(dbOptions.Redis));
+            }
+
+            // ── Controllers & SignalR (Step 1.13) ────────────────────────────────
+            builder.Services.AddControllers();
+            builder.Services.AddSignalR(); 
+
+            // ── CORS (Step 1.9) ──────────────────────────────────────────────────
+            builder.Services.AddCors(options =>
+            {
+                var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+                options.AddDefaultPolicy(policy =>
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials());
+            });
+
+            // ── Health Checks (Step 1.7) ─────────────────────────────────────────
+            var health = builder.Services.AddHealthChecks();
+            if (!string.IsNullOrEmpty(dbOptions.Postgres))
+                health.AddNpgSql(dbOptions.Postgres, name: "postgres");
+            if (!string.IsNullOrEmpty(dbOptions.Redis))
+                health.AddRedis(dbOptions.Redis, name: "redis");
+
+            // ── Hangfire (Step 1.12) ─────────────────────────────────────────────
+            if (!string.IsNullOrEmpty(dbOptions.Postgres))
+            {
+                builder.Services.AddHangfireWithPostgres(dbOptions.Postgres);
+            }
+
+            // ── API Explorer + Swagger with JWT (Step 1.6) ───────────────────────
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebOfWork API", Version = "v1" });
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
+
+            // ── Authentication & Authorization (Step 1.10) ───────────────────────
+            if (!string.IsNullOrEmpty(jwtOptions.Secret))
+            {
+                builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                    .AddJwtBearer(options =>
+                    {
+                        options.TokenValidationParameters = new TokenValidationParameters
+                        {
+                            ValidateIssuer = true,
+                            ValidateAudience = true,
+                            ValidateLifetime = true,
+                            ValidateIssuerSigningKey = true,
+                            ValidIssuer = jwtOptions.Issuer,
+                            ValidAudience = jwtOptions.Audience,
+                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
+                            ClockSkew = TimeSpan.Zero
+                        };
+                        options.Events = new JwtBearerEvents
+                        {
+                            OnMessageReceived = context =>
+                            {
+                                var accessToken = context.Request.Query["access_token"];
+                                var path = context.HttpContext.Request.Path;
+                                // SignalR requires token in query string
+                                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                                {
+                                    context.Token = accessToken;
+                                }
+                                return Task.CompletedTask;
+                            }
+                        };
+                    });
+            }
+            else
+            {
+                builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+            }
+
+            builder.Services.AddAuthorization(AuthorizationPolicies.Configure);
+
+            // ── Integrations (Steps 1.14 & 1.15) ─────────────────────────────────
+            builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+
+            builder.Services.AddHttpClient<AndroidSmsGatewayClient>((sp, client) =>
+            {
+                var config = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AndroidSmsGatewayOptions>>().Value;
+                client.BaseAddress = new Uri(config.Url ?? "https://api.sms-gate.app/3rdparty/v1");
+            });
+
+            // ──────────────────────────────────────────────────────────────────────
+            var app = builder.Build();
+
+            // ── Locked Middleware Pipeline (Plan §7) ─────────────────────────────
+            app.UseExceptionHandlingMiddleware();
+            app.UseCorrelationIdMiddleware();
+            app.UseRequestLoggingMiddleware();
+            app.UseInternalApiKeyMiddleware(); // MUST BE BEFORE UseRouting
+
+            app.UseRouting();
+            app.UseCors();
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            // ── Endpoints ────────────────────────────────────────────────────────
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+            app.UseHttpsRedirection();
+            app.MapControllers();
+            app.MapHealthChecks("/health");
+
+            app.MapHub<ChatHub>("/hubs/chat");
+            app.MapHub<NotificationHub>("/hubs/notifications");
+
+            app.UseHangfireDashboardSecured();
+
+            app.Run();
         }
-
-        app.UseHttpsRedirection();
-        app.UseAuthorization();
-        app.MapControllers();
-
-        app.Run();
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Application terminated unexpectedly");
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
     }
 }

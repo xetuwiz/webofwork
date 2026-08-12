@@ -1,6 +1,6 @@
-@WebOfWork.Api_HostAddress = http://localhost:5044
+@WebOfWork.Api_HostAddress = https://localhost:5001
 
-GET {{WebOfWork.Api_HostAddress}}/weatherforecast/
+GET {{WebOfWork.Api_HostAddress}}/health
 Accept: application/json
 
 ###

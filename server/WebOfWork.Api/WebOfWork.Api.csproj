@@ -21,9 +21,8 @@
     <!-- JWT + BCrypt (0.4) -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-    <!-- Google OAuth token verification (Phase 3 Google login) -->
+    <!-- Google OAuth — token verification for Google login (Phase 3) -->
     <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
-
 
     <!-- Serilog (0.5) -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
@@ -33,6 +32,9 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.15" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.9" />
+    <!-- Health checks — DB + Redis (Phase 1 step 1.7) -->
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
 
     <!-- Cloudinary + PayPal (0.7) -->
     <PackageReference Include="CloudinaryDotNet" Version="1.27.0" />
