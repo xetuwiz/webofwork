@@ -10,8 +10,8 @@ public class WebOfWorkDbContext : DbContext
     {
     }
 
-    // Placeholders for DbSets (populated in subsequent phases)
-    // public DbSet<User> Users { get; set; }
+    // Phase 3
+    public DbSet<WebOfWork.Api.Models.User> Users { get; set; }
     
     // Phase 2A
     public DbSet<WebOfWork.Api.Models.GlobalSettings> GlobalSettings { get; set; }

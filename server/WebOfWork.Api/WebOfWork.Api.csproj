@@ -21,9 +21,9 @@
 
     <!-- JWT + BCrypt (0.4) -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
-    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <!-- Google OAuth — token verification for Google login (Phase 3) -->
-    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.76.0" />
 
     <!-- Serilog (0.5) -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />

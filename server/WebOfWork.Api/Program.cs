@@ -174,6 +174,17 @@ public class Program
             builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
             
             builder.Services.AddScoped<WebOfWork.Api.Services.IContentService, WebOfWork.Api.Services.ContentService>();
+            
+            // Phase 3 Identity & Auth Services
+            builder.Services.AddScoped<WebOfWork.Api.Services.IPasswordHasher, WebOfWork.Api.Services.PasswordHasher>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IOtpService, WebOfWork.Api.Services.OtpService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IJwtTokenService, WebOfWork.Api.Services.JwtTokenService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IRefreshTokenService, WebOfWork.Api.Services.RefreshTokenService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IAuthService, WebOfWork.Api.Services.AuthService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IPasswordResetService, WebOfWork.Api.Services.PasswordResetService>();
+            builder.Services.AddScoped<WebOfWork.Api.Integrations.Google.IGoogleTokenVerifier, WebOfWork.Api.Integrations.Google.GoogleTokenVerifier>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IGoogleAuthService, WebOfWork.Api.Services.GoogleAuthService>();
+            
             builder.Services.AddValidatorsFromAssemblyContaining<WebOfWork.Api.DTOs.Platform.UpdateGlobalSettingsRequestValidator>();
 
             builder.Services.AddHttpClient<AndroidSmsGatewayClient>((sp, client) =>
