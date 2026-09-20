@@ -189,13 +189,22 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Integrations.Google.IGoogleTokenVerifier, WebOfWork.Api.Integrations.Google.GoogleTokenVerifier>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IGoogleAuthService, WebOfWork.Api.Services.GoogleAuthService>();
             
-            builder.Services.AddValidatorsFromAssemblyContaining<WebOfWork.Api.DTOs.Platform.UpdateGlobalSettingsRequestValidator>();
-
-            builder.Services.AddHttpClient<AndroidSmsGatewayClient>((sp, client) =>
+            // Phase 5 Services
+            builder.Services.AddScoped<WebOfWork.Api.Services.IProfileService, WebOfWork.Api.Services.ProfileService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IFreelancerOnboardingService, WebOfWork.Api.Services.FreelancerOnboardingService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IPhoneVerificationService, WebOfWork.Api.Services.PhoneVerificationService>();
+            builder.Services.AddSingleton<WebOfWork.Api.Integrations.Sms.Strategies.SmsStrategyFactory>();
+            builder.Services.AddHttpClient<WebOfWork.Api.Integrations.Sms.ISmsSender, WebOfWork.Api.Integrations.Sms.AndroidSmsGatewaySmsSender>((sp, client) =>
             {
-                var config = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AndroidSmsGatewayOptions>>().Value;
-                client.BaseAddress = new Uri(config.Url ?? "https://api.sms-gate.app/3rdparty/v1");
+                var config = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebOfWork.Api.Configuration.AndroidSmsGatewayOptions>>().Value;
+                var url = config.Url ?? "https://api.sms-gate.app/3rdparty/v1";
+                if (!url.EndsWith("/")) url += "/";
+                client.BaseAddress = new Uri(url);
+                var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{config.Username}:{config.Password}"));
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
             });
+            
+            builder.Services.AddValidatorsFromAssemblyContaining<WebOfWork.Api.DTOs.Platform.UpdateGlobalSettingsRequestValidator>();
 
             // ──────────────────────────────────────────────────────────────────────
             var app = builder.Build();

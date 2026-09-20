@@ -13,6 +13,15 @@ public class WebOfWorkDbContext : DbContext
     // Phase 3
     public DbSet<WebOfWork.Api.Models.User> Users { get; set; }
     
+    // Phase 5: Profiles
+    public DbSet<WebOfWork.Api.Models.ClientProfile> ClientProfiles { get; set; }
+    public DbSet<WebOfWork.Api.Models.FreelancerProfile> FreelancerProfiles { get; set; }
+    public DbSet<WebOfWork.Api.Models.FreelancerSkill> FreelancerSkills { get; set; }
+    public DbSet<WebOfWork.Api.Models.FreelancerPackage> FreelancerPackages { get; set; }
+    public DbSet<WebOfWork.Api.Models.FreelancerPortfolio> FreelancerPortfolios { get; set; }
+    public DbSet<WebOfWork.Api.Models.FreelancerPaymentSettings> FreelancerPaymentSettings { get; set; }
+    public DbSet<WebOfWork.Api.Models.FreelancerTodo> FreelancerTodos { get; set; }
+    
     // Phase 2A
     public DbSet<WebOfWork.Api.Models.GlobalSettings> GlobalSettings { get; set; }
 

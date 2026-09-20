@@ -1,0 +1,1 @@
+using System; namespace WebOfWork.Api.DTOs.Profiles { public class PackageDto { public string PackageType { get; set; } = string.Empty; public decimal Price { get; set; } public int DeliveryDays { get; set; } public string Description { get; set; } = string.Empty; } }
