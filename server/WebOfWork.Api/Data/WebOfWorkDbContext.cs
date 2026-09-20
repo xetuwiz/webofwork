@@ -16,6 +16,8 @@ public class WebOfWorkDbContext : DbContext
     // Phase 5: Profiles
     public DbSet<WebOfWork.Api.Models.ClientProfile> ClientProfiles { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerProfile> FreelancerProfiles { get; set; }
+    public DbSet<WebOfWork.Api.Models.Category> Categories { get; set; }
+    public DbSet<WebOfWork.Api.Models.Skill> Skills { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerSkill> FreelancerSkills { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPackage> FreelancerPackages { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPortfolio> FreelancerPortfolios { get; set; }

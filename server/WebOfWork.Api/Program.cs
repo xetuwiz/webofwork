@@ -192,6 +192,7 @@ public class Program
             // Phase 5 Services
             builder.Services.AddScoped<WebOfWork.Api.Services.IProfileService, WebOfWork.Api.Services.ProfileService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IPortfolioService, WebOfWork.Api.Services.PortfolioService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.ICategoryService, WebOfWork.Api.Services.CategoryService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IFreelancerOnboardingService, WebOfWork.Api.Services.FreelancerOnboardingService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IPhoneVerificationService, WebOfWork.Api.Services.PhoneVerificationService>();
             builder.Services.AddSingleton<WebOfWork.Api.Integrations.Sms.Strategies.SmsStrategyFactory>();

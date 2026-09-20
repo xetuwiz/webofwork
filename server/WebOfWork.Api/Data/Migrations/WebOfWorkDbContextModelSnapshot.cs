@@ -22,6 +22,31 @@ namespace WebOfWork.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_categories");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_categories_name");
+
+                    b.ToTable("categories", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.ClientProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -269,6 +294,9 @@ namespace WebOfWork.Api.Data.Migrations
                     b.HasIndex("Availability")
                         .HasDatabaseName("ix_freelancer_profiles_availability");
 
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_freelancer_profiles_category_id");
+
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("ix_freelancer_profiles_created_at");
 
@@ -307,6 +335,9 @@ namespace WebOfWork.Api.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_freelancer_skills");
+
+                    b.HasIndex("SkillId")
+                        .HasDatabaseName("ix_freelancer_skills_skill_id");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_freelancer_skills_user_id");
@@ -499,6 +530,45 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("portfolio_tags", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Skill", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_id");
+
+                    b.Property<bool>("IsCustom")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_custom");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_skills");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_skills_category_id");
+
+                    b.HasIndex("IsCustom")
+                        .HasDatabaseName("ix_skills_is_custom");
+
+                    b.HasIndex("Name", "CategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_skills_name_category_id");
+
+                    b.ToTable("skills", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.SkillEndorsement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -669,6 +739,12 @@ namespace WebOfWork.Api.Data.Migrations
 
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerProfile", b =>
                 {
+                    b.HasOne("WebOfWork.Api.Models.Category", null)
+                        .WithMany("Profiles")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_freelancer_profiles_categories_category_id");
+
                     b.HasOne("WebOfWork.Api.Models.User", "User")
                         .WithOne()
                         .HasForeignKey("WebOfWork.Api.Models.FreelancerProfile", "UserId")
@@ -681,6 +757,12 @@ namespace WebOfWork.Api.Data.Migrations
 
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerSkill", b =>
                 {
+                    b.HasOne("WebOfWork.Api.Models.Skill", null)
+                        .WithMany()
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_freelancer_skills_skills_skill_id");
+
                     b.HasOne("WebOfWork.Api.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -736,6 +818,17 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Skill");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Skill", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Category", "Category")
+                        .WithMany("Skills")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_skills_categories_category_id");
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.SkillEndorsement", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.User", "Endorser")
@@ -755,6 +848,13 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Endorser");
 
                     b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Category", b =>
+                {
+                    b.Navigation("Profiles");
+
+                    b.Navigation("Skills");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPortfolio", b =>
