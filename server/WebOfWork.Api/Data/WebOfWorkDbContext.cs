@@ -1,0 +1,86 @@
+using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using WebOfWork.Api.Common.Interfaces;
+
+namespace WebOfWork.Api.Data;
+
+public class WebOfWorkDbContext : DbContext
+{
+    public WebOfWorkDbContext(DbContextOptions<WebOfWorkDbContext> options) : base(options)
+    {
+    }
+
+    // Placeholders for DbSets (populated in subsequent phases)
+    // public DbSet<User> Users { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Apply all configurations from the assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Apply Global Soft Delete Query Filter
+        var method = typeof(WebOfWorkDbContext).GetMethod(nameof(SetSoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+            {
+                method?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] { modelBuilder });
+            }
+        }
+    }
+
+    private void SetSoftDeleteFilter<TEntity>(ModelBuilder builder) where TEntity : class, ISoftDeletable
+    {
+        builder.Entity<TEntity>().HasQueryFilter(x => !x.IsDeleted);
+    }
+
+    public override int SaveChanges()
+    {
+        ApplyAuditRules();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditRules();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyAuditRules()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.Entity is IAuditableEntity || e.Entity is ISoftDeletable);
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is IAuditableEntity auditable)
+            {
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        auditable.CreatedAt = DateTime.UtcNow;
+                        auditable.UpdatedAt = DateTime.UtcNow;
+                        break;
+                    case EntityState.Modified:
+                        auditable.UpdatedAt = DateTime.UtcNow;
+                        break;
+                }
+            }
+
+            if (entry.Entity is ISoftDeletable softDeletable && entry.State == EntityState.Deleted)
+            {
+                entry.State = EntityState.Modified;
+                softDeletable.IsDeleted = true;
+                softDeletable.DeletedAt = DateTime.UtcNow;
+                
+                // Also update UpdatedAt for auditable entities when soft deleting
+                if (entry.Entity is IAuditableEntity auditableDeleted)
+                {
+                    auditableDeleted.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+        }
+    }
+}

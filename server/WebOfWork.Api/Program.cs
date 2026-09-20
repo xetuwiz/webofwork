@@ -12,6 +12,7 @@ using WebOfWork.Api.Integrations.Email;
 using WebOfWork.Api.Integrations.Sms;
 using WebOfWork.Api.Jobs;
 using WebOfWork.Api.Middleware;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebOfWork.Api;
 
@@ -62,6 +63,14 @@ public class Program
             // ── Controllers & SignalR (Step 1.13) ────────────────────────────────
             builder.Services.AddControllers();
             builder.Services.AddSignalR(); 
+
+            // ── Database Context (Phase 2) ───────────────────────────────────────
+            if (!string.IsNullOrEmpty(dbOptions.Postgres))
+            {
+                builder.Services.AddDbContext<WebOfWork.Api.Data.WebOfWorkDbContext>(opts =>
+                    opts.UseNpgsql(dbOptions.Postgres)
+                        .UseSnakeCaseNamingConvention());
+            }
 
             // ── CORS (Step 1.9) ──────────────────────────────────────────────────
             builder.Services.AddCors(options =>
