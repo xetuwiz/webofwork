@@ -1,16 +1,11 @@
 namespace WebOfWork.Api.Configuration;
 
-/// <summary>
-/// CloudinaryDotNet SDK options.
-/// Confirmed in Grolance settings.py: CLOUDINARY_STORAGE (CloudName, ApiKey, ApiSecret, UploadPreset).
-/// </summary>
-public sealed class CloudinaryOptions
+public class CloudinaryOptions
 {
-    public const string Section = "Cloudinary";
-
-    public string CloudName    { get; init; } = string.Empty;
-    public string ApiKey       { get; init; } = string.Empty;
-    public string ApiSecret    { get; init; } = string.Empty;
-    public string UploadPreset { get; init; } = string.Empty;
-    public bool   Secure       { get; init; } = true;
+    public const string SectionName = "Cloudinary";
+    
+    public string CloudName { get; set; } = string.Empty;
+    public string ApiKey { get; set; } = string.Empty;
+    public string ApiSecret { get; set; } = string.Empty;
+    public string UploadPreset { get; set; } = string.Empty;
 }

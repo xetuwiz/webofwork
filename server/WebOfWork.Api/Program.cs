@@ -46,7 +46,7 @@ public class Program
             builder.Services.Configure<MailOptions>(builder.Configuration.GetSection(MailOptions.Section));
             builder.Services.Configure<AndroidSmsGatewayOptions>(builder.Configuration.GetSection(AndroidSmsGatewayOptions.Section));
             builder.Services.Configure<PayPalOptions>(builder.Configuration.GetSection(PayPalOptions.Section));
-            builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.Section));
+            builder.Services.Configure<CloudinaryOptions>(builder.Configuration.GetSection(CloudinaryOptions.SectionName));
             builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection(GoogleOptions.Section));
             builder.Services.Configure<AgenticAiOptions>(builder.Configuration.GetSection(AgenticAiOptions.Section));
             builder.Services.Configure<InternalApiOptions>(builder.Configuration.GetSection(InternalApiOptions.Section));
@@ -191,6 +191,7 @@ public class Program
             
             // Phase 5 Services
             builder.Services.AddScoped<WebOfWork.Api.Services.IProfileService, WebOfWork.Api.Services.ProfileService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IPortfolioService, WebOfWork.Api.Services.PortfolioService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IFreelancerOnboardingService, WebOfWork.Api.Services.FreelancerOnboardingService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IPhoneVerificationService, WebOfWork.Api.Services.PhoneVerificationService>();
             builder.Services.AddSingleton<WebOfWork.Api.Integrations.Sms.Strategies.SmsStrategyFactory>();

@@ -3,6 +3,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebOfWork.Api.DTOs.Profiles;
+using WebOfWork.Api.DTOs.Portfolio;
+using WebOfWork.Api.Configuration;
+using System.Security.Claims;
+using WebOfWork.Api.Models.Enums;
 using WebOfWork.Api.Services;
 
 namespace WebOfWork.Api.Controllers;
@@ -168,4 +172,93 @@ public class FreelancersController : ControllerBase
         return Ok(new object[] {});
     }
 
+            public record CreatePortfolioTestDto(string Title, string Description, string ImageUrl);
+
+    [HttpPost("~/api/profile/freelancer/portfolio")]
+    [Authorize(Policy = "RequireFreelancer")]
+    public async Task<IActionResult> CreatePortfolioItem([FromServices] WebOfWork.Api.Data.WebOfWorkDbContext context, [FromBody] CreatePortfolioTestDto dto)
+    {
+        var portfolio = new WebOfWork.Api.Models.FreelancerPortfolio
+        {
+            UserId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!),
+            Title = dto.Title,
+            Description = dto.Description,
+            ImageUrl = dto.ImageUrl
+        };
+        context.FreelancerPortfolios.Add(portfolio);
+        await context.SaveChangesAsync();
+        return Ok(new { id = portfolio.Id });
+    }
+
+[HttpPost("~/api/profile/freelancer/portfolio/media")]
+    [Authorize(Policy = "RequireFreelancer")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadMedia(
+        [FromServices] IPortfolioService portfolioService,
+        [FromForm] UploadPortfolioMediaRequest request,
+        [FromServices] FluentValidation.IValidator<UploadPortfolioMediaRequest> validator)
+    {
+        var validationResult = await validator.ValidateAsync(request);
+        if (!validationResult.IsValid)
+            return BadRequest(validationResult.Errors);
+
+        var freelancerId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!);
+        try
+        {
+            var result = await portfolioService.UploadMediaAsync(freelancerId, request);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("~/api/profile/freelancer/portfolio/media/{mediaId}")]
+    [Authorize(Policy = "RequireFreelancer")]
+    public async Task<IActionResult> DeleteMedia([FromServices] IPortfolioService portfolioService, Guid mediaId)
+    {
+        var freelancerId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!);
+        try
+        {
+            await portfolioService.DeleteMediaAsync(freelancerId, mediaId);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPatch("~/api/profile/freelancer/portfolio/{portfolioItemId}/media/reorder")]
+    [Authorize(Policy = "RequireFreelancer")]
+    public async Task<IActionResult> ReorderMedia([FromServices] IPortfolioService portfolioService, Guid portfolioItemId, [FromBody] System.Collections.Generic.List<Guid> mediaIds)
+    {
+        var freelancerId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!);
+        try
+        {
+            await portfolioService.ReorderMediaAsync(freelancerId, portfolioItemId, mediaIds);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("~/api/profile/freelancer/skills/endorse")]
+    [Authorize]
+    public async Task<IActionResult> EndorseSkill([FromServices] IPortfolioService portfolioService, [FromBody] CreateSkillEndorsementRequest request)
+    {
+        var endorserId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!);
+        try
+        {
+            var result = await portfolioService.AddEndorsementAsync(endorserId, request);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

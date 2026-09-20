@@ -23,6 +23,11 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.FreelancerTodo> FreelancerTodos { get; set; }
     
     // Phase 2A
+    public DbSet<WebOfWork.Api.Models.PortfolioMedia> PortfolioMedia { get; set; }
+    public DbSet<WebOfWork.Api.Models.PortfolioTag> PortfolioTags { get; set; }
+    public DbSet<WebOfWork.Api.Models.SkillEndorsement> SkillEndorsements { get; set; }
+
+    // Phase 2A
     public DbSet<WebOfWork.Api.Models.GlobalSettings> GlobalSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

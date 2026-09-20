@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace WebOfWork.Api.Models;
 
@@ -13,4 +14,7 @@ public class FreelancerPortfolio
     public string ImageUrl { get; set; } = string.Empty;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<PortfolioMedia> Media { get; set; } = new List<PortfolioMedia>();
+    public ICollection<PortfolioTag> Tags { get; set; } = new List<PortfolioTag>();
 }

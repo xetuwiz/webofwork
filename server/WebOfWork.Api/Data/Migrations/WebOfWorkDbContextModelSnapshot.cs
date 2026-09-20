@@ -410,6 +410,136 @@ namespace WebOfWork.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.PortfolioMedia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Caption")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("caption");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("integer")
+                        .HasColumnName("media_type");
+
+                    b.Property<int>("OrderIndex")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("order_index");
+
+                    b.Property<Guid>("PortfolioItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("portfolio_item_id");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("public_id");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("thumbnail_url");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_portfolio_media");
+
+                    b.HasIndex("PortfolioItemId")
+                        .HasDatabaseName("ix_portfolio_media_portfolio_item_id");
+
+                    b.ToTable("portfolio_media", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.PortfolioTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("PortfolioItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("portfolio_item_id");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("skill_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_portfolio_tags");
+
+                    b.HasIndex("PortfolioItemId")
+                        .HasDatabaseName("ix_portfolio_tags_portfolio_item_id");
+
+                    b.HasIndex("SkillId")
+                        .HasDatabaseName("ix_portfolio_tags_skill_id");
+
+                    b.ToTable("portfolio_tags", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.SkillEndorsement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("EndorserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("endorser_id");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("skill_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_skill_endorsements");
+
+                    b.HasIndex("EndorserId")
+                        .HasDatabaseName("ix_skill_endorsements_endorser_id");
+
+                    b.HasIndex("SkillId")
+                        .HasDatabaseName("ix_skill_endorsements_skill_id");
+
+                    b.ToTable("skill_endorsements", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -571,6 +701,74 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasConstraintName("fk_freelancer_todos_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.PortfolioMedia", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.FreelancerPortfolio", "PortfolioItem")
+                        .WithMany("Media")
+                        .HasForeignKey("PortfolioItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_portfolio_media_freelancer_portfolios_portfolio_item_id");
+
+                    b.Navigation("PortfolioItem");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.PortfolioTag", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.FreelancerPortfolio", "PortfolioItem")
+                        .WithMany("Tags")
+                        .HasForeignKey("PortfolioItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_portfolio_tags_freelancer_portfolios_portfolio_item_id");
+
+                    b.HasOne("WebOfWork.Api.Models.FreelancerSkill", "Skill")
+                        .WithMany("PortfolioTags")
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_portfolio_tags_freelancer_skills_skill_id");
+
+                    b.Navigation("PortfolioItem");
+
+                    b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.SkillEndorsement", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.User", "Endorser")
+                        .WithMany()
+                        .HasForeignKey("EndorserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_skill_endorsements_users_endorser_id");
+
+                    b.HasOne("WebOfWork.Api.Models.FreelancerSkill", "Skill")
+                        .WithMany("Endorsements")
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_skill_endorsements_freelancer_skills_skill_id");
+
+                    b.Navigation("Endorser");
+
+                    b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPortfolio", b =>
+                {
+                    b.Navigation("Media");
+
+                    b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.FreelancerSkill", b =>
+                {
+                    b.Navigation("Endorsements");
+
+                    b.Navigation("PortfolioTags");
                 });
 #pragma warning restore 612, 618
         }
