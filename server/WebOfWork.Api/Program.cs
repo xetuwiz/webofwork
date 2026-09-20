@@ -1,5 +1,6 @@
 using System.Text;
 using Hangfire;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -169,6 +170,9 @@ public class Program
             }
 
             builder.Services.AddAuthorization(AuthorizationPolicies.Configure);
+
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<WebOfWork.Api.Services.ICurrentUser, WebOfWork.Api.Services.CurrentUser>();
 
             // ── Integrations & Services (Steps 1.14, 1.15, Phase 2A) ─────────────
             builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
