@@ -20,4 +20,6 @@ public class ClientProfile
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<Brief> Briefs { get; set; } = new List<Brief>();
 }

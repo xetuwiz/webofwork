@@ -18,6 +18,9 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.FreelancerProfile> FreelancerProfiles { get; set; }
     public DbSet<WebOfWork.Api.Models.Category> Categories { get; set; }
     public DbSet<WebOfWork.Api.Models.Skill> Skills { get; set; }
+    public DbSet<WebOfWork.Api.Models.Brief> Briefs { get; set; }
+    public DbSet<WebOfWork.Api.Models.BriefAttachment> BriefAttachments { get; set; }
+    public DbSet<WebOfWork.Api.Models.BriefAnalysis> BriefAnalyses { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerSkill> FreelancerSkills { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPackage> FreelancerPackages { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPortfolio> FreelancerPortfolios { get; set; }
@@ -103,3 +106,6 @@ public class WebOfWorkDbContext : DbContext
         }
     }
 }
+
+
+

@@ -209,6 +209,7 @@ public class Program
             builder.Services.AddValidatorsFromAssemblyContaining<WebOfWork.Api.DTOs.Platform.UpdateGlobalSettingsRequestValidator>();
 
             // ──────────────────────────────────────────────────────────────────────
+            builder.Services.AddScoped<WebOfWork.Api.Services.IBriefService, WebOfWork.Api.Services.BriefService>();
             var app = builder.Build();
 
             // ── Locked Middleware Pipeline (Plan §7) ─────────────────────────────
@@ -250,3 +251,6 @@ public class Program
         }
     }
 }
+
+
+
