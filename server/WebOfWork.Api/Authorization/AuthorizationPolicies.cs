@@ -27,19 +27,19 @@ public static class AuthorizationPolicies
     {
         options.AddPolicy(RequireClient, policy =>
             policy.RequireAuthenticatedUser()
-                  .RequireClaim(ClaimRole, RoleClient));
+                  .RequireRole(RoleClient));
 
         options.AddPolicy(RequireFreelancer, policy =>
             policy.RequireAuthenticatedUser()
-                  .RequireClaim(ClaimRole, RoleFreelancer));
+                  .RequireRole(RoleFreelancer));
 
         options.AddPolicy(RequireAdmin, policy =>
             policy.RequireAuthenticatedUser()
-                  .RequireClaim(ClaimRole, RoleAdmin));
+                  .RequireRole(RoleAdmin));
 
         options.AddPolicy(RequireClientOrFreelancer, policy =>
             policy.RequireAuthenticatedUser()
-                  .RequireClaim(ClaimRole, RoleClient, RoleFreelancer));
+                  .RequireRole(RoleClient, RoleFreelancer));
 
         // Phase 3: email verification gate (registration flow)
         options.AddPolicy(RequireVerified, policy =>

@@ -13,6 +13,7 @@ using WebOfWork.Api.Integrations.Sms;
 using WebOfWork.Api.Jobs;
 using WebOfWork.Api.Middleware;
 using Microsoft.EntityFrameworkCore;
+using FluentValidation;
 
 namespace WebOfWork.Api;
 
@@ -126,6 +127,10 @@ public class Program
             });
 
             // ── Authentication & Authorization (Step 1.10) ───────────────────────
+            
+            // Prevent default renaming of claims (e.g. "role" to "http://schemas.microsoft.com/ws/...")
+            System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
             if (!string.IsNullOrEmpty(jwtOptions.Secret))
             {
                 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -165,8 +170,11 @@ public class Program
 
             builder.Services.AddAuthorization(AuthorizationPolicies.Configure);
 
-            // ── Integrations (Steps 1.14 & 1.15) ─────────────────────────────────
+            // ── Integrations & Services (Steps 1.14, 1.15, Phase 2A) ─────────────
             builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+            
+            builder.Services.AddScoped<WebOfWork.Api.Services.IContentService, WebOfWork.Api.Services.ContentService>();
+            builder.Services.AddValidatorsFromAssemblyContaining<WebOfWork.Api.DTOs.Platform.UpdateGlobalSettingsRequestValidator>();
 
             builder.Services.AddHttpClient<AndroidSmsGatewayClient>((sp, client) =>
             {
