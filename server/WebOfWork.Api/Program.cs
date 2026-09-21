@@ -212,7 +212,10 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Services.IBriefService, WebOfWork.Api.Services.BriefService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IProjectService, WebOfWork.Api.Services.ProjectService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IProjectRecommendationService, WebOfWork.Api.Services.ProjectRecommendationService>();
-            var app = builder.Build();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IProposalService, WebOfWork.Api.Services.ProposalService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IInvitationService, WebOfWork.Api.Services.InvitationService>();
+
+var app = builder.Build();
 
             // ── Locked Middleware Pipeline (Plan §7) ─────────────────────────────
             app.UseExceptionHandlingMiddleware();
