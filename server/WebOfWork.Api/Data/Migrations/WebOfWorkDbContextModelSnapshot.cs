@@ -239,6 +239,126 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("client_profiles", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Contract", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("ClientIp")
+                        .HasColumnType("text")
+                        .HasColumnName("client_ip");
+
+                    b.Property<string>("ClientSignature")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_signature");
+
+                    b.Property<string>("ClientSignatureType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_signature_type");
+
+                    b.Property<DateTime>("ClientSignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("client_signed_at");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<Guid>("FreelancerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("freelancer_id");
+
+                    b.Property<string>("FreelancerIp")
+                        .HasColumnType("text")
+                        .HasColumnName("freelancer_ip");
+
+                    b.Property<string>("FreelancerSignature")
+                        .HasColumnType("text")
+                        .HasColumnName("freelancer_signature");
+
+                    b.Property<string>("FreelancerSignatureType")
+                        .HasColumnType("text")
+                        .HasColumnName("freelancer_signature_type");
+
+                    b.Property<DateTime?>("FreelancerSignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("freelancer_signed_at");
+
+                    b.Property<bool>("IsFunded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_funded");
+
+                    b.Property<bool>("IsMilestoneBased")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_milestone_based");
+
+                    b.Property<string>("LegalDocumentUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("legal_document_url");
+
+                    b.Property<int>("MilestoneCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("milestone_count");
+
+                    b.Property<Guid?>("PackageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("package_id");
+
+                    b.Property<bool>("PaidToFreelancer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("paid_to_freelancer");
+
+                    b.Property<DateTime?>("PayoutEligibleAfter")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payout_eligible_after");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("project_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("total_amount");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contracts");
+
+                    b.HasIndex("ClientId")
+                        .HasDatabaseName("ix_contracts_client_id");
+
+                    b.HasIndex("ClientSignedAt")
+                        .HasDatabaseName("ix_contracts_client_signed_at");
+
+                    b.HasIndex("FreelancerId")
+                        .HasDatabaseName("ix_contracts_freelancer_id");
+
+                    b.HasIndex("PackageId")
+                        .HasDatabaseName("ix_contracts_package_id");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_contracts_project_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_contracts_status");
+
+                    b.ToTable("contracts", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPackage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1130,6 +1250,44 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasConstraintName("fk_client_profiles_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Contract", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.ClientProfile", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_contracts_client_profiles_client_id");
+
+                    b.HasOne("WebOfWork.Api.Models.FreelancerProfile", "Freelancer")
+                        .WithMany()
+                        .HasForeignKey("FreelancerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_contracts_freelancer_profiles_freelancer_id");
+
+                    b.HasOne("WebOfWork.Api.Models.FreelancerPackage", "Package")
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_contracts_freelancer_packages_package_id");
+
+                    b.HasOne("WebOfWork.Api.Models.Project", "Project")
+                        .WithOne()
+                        .HasForeignKey("WebOfWork.Api.Models.Contract", "ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_contracts_projects_project_id");
+
+                    b.Navigation("Client");
+
+                    b.Navigation("Freelancer");
+
+                    b.Navigation("Package");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPackage", b =>

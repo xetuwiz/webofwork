@@ -214,6 +214,9 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Services.IProjectRecommendationService, WebOfWork.Api.Services.ProjectRecommendationService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IProposalService, WebOfWork.Api.Services.ProposalService>();
 builder.Services.AddScoped<WebOfWork.Api.Services.IInvitationService, WebOfWork.Api.Services.InvitationService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IContractService, WebOfWork.Api.Services.ContractService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IContractDocumentService, WebOfWork.Api.Services.ContractDocumentService>();
+builder.Services.AddScoped<WebOfWork.Api.Integrations.Cloudinary.ICloudinaryStorageService, WebOfWork.Api.Integrations.Cloudinary.CloudinaryStorageService>();
 
 var app = builder.Build();
 

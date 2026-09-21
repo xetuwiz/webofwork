@@ -25,6 +25,7 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.ProjectSkill> ProjectSkills { get; set; }
     public DbSet<WebOfWork.Api.Models.Proposal> Proposals { get; set; }
     public DbSet<WebOfWork.Api.Models.Invitation> Invitations { get; set; }
+    public DbSet<WebOfWork.Api.Models.Contract> Contracts { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerSkill> FreelancerSkills { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPackage> FreelancerPackages { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPortfolio> FreelancerPortfolios { get; set; }
