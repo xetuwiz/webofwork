@@ -49,6 +49,11 @@ public class WebOfWorkDbContext : DbContext
     // Phase 2A
     public DbSet<WebOfWork.Api.Models.GlobalSettings> GlobalSettings { get; set; }
 
+    // Phase 14
+    public DbSet<WebOfWork.Api.Models.ChatRoom> ChatRooms { get; set; }
+    public DbSet<WebOfWork.Api.Models.Message> Messages { get; set; }
+    public DbSet<WebOfWork.Api.Models.Notification> Notifications { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

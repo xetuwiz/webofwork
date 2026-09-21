@@ -15,6 +15,8 @@ public class User : IAuditableEntity, ISoftDeletable
     public UserStatus Status { get; set; } = UserStatus.Pending;
     
     public bool IsEmailVerified { get; set; } = false;
+
+    public string? Phone { get; set; }
     
     // Refresh Token tracking
     public string? RefreshToken { get; set; }
