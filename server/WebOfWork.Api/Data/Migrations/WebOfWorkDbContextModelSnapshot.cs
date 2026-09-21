@@ -758,6 +758,103 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("invitations", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Milestone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id");
+
+                    b.Property<int>("ExpectedDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("expected_days");
+
+                    b.Property<DateTime?>("FundedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("funded_at");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("order");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_milestones");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_milestones_status");
+
+                    b.HasIndex("ContractId", "Order")
+                        .IsUnique()
+                        .HasDatabaseName("ix_milestones_contract_id_order");
+
+                    b.ToTable("milestones", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.MilestoneDeliverable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("file_url");
+
+                    b.Property<int>("MilestoneId")
+                        .HasColumnType("integer")
+                        .HasColumnName("milestone_id");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_milestone_deliverables");
+
+                    b.HasIndex("MilestoneId")
+                        .HasDatabaseName("ix_milestone_deliverables_milestone_id");
+
+                    b.ToTable("milestone_deliverables", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.PortfolioMedia", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1413,6 +1510,30 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Milestone", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_milestones_contracts_contract_id");
+
+                    b.Navigation("Contract");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.MilestoneDeliverable", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Milestone", "Milestone")
+                        .WithMany("Deliverables")
+                        .HasForeignKey("MilestoneId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_milestone_deliverables_milestones_milestone_id");
+
+                    b.Navigation("Milestone");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.PortfolioMedia", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.FreelancerPortfolio", "PortfolioItem")
@@ -1579,6 +1700,11 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Endorsements");
 
                     b.Navigation("PortfolioTags");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Milestone", b =>
+                {
+                    b.Navigation("Deliverables");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>

@@ -217,6 +217,7 @@ builder.Services.AddScoped<WebOfWork.Api.Services.IInvitationService, WebOfWork.
 builder.Services.AddScoped<WebOfWork.Api.Services.IContractService, WebOfWork.Api.Services.ContractService>();
 builder.Services.AddScoped<WebOfWork.Api.Services.IContractDocumentService, WebOfWork.Api.Services.ContractDocumentService>();
 builder.Services.AddScoped<WebOfWork.Api.Integrations.Cloudinary.ICloudinaryStorageService, WebOfWork.Api.Integrations.Cloudinary.CloudinaryStorageService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IMilestoneService, WebOfWork.Api.Services.MilestoneService>();
 
 var app = builder.Build();
 
