@@ -220,6 +220,9 @@ builder.Services.AddScoped<WebOfWork.Api.Integrations.Cloudinary.ICloudinaryStor
 builder.Services.AddScoped<WebOfWork.Api.Services.IMilestoneService, WebOfWork.Api.Services.MilestoneService>();
 builder.Services.AddScoped<WebOfWork.Api.Services.IDeliverableService, WebOfWork.Api.Services.DeliverableService>();
 builder.Services.AddScoped<WebOfWork.Api.Services.IRevisionService, WebOfWork.Api.Services.RevisionService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IDisputeService, WebOfWork.Api.Services.DisputeService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IReviewService, WebOfWork.Api.Services.ReviewService>();
+builder.Services.AddTransient<WebOfWork.Api.Jobs.RecalculateRatingsJob>();
 
 var app = builder.Build();
 
@@ -250,6 +253,12 @@ var app = builder.Build();
 
             app.UseHangfireDashboardSecured();
 
+            // ── Background Jobs ──────────────────────────────────────────────────
+            RecurringJob.AddOrUpdate<WebOfWork.Api.Jobs.RecalculateRatingsJob>(
+                "recalculate-ratings",
+                job => job.ExecuteAsync(CancellationToken.None),
+                Cron.Hourly);
+
             app.Run();
         }
         catch (Exception ex)
@@ -262,6 +271,7 @@ var app = builder.Build();
         }
     }
 }
+
 
 
 

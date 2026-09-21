@@ -465,6 +465,95 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("contract_revisions", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Dispute", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("admin_notes");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("OpenerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opener_id");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("integer")
+                        .HasColumnName("reason");
+
+                    b.Property<int?>("Resolution")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolution");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_disputes");
+
+                    b.HasIndex("ContractId")
+                        .HasDatabaseName("ix_disputes_contract_id");
+
+                    b.HasIndex("OpenerId")
+                        .HasDatabaseName("ix_disputes_opener_id");
+
+                    b.ToTable("disputes", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.DisputeFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DisputeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("dispute_id");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_dispute_files");
+
+                    b.HasIndex("DisputeId")
+                        .HasDatabaseName("ix_dispute_files_dispute_id");
+
+                    b.ToTable("dispute_files", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPackage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1248,6 +1337,64 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("proposals", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("comment");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer")
+                        .HasColumnName("rating");
+
+                    b.Property<Guid>("RevieweeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewee_id");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewer_id");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_reviews");
+
+                    b.HasIndex("ContractId")
+                        .HasDatabaseName("ix_reviews_contract_id");
+
+                    b.HasIndex("RevieweeId")
+                        .HasDatabaseName("ix_reviews_reviewee_id");
+
+                    b.HasIndex("ReviewerId", "ContractId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("ix_reviews_reviewer_id_contract_id_type");
+
+                    b.ToTable("reviews", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Skill", b =>
                 {
                     b.Property<int>("Id")
@@ -1535,6 +1682,39 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Dispute", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_disputes_contracts_contract_id");
+
+                    b.HasOne("WebOfWork.Api.Models.User", "Opener")
+                        .WithMany()
+                        .HasForeignKey("OpenerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_disputes_users_opener_id");
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Opener");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.DisputeFile", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Dispute", "Dispute")
+                        .WithMany("Evidence")
+                        .HasForeignKey("DisputeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_dispute_files_disputes_dispute_id");
+
+                    b.Navigation("Dispute");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPackage", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.User", "User")
@@ -1785,6 +1965,36 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Review", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_reviews_contracts_contract_id");
+
+                    b.HasOne("WebOfWork.Api.Models.User", "Reviewee")
+                        .WithMany()
+                        .HasForeignKey("RevieweeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_reviews_users_reviewee_id");
+
+                    b.HasOne("WebOfWork.Api.Models.User", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_reviews_users_reviewer_id");
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Reviewee");
+
+                    b.Navigation("Reviewer");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Skill", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Category", "Category")
@@ -1834,6 +2044,11 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.ClientProfile", b =>
                 {
                     b.Navigation("Briefs");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Dispute", b =>
+                {
+                    b.Navigation("Evidence");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPortfolio", b =>

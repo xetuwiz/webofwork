@@ -30,6 +30,9 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.ContractRevision> ContractRevisions { get; set; }
     public DbSet<WebOfWork.Api.Models.Milestone> Milestones { get; set; }
     public DbSet<WebOfWork.Api.Models.MilestoneDeliverable> MilestoneDeliverables { get; set; }
+    public DbSet<WebOfWork.Api.Models.Dispute> Disputes { get; set; }
+    public DbSet<WebOfWork.Api.Models.DisputeFile> DisputeFiles { get; set; }
+    public DbSet<WebOfWork.Api.Models.Review> Reviews { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerSkill> FreelancerSkills { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPackage> FreelancerPackages { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPortfolio> FreelancerPortfolios { get; set; }
