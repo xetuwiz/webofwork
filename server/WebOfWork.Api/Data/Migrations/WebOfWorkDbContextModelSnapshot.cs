@@ -1050,6 +1050,96 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("milestone_deliverables", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("MilestoneId")
+                        .HasColumnType("integer")
+                        .HasColumnName("milestone_id");
+
+                    b.Property<string>("PayPalOrderId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("pay_pal_order_id");
+
+                    b.Property<decimal>("PlatformFee")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("platform_fee");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payments");
+
+                    b.HasIndex("ContractId")
+                        .HasDatabaseName("ix_payments_contract_id");
+
+                    b.HasIndex("MilestoneId")
+                        .HasDatabaseName("ix_payments_milestone_id");
+
+                    b.HasIndex("PayPalOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payments_pay_pal_order_id");
+
+                    b.ToTable("payments", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.PlatformAnalytics", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompletedContractsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("completed_contracts_count");
+
+                    b.Property<decimal>("TotalProfitLkr")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("total_profit_lkr");
+
+                    b.Property<decimal>("TotalVolumeLkr")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("total_volume_lkr");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_platform_analytics");
+
+                    b.ToTable("platform_analytics", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.PortfolioMedia", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1858,6 +1948,26 @@ namespace WebOfWork.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_milestone_deliverables_milestones_milestone_id");
+
+                    b.Navigation("Milestone");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Payment", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payments_contracts_contract_id");
+
+                    b.HasOne("WebOfWork.Api.Models.Milestone", "Milestone")
+                        .WithMany()
+                        .HasForeignKey("MilestoneId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_payments_milestones_milestone_id");
+
+                    b.Navigation("Contract");
 
                     b.Navigation("Milestone");
                 });

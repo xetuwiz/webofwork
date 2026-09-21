@@ -222,6 +222,11 @@ builder.Services.AddScoped<WebOfWork.Api.Services.IDeliverableService, WebOfWork
 builder.Services.AddScoped<WebOfWork.Api.Services.IRevisionService, WebOfWork.Api.Services.RevisionService>();
 builder.Services.AddScoped<WebOfWork.Api.Services.IDisputeService, WebOfWork.Api.Services.DisputeService>();
 builder.Services.AddScoped<WebOfWork.Api.Services.IReviewService, WebOfWork.Api.Services.ReviewService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IPaymentService, WebOfWork.Api.Services.PaymentService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.ICommissionCalculator, WebOfWork.Api.Services.CommissionCalculator>();
+builder.Services.Configure<WebOfWork.Api.Configuration.PayPalOptions>(builder.Configuration.GetSection(WebOfWork.Api.Configuration.PayPalOptions.Section));
+builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalClient, WebOfWork.Api.Integrations.PayPal.PayPalClient>();
+builder.Services.AddScoped<WebOfWork.Api.Integrations.PayPal.IPayPalOrderVerifier, WebOfWork.Api.Integrations.PayPal.PayPalOrderVerifier>();
 builder.Services.AddTransient<WebOfWork.Api.Jobs.RecalculateRatingsJob>();
 
 var app = builder.Build();
@@ -271,6 +276,8 @@ var app = builder.Build();
         }
     }
 }
+
+
 
 
 

@@ -33,6 +33,8 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.Dispute> Disputes { get; set; }
     public DbSet<WebOfWork.Api.Models.DisputeFile> DisputeFiles { get; set; }
     public DbSet<WebOfWork.Api.Models.Review> Reviews { get; set; }
+    public DbSet<WebOfWork.Api.Models.Payment> Payments { get; set; }
+    public DbSet<WebOfWork.Api.Models.PlatformAnalytics> PlatformAnalytics { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerSkill> FreelancerSkills { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPackage> FreelancerPackages { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPortfolio> FreelancerPortfolios { get; set; }
@@ -118,6 +120,8 @@ public class WebOfWorkDbContext : DbContext
         }
     }
 }
+
+
 
 
 
