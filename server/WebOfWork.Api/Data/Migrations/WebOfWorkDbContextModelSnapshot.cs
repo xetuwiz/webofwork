@@ -664,6 +664,143 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("portfolio_tags", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_id");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<int>("ExpectedDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("expected_days");
+
+                    b.Property<string>("ExpectedDeliverables")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("")
+                        .HasColumnName("expected_deliverables");
+
+                    b.Property<decimal?>("FixedPrice")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("fixed_price");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal?>("MaxPrice")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("max_price");
+
+                    b.Property<decimal?>("MinPrice")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("min_price");
+
+                    b.Property<int>("PricingType")
+                        .HasColumnType("integer")
+                        .HasColumnName("pricing_type");
+
+                    b.Property<string>("Requirements")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("")
+                        .HasColumnName("requirements");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_projects");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_projects_category_id");
+
+                    b.HasIndex("ClientId")
+                        .HasDatabaseName("ix_projects_client_id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_projects_created_at");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("ix_projects_is_active");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_projects_status");
+
+                    b.ToTable("projects", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ProjectSkill", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CustomName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("custom_name");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("project_id");
+
+                    b.Property<int?>("SkillId")
+                        .HasColumnType("integer")
+                        .HasColumnName("skill_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_project_skills");
+
+                    b.HasIndex("SkillId")
+                        .HasDatabaseName("ix_project_skills_skill_id");
+
+                    b.HasIndex("ProjectId", "SkillId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_project_skills_project_id_skill_id")
+                        .HasFilter("\"skill_id\" IS NOT NULL");
+
+                    b.ToTable("project_skills", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Skill", b =>
                 {
                     b.Property<int>("Id")
@@ -988,6 +1125,46 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Skill");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_projects_categories_category_id");
+
+                    b.HasOne("WebOfWork.Api.Models.ClientProfile", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_projects_client_profiles_client_id");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Client");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ProjectSkill", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Project", "Project")
+                        .WithMany("Skills")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_project_skills_projects_project_id");
+
+                    b.HasOne("WebOfWork.Api.Models.Skill", "Skill")
+                        .WithMany()
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_project_skills_skills_skill_id");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Skill");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Skill", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Category", "Category")
@@ -1051,6 +1228,11 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Endorsements");
 
                     b.Navigation("PortfolioTags");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>
+                {
+                    b.Navigation("Skills");
                 });
 #pragma warning restore 612, 618
         }

@@ -210,6 +210,8 @@ public class Program
 
             // ──────────────────────────────────────────────────────────────────────
             builder.Services.AddScoped<WebOfWork.Api.Services.IBriefService, WebOfWork.Api.Services.BriefService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IProjectService, WebOfWork.Api.Services.ProjectService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IProjectRecommendationService, WebOfWork.Api.Services.ProjectRecommendationService>();
             var app = builder.Build();
 
             // ── Locked Middleware Pipeline (Plan §7) ─────────────────────────────
@@ -251,6 +253,7 @@ public class Program
         }
     }
 }
+
 
 
 
