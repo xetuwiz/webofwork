@@ -49,6 +49,7 @@ public sealed class ExceptionHandlingMiddleware
         var (statusCode, title) = ex switch
         {
             ArgumentException              => (HttpStatusCode.BadRequest, "Bad Request"),
+            InvalidOperationException      => (HttpStatusCode.BadRequest, "Bad Request"),
             UnauthorizedAccessException    => (HttpStatusCode.Unauthorized, "Unauthorized"),
             KeyNotFoundException           => (HttpStatusCode.NotFound, "Not Found"),
             OperationCanceledException     => (HttpStatusCode.ServiceUnavailable, "Request Cancelled"),

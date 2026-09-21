@@ -359,6 +359,112 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("contracts", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.ContractDeliverable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id");
+
+                    b.Property<string>("FileUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("file_url");
+
+                    b.Property<Guid>("FreelancerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("freelancer_id");
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("link_url");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contract_deliverables");
+
+                    b.HasIndex("ContractId")
+                        .HasDatabaseName("ix_contract_deliverables_contract_id");
+
+                    b.HasIndex("FreelancerId")
+                        .HasDatabaseName("ix_contract_deliverables_freelancer_id");
+
+                    b.ToTable("contract_deliverables", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ContractRevision", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("RejectionMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("rejection_message");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contract_revisions");
+
+                    b.HasIndex("ContractId")
+                        .HasDatabaseName("ix_contract_revisions_contract_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_contract_revisions_user_id");
+
+                    b.ToTable("contract_revisions", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPackage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1385,6 +1491,48 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Package");
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ContractDeliverable", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_contract_deliverables_contracts_contract_id");
+
+                    b.HasOne("WebOfWork.Api.Models.FreelancerProfile", "Freelancer")
+                        .WithMany()
+                        .HasForeignKey("FreelancerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_contract_deliverables_freelancer_profiles_freelancer_id");
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Freelancer");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ContractRevision", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_contract_revisions_contracts_contract_id");
+
+                    b.HasOne("WebOfWork.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_contract_revisions_users_user_id");
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPackage", b =>
