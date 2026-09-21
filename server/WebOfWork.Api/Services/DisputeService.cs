@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using WebOfWork.Api.Data;
 using WebOfWork.Api.DTOs.Disputes;
+using WebOfWork.Api.DTOs.Refunds;
 using WebOfWork.Api.Models;
 using WebOfWork.Api.Models.Enums;
 
@@ -15,11 +16,13 @@ public class DisputeService : IDisputeService
 {
     private readonly WebOfWorkDbContext _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IRefundService _refundService;
 
-    public DisputeService(WebOfWorkDbContext db, ICurrentUser currentUser)
+    public DisputeService(WebOfWorkDbContext db, ICurrentUser currentUser, IRefundService refundService)
     {
         _db = db;
         _currentUser = currentUser;
+        _refundService = refundService;
     }
 
     public async Task<DisputeResponse> CreateDisputeAsync(int contractId, CreateDisputeRequest request, CancellationToken cancellationToken)
@@ -139,7 +142,25 @@ public class DisputeService : IDisputeService
             dispute.Contract.Status = ContractStatus.Completed;
             dispute.Contract.PaidToFreelancer = true;
         }
-        else if (request.Resolution == DisputeResolution.Refund || request.Resolution == DisputeResolution.Split)
+        else if (request.Resolution == DisputeResolution.Refund)
+        {
+            var payment = await _db.Payments
+                .Where(p => p.ContractId == dispute.ContractId && p.Status == PaymentStatus.Escrow)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (payment == null)
+                throw new InvalidOperationException("No escrow payment found to refund.");
+
+            var reason = string.IsNullOrWhiteSpace(request.AdminNotes)
+                ? dispute.Reason.ToString()
+                : request.AdminNotes;
+            await _refundService.RefundPaymentAsync(new RefundPaymentRequest
+            {
+                PaymentId = payment.Id,
+                Reason = reason
+            }, cancellationToken);
+        }
+        else if (request.Resolution == DisputeResolution.Split)
         {
             dispute.Contract.Status = ContractStatus.Refunded;
         }

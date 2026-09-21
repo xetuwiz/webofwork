@@ -57,13 +57,13 @@ public class SettingsTests
         
         var request = new UpdateGlobalSettingsRequest(
             null, null, null, null, null, null, 
-            DefaultCurrency: "USD" 
+            DefaultCurrency: "EUR" 
         );
 
         Func<Task> act = async () => await service.UpdateGlobalSettingsAsync(request);
 
         await act.Should().ThrowAsync<ArgumentException>()
-            .WithMessage("*DefaultCurrency cannot be changed from LKR.*");
+            .WithMessage("*DefaultCurrency cannot be changed from USD.*");
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class SettingsTests
 
         settings.Should().NotBeNull();
         settings.Id.Should().Be(1);
-        settings.DefaultCurrency.Should().Be("LKR");
+        settings.DefaultCurrency.Should().Be("USD");
         
         var dbCount = await context.GlobalSettings.CountAsync();
         dbCount.Should().Be(1);

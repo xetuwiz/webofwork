@@ -20,7 +20,7 @@ public class GlobalSettings : IAuditableEntity
     
     public decimal MatchScoreThreshold { get; set; } = 0.60m;
     
-    public string DefaultCurrency { get; private set; } = "LKR"; // Private setter to enforce immutability at the domain level
+    public string DefaultCurrency { get; private set; } = "USD"; // Private setter to enforce immutability at the domain level
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

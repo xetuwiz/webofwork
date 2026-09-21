@@ -2,6 +2,7 @@ using System.Text;
 using Hangfire;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -83,6 +84,16 @@ public class Program
                           .AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials());
+            });
+
+            // ── Forwarded Headers (ngrok / Railway reverse proxy) ────────────────
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+                options.RequireHeaderSymmetry = false;
+                options.ForwardLimit = null;
+                options.KnownProxies.Clear();
+                options.KnownNetworks.Clear();
             });
 
             // ── Health Checks (Step 1.7) ─────────────────────────────────────────
@@ -226,13 +237,20 @@ builder.Services.AddScoped<WebOfWork.Api.Services.IPaymentService, WebOfWork.Api
 builder.Services.AddScoped<WebOfWork.Api.Services.ICommissionCalculator, WebOfWork.Api.Services.CommissionCalculator>();
 builder.Services.Configure<WebOfWork.Api.Configuration.PayPalOptions>(builder.Configuration.GetSection(WebOfWork.Api.Configuration.PayPalOptions.Section));
 builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalClient, WebOfWork.Api.Integrations.PayPal.PayPalClient>();
+builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalPayoutClient, WebOfWork.Api.Integrations.PayPal.PayPalPayoutClient>();
+builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalRefundClient, WebOfWork.Api.Integrations.PayPal.PayPalRefundClient>();
+builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalWebhookVerifier, WebOfWork.Api.Integrations.PayPal.PayPalWebhookVerifier>();
 builder.Services.AddScoped<WebOfWork.Api.Integrations.PayPal.IPayPalOrderVerifier, WebOfWork.Api.Integrations.PayPal.PayPalOrderVerifier>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IPayoutService, WebOfWork.Api.Services.PayoutService>();
+builder.Services.AddScoped<WebOfWork.Api.Services.IRefundService, WebOfWork.Api.Services.RefundService>();
 builder.Services.AddTransient<WebOfWork.Api.Jobs.RecalculateRatingsJob>();
 
 var app = builder.Build();
 
             // ── Locked Middleware Pipeline (Plan §7) ─────────────────────────────
             app.UseExceptionHandlingMiddleware();
+            app.UseForwardedHeaders();
+            app.UseHttpsRedirection();
             app.UseCorrelationIdMiddleware();
             app.UseRequestLoggingMiddleware();
             app.UseInternalApiKeyMiddleware(); // MUST BE BEFORE UseRouting
@@ -249,7 +267,6 @@ var app = builder.Build();
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
             app.MapControllers();
             app.MapHealthChecks("/health");
 

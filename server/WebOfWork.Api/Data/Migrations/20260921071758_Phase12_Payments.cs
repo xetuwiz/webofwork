@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -50,8 +50,8 @@ namespace WebOfWork.Api.Data.Migrations
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    total_volume_lkr = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    total_profit_lkr = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    total_volume_usd = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    total_profit_usd = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     completed_contracts_count = table.Column<int>(type: "integer", nullable: false),
                     updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },

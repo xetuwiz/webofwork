@@ -59,19 +59,43 @@ public class PaymentService : IPaymentService
         var existingPayment = await _db.Payments.AnyAsync(p => p.PayPalOrderId == request.PayPalOrderId, ct);
         if (existingPayment) throw new ArgumentException("Payment order ID already processed.");
 
+        Milestone? milestone = null;
+        decimal expectedAmountUsd;
+
+        if (request.MilestoneId.HasValue)
+        {
+            milestone = await _db.Milestones
+                .FirstOrDefaultAsync(m => m.Id == request.MilestoneId.Value && m.ContractId == contract.Id, ct);
+            if (milestone == null) throw new ArgumentException("Milestone not found for this contract.");
+            if (milestone.Status != MilestoneStatus.Pending)
+                throw new ArgumentException("Milestone has already been funded.");
+            if (await _db.Payments.AnyAsync(p => p.MilestoneId == milestone.Id, ct))
+                throw new ArgumentException("Milestone payment already processed.");
+
+            expectedAmountUsd = milestone.Amount;
+        }
+        else
+        {
+            expectedAmountUsd = contract.TotalAmount;
+        }
+
+        if (request.PayPalAmountUsd != expectedAmountUsd)
+            throw new ArgumentException("PayPal amount does not match the contract or milestone amount.");
+
         var isValid = await _payPalVerifier.VerifyOrderAsync(request.PayPalOrderId, request.PayPalAmountUsd);
         if (!isValid) throw new ArgumentException("Invalid PayPal order. Amount or currency mismatch.");
 
         using var transaction = await _db.Database.BeginTransactionAsync(ct);
         try
         {
-            var fee = await _commissionCalculator.CalculateFeeAsync(contract.TotalAmount);
+            var fee = await _commissionCalculator.CalculateFeeAsync(expectedAmountUsd);
             
             var payment = new Payment
             {
                 ContractId = contract.Id,
+                MilestoneId = request.MilestoneId,
                 PayPalOrderId = request.PayPalOrderId,
-                Amount = contract.TotalAmount,
+                Amount = expectedAmountUsd,
                 PlatformFee = fee,
                 Status = PaymentStatus.Escrow,
                 ProcessedAt = DateTime.UtcNow
@@ -79,7 +103,25 @@ public class PaymentService : IPaymentService
             
             _db.Payments.Add(payment);
 
-            contract.IsFunded = true;
+            if (milestone != null)
+            {
+                milestone.Status = MilestoneStatus.InProgress;
+                milestone.FundedAt = DateTime.UtcNow;
+                milestone.StartedAt = DateTime.UtcNow;
+            }
+
+            if (request.MilestoneId.HasValue)
+            {
+                var otherPendingMilestones = await _db.Milestones
+                    .CountAsync(m => m.ContractId == contract.Id
+                                  && m.Status == MilestoneStatus.Pending
+                                  && m.Id != milestone!.Id, ct);
+                contract.IsFunded = otherPendingMilestones == 0;
+            }
+            else
+            {
+                contract.IsFunded = true;
+            }
             if (contract.Status == ContractStatus.Offered)
             {
                 contract.Status = ContractStatus.Active;
@@ -102,8 +144,8 @@ public class PaymentService : IPaymentService
                 analytics = new PlatformAnalytics();
                 _db.PlatformAnalytics.Add(analytics);
             }
-            analytics.TotalVolumeLkr += contract.TotalAmount;
-            analytics.TotalProfitLkr += fee;
+            analytics.TotalVolumeUsd += expectedAmountUsd;
+            analytics.TotalProfitUsd += fee;
 
             await _db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
@@ -119,6 +161,7 @@ public class PaymentService : IPaymentService
             {
                 Id = payment.Id,
                 ContractId = payment.ContractId,
+                MilestoneId = payment.MilestoneId,
                 PayPalOrderId = payment.PayPalOrderId,
                 Amount = payment.Amount,
                 Status = payment.Status.ToString(),
@@ -158,6 +201,7 @@ public class PaymentService : IPaymentService
         {
             Id = p.Id,
             ContractId = p.ContractId,
+            MilestoneId = p.MilestoneId,
             PayPalOrderId = p.PayPalOrderId,
             Amount = p.Amount - p.PlatformFee, // freelancer receives amount minus fee
             Status = p.Status.ToString(),
@@ -175,6 +219,7 @@ public class PaymentService : IPaymentService
         {
             Id = p.Id,
             ContractId = p.ContractId,
+            MilestoneId = p.MilestoneId,
             PayPalOrderId = p.PayPalOrderId,
             Amount = p.Amount,
             Status = p.Status.ToString(),

@@ -5,17 +5,17 @@ using WebOfWork.Api.Data;
 namespace WebOfWork.Api.Services;
 public interface ICommissionCalculator
 {
-    Task<decimal> CalculateFeeAsync(decimal amountLkr);
+    Task<decimal> CalculateFeeAsync(decimal amountUsd);
 }
 public class CommissionCalculator : ICommissionCalculator
 {
     private readonly WebOfWorkDbContext _db;
     public CommissionCalculator(WebOfWorkDbContext db) { _db = db; }
-    public async Task<decimal> CalculateFeeAsync(decimal amountLkr)
+    public async Task<decimal> CalculateFeeAsync(decimal amountUsd)
     {
         var settings = await _db.GlobalSettings.FirstOrDefaultAsync();
         decimal feePercentage = settings?.CommissionPercentage ?? 10m; 
-        return Math.Round(amountLkr * (feePercentage / 100m), 2);
+        return Math.Round(amountUsd * (feePercentage / 100m), 2);
     }
 }
 

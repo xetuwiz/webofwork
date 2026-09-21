@@ -2,7 +2,7 @@ namespace WebOfWork.Api.Configuration;
 
 /// <summary>
 /// PayPal Checkout SDK options.
-/// Currency is always LKR — never USD/EUR (engineering standard).
+/// Currency is always USD. Platform ledger amounts and PayPal processing use the same currency.
 /// Mode: "sandbox" in dev, "live" in prod via Railway env vars.
 /// </summary>
 public sealed class PayPalOptions
@@ -13,7 +13,7 @@ public sealed class PayPalOptions
     public string Secret    { get; init; } = string.Empty;
     /// <summary>"sandbox" or "live". Injected via env in Railway for prod.</summary>
     public string Mode      { get; init; } = "sandbox";
-    /// <summary>Always "LKR" — never USD or EUR.</summary>
-    public string Currency  { get; init; } = "LKR";
+    /// <summary>Always USD.</summary>
+    public string Currency  { get; init; } = "USD";
     public string WebhookId { get; init; } = string.Empty;
 }

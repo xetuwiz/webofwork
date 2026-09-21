@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -34,7 +34,7 @@ namespace WebOfWork.Api.Data.Migrations
             migrationBuilder.InsertData(
                 table: "global_settings",
                 columns: new[] { "id", "commission_percentage", "created_at", "default_currency", "match_score_threshold", "min_brief_confidence", "pay_pal_email", "proposal_screening_threshold", "support_email", "updated_at" },
-                values: new object[] { 1, 10.00m, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "LKR", 0.60m, 0.60m, "payments@webofwork.lk", 0.50m, "support@webofwork.lk", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+                values: new object[] { 1, 10.00m, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "USD", 0.60m, 0.60m, "payments@webofwork.lk", 0.50m, "support@webofwork.lk", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
         }
 
         /// <inheritdoc />

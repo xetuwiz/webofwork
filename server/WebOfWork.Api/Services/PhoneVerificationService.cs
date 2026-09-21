@@ -30,24 +30,26 @@ public class PhoneVerificationService : IPhoneVerificationService
 
     public async Task SendPhoneOtpAsync(Guid userId, string phone)
     {
+        var normalizedPhone = AndroidSmsGatewaySmsSender.NormalizeSriLankanPhoneNumber(phone);
         var code = new Random().Next(100000, 999999).ToString();
         await _otpService.SetOtpAsync($"phone:{userId}", code, TimeSpan.FromMinutes(10));
         
         var strategy = _smsStrategyFactory.GetStrategy("otp");
         var message = strategy.GenerateMessage(code);
         
-        await _smsSender.SendSmsAsync(phone, message);
+        await _smsSender.SendSmsAsync(normalizedPhone, message);
     }
 
     public async Task VerifyPhoneOtpAsync(Guid userId, string phone, string otp)
     {
+        var normalizedPhone = AndroidSmsGatewaySmsSender.NormalizeSriLankanPhoneNumber(phone);
         var stored = await _otpService.GetOtpAsync($"phone:{userId}");
         if (stored != otp) throw new UnauthorizedAccessException("Invalid OTP");
         
         var profile = await _db.FreelancerProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
         if (profile != null)
         {
-            profile.Phone = phone;
+            profile.Phone = normalizedPhone;
             profile.IsPhoneVerified = true;
             await _db.SaveChangesAsync();
         }

@@ -4,6 +4,7 @@ public class PaymentResponse
 {
     public int Id { get; set; }
     public int ContractId { get; set; }
+    public int? MilestoneId { get; set; }
     public string PayPalOrderId { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string Status { get; set; } = string.Empty;

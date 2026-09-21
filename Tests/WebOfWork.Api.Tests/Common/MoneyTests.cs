@@ -7,21 +7,21 @@ namespace WebOfWork.Api.Tests.Common;
 public class MoneyTests
 {
     [Fact]
-    public void Constructor_WithValidAmountAndLKR_CreatesSuccessfully()
+    public void Constructor_WithValidAmountAndUsd_CreatesSuccessfully()
     {
         // Act
-        var money = new Money(1000.55m, "LKR");
+        var money = new Money(1000.55m, "USD");
 
         // Assert
         money.Amount.Should().Be(1000.55m);
-        money.Currency.Should().Be("LKR");
+        money.Currency.Should().Be("USD");
     }
 
     [Fact]
     public void Constructor_WithNegativeAmount_ThrowsArgumentException()
     {
         // Act
-        Action act = () => new Money(-100m, "LKR");
+        Action act = () => new Money(-100m, "USD");
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -29,14 +29,14 @@ public class MoneyTests
     }
 
     [Fact]
-    public void Constructor_WithNonLKRCurrency_ThrowsArgumentException()
+    public void Constructor_WithNonUsdCurrency_ThrowsArgumentException()
     {
         // Act
-        Action act = () => new Money(100m, "USD");
+        Action act = () => new Money(100m, "EUR");
 
         // Assert
         act.Should().Throw<ArgumentException>()
-            .WithMessage("*must be LKR*");
+            .WithMessage("*must be USD*");
     }
 
     [Theory]
@@ -46,7 +46,7 @@ public class MoneyTests
     public void Constructor_RoundsToTwoDecimalPlaces(decimal input, decimal expected)
     {
         // Act
-        var money = new Money(input, "LKR");
+        var money = new Money(input, "USD");
 
         // Assert
         money.Amount.Should().Be(expected);
@@ -64,7 +64,7 @@ public class MoneyTests
 
         // Assert
         result.Amount.Should().Be(150m);
-        result.Currency.Should().Be("LKR");
+        result.Currency.Should().Be("USD");
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class MoneyTests
 
         // Assert
         result.Amount.Should().Be(70m);
-        result.Currency.Should().Be("LKR");
+        result.Currency.Should().Be("USD");
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class MoneyTests
 
         // Assert
         result.Amount.Should().Be(150m);
-        result.Currency.Should().Be("LKR");
+        result.Currency.Should().Be("USD");
     }
 
     [Fact]
@@ -121,6 +121,6 @@ public class MoneyTests
         var result = money.ToString();
 
         // Assert
-        result.Should().Be("LKR 1000.50");
+        result.Should().Be("USD 1000.50");
     }
 }

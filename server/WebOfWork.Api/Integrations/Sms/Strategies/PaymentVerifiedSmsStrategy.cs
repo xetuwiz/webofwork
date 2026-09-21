@@ -6,6 +6,6 @@ public class PaymentVerifiedSmsStrategy : ISmsMessageStrategy
     {
         var amount = args[0];
         var contractId = args[1];
-        return "Payment of " + amount + " LKR has been verified and placed in escrow for Contract #" + contractId + ".";
+        return "Payment of " + amount + " USD has been verified and placed in escrow for Contract #" + contractId + ".";
     }
 }

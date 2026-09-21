@@ -36,8 +36,8 @@ public class UpdateGlobalSettingsRequestValidator : AbstractValidator<UpdateGlob
 
         // The controller will also check this, but we can fail fast here too if they send a different currency.
         RuleFor(x => x.DefaultCurrency)
-            .Must(c => string.Equals(c, "LKR", StringComparison.OrdinalIgnoreCase))
+            .Must(c => string.Equals(c, "USD", StringComparison.OrdinalIgnoreCase))
             .When(x => x.DefaultCurrency != null)
-            .WithMessage("DefaultCurrency is immutable and must remain LKR.");
+            .WithMessage("DefaultCurrency is immutable and must remain USD.");
     }
 }

@@ -25,7 +25,7 @@ public class PayPalOrderVerifier : IPayPalOrderVerifier
         var order = await _payPalClient.GetOrderDetailsAsync(orderId);
         if (order == null)                        return false;
         if (order.Status   != "COMPLETED")        return false;
-        if (order.Currency != _opts.Currency)     return false;  // "USD" — PayPal does not support LKR
+        if (order.Currency != _opts.Currency)     return false;  // "USD" — PayPal processes USD
         if (order.Amount   != expectedAmountUsd)  return false;
         return true;
     }

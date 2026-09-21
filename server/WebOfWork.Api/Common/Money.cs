@@ -1,8 +1,8 @@
 namespace WebOfWork.Api.Common;
 
 /// <summary>
-/// Money Value Object enforcing decimal(18,2) and "LKR" currency.
-/// Negative amounts are rejected. Only LKR is permitted.
+/// Money Value Object enforcing decimal(18,2) and "USD" currency.
+/// Negative amounts are rejected. Only USD is permitted.
 /// Used globally for all financial transactions.
 /// </summary>
 public record Money
@@ -10,13 +10,13 @@ public record Money
     public decimal Amount { get; }
     public string Currency { get; }
 
-    public Money(decimal amount, string currency = "LKR")
+    public Money(decimal amount, string currency = "USD")
     {
         if (amount < 0)
             throw new ArgumentException("Amount cannot be negative.", nameof(amount));
         
-        if (!string.Equals(currency, "LKR", StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Currency must be LKR. No other currencies are supported.", nameof(currency));
+        if (!string.Equals(currency, "USD", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Currency must be USD. No other currencies are supported.", nameof(currency));
 
         Amount = Math.Round(amount, 2, MidpointRounding.AwayFromZero);
         Currency = currency.ToUpperInvariant();

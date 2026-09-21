@@ -79,7 +79,7 @@ public class ContractDocumentService : IContractDocumentService
             column.Item().Text(text =>
             {
                 text.Span("Total Amount: ").SemiBold();
-                text.Span($"LKR {contract.TotalAmount:N2}");
+                text.Span($"USD {contract.TotalAmount:N2}");
             });
 
             column.Item().Text("Terms & Conditions").FontSize(14).SemiBold();

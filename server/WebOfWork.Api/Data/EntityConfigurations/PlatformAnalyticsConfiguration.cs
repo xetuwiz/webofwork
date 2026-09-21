@@ -7,7 +7,7 @@ public class PlatformAnalyticsConfiguration : IEntityTypeConfiguration<PlatformA
     public void Configure(EntityTypeBuilder<PlatformAnalytics> builder)
     {
         builder.HasKey(p => p.Id);
-        builder.Property(p => p.TotalVolumeLkr).HasColumnType("decimal(18,2)").IsRequired();
-        builder.Property(p => p.TotalProfitLkr).HasColumnType("decimal(18,2)").IsRequired();
+        builder.Property(p => p.TotalVolumeUsd).HasColumnType("decimal(18,2)").IsRequired();
+        builder.Property(p => p.TotalProfitUsd).HasColumnType("decimal(18,2)").IsRequired();
     }
 }

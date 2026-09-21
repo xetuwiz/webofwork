@@ -37,9 +37,9 @@ public class ContentService : IContentService
 
     public async Task<GlobalSettings> UpdateGlobalSettingsAsync(UpdateGlobalSettingsRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.DefaultCurrency != null && !string.Equals(request.DefaultCurrency, "LKR", StringComparison.OrdinalIgnoreCase))
+        if (request.DefaultCurrency != null && !string.Equals(request.DefaultCurrency, "USD", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("DefaultCurrency cannot be changed from LKR.", nameof(request.DefaultCurrency));
+            throw new ArgumentException("DefaultCurrency cannot be changed from USD.", nameof(request.DefaultCurrency));
         }
 
         var settings = await GetGlobalSettingsAsync(cancellationToken);
