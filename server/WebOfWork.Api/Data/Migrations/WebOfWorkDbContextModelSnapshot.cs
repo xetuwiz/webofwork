@@ -308,6 +308,59 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("client_profiles", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.CmsSection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Heading")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("heading");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cms_sections");
+
+                    b.HasIndex("Category", "SortOrder")
+                        .HasDatabaseName("IX_cms_sections_category_sort_order")
+                        .HasFilter("is_active = true");
+
+                    b.ToTable("cms_sections", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Contract", b =>
                 {
                     b.Property<int>("Id")
@@ -621,6 +674,59 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasDatabaseName("ix_dispute_files_dispute_id");
 
                     b.ToTable("dispute_files", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Faq", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)")
+                        .HasColumnName("answer");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("question");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_faqs");
+
+                    b.HasIndex("Category", "SortOrder")
+                        .HasDatabaseName("IX_faq_category_sort_order")
+                        .HasFilter("is_active = true");
+
+                    b.ToTable("faqs", (string)null);
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPackage", b =>
@@ -1762,6 +1868,83 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("skill_endorsements", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.SupportTicket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminReply")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("admin_reply");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("message");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedByAdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by_admin_id");
+
+                    b.Property<string>("SenderRole")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("sender_role");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("subject");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_support_tickets");
+
+                    b.HasIndex("ResolvedByAdminId")
+                        .HasDatabaseName("ix_support_tickets_resolved_by_admin_id");
+
+                    b.HasIndex("SenderRole")
+                        .HasDatabaseName("IX_support_tickets_sender_role");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("IX_support_tickets_status_created_at");
+
+                    b.HasIndex("UserId", "Status")
+                        .HasDatabaseName("IX_support_tickets_user_status_open")
+                        .HasFilter("status = 'Open'");
+
+                    b.ToTable("support_tickets", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2399,6 +2582,26 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Endorser");
 
                     b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.SupportTicket", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.User", "ResolvedByAdmin")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByAdminId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_support_tickets_users_resolved_by_admin_id");
+
+                    b.HasOne("WebOfWork.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_support_tickets_users_user_id");
+
+                    b.Navigation("ResolvedByAdmin");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Brief", b =>

@@ -244,6 +244,7 @@ builder.Services.AddScoped<WebOfWork.Api.Integrations.PayPal.IPayPalOrderVerifie
 builder.Services.AddScoped<WebOfWork.Api.Services.IPayoutService, WebOfWork.Api.Services.PayoutService>();
 builder.Services.AddScoped<WebOfWork.Api.Services.IRefundService, WebOfWork.Api.Services.RefundService>();
 builder.Services.AddTransient<WebOfWork.Api.Jobs.RecalculateRatingsJob>();
+builder.Services.AddTransient<WebOfWork.Api.Jobs.SendSupportReplyJob>();
 
 // Phase 14 Chat & Notifications
 builder.Services.AddScoped<WebOfWork.Api.Services.IContactInformationPolicy, WebOfWork.Api.Services.ContactInformationPolicy>();
@@ -253,6 +254,9 @@ builder.Services.AddScoped<WebOfWork.Api.Services.INotificationPublisher>(sp =>
     sp.GetRequiredService<WebOfWork.Api.Services.INotificationService>() as WebOfWork.Api.Services.NotificationService
     ?? throw new InvalidOperationException("Notification service not registered correctly."));
 builder.Services.AddSingleton<WebOfWork.Api.Integrations.Sms.Strategies.SmsStrategyFactory>(); // re-register to guarantee DI order
+
+// Phase 15 Support & Content
+builder.Services.AddScoped<WebOfWork.Api.Services.ISupportService, WebOfWork.Api.Services.SupportService>();
 
 var app = builder.Build();
 

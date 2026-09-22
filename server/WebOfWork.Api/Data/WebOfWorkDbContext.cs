@@ -54,6 +54,11 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.Message> Messages { get; set; }
     public DbSet<WebOfWork.Api.Models.Notification> Notifications { get; set; }
 
+    // Phase 15
+    public DbSet<WebOfWork.Api.Models.SupportTicket> SupportTickets { get; set; }
+    public DbSet<WebOfWork.Api.Models.Faq> Faqs { get; set; }
+    public DbSet<WebOfWork.Api.Models.CmsSection> CmsSections { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
