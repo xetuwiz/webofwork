@@ -245,6 +245,12 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Services.IRefundService, WebOfWork.Api.Services.RefundService>();
             builder.Services.AddTransient<WebOfWork.Api.Jobs.RecalculateRatingsJob>();
             builder.Services.AddTransient<WebOfWork.Api.Jobs.SendSupportReplyJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.SendOtpEmailJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.SendPasswordResetEmailJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.SendPhoneOtpJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.GenerateContractDocumentJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.PublishNotificationJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.CleanupExpiredOtpsJob>();
 
             // Phase 14 Chat & Notifications
             builder.Services.AddScoped<WebOfWork.Api.Services.IContactInformationPolicy, WebOfWork.Api.Services.ContactInformationPolicy>();
@@ -296,6 +302,11 @@ public class Program
             // ── Background Jobs ──────────────────────────────────────────────────
             RecurringJob.AddOrUpdate<WebOfWork.Api.Jobs.RecalculateRatingsJob>(
                 "recalculate-ratings",
+                job => job.ExecuteAsync(CancellationToken.None),
+                Cron.Hourly);
+
+            RecurringJob.AddOrUpdate<WebOfWork.Api.Jobs.CleanupExpiredOtpsJob>(
+                "cleanup-expired-otps",
                 job => job.ExecuteAsync(CancellationToken.None),
                 Cron.Hourly);
 

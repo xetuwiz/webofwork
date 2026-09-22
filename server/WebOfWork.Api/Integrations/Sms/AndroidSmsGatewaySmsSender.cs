@@ -1,3 +1,5 @@
+using System;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
@@ -28,22 +30,51 @@ public class AndroidSmsGatewaySmsSender : ISmsSender
     {
         var normalizedPhone = NormalizeSriLankanPhoneNumber(phoneNumber);
 
-        try
+        for (var attempt = 1; attempt <= 3; attempt++)
         {
-            var payload = new
+            try
             {
-                textMessage = new { text = message },
-                simNumber = _options.SimNumber,
-                phoneNumbers = new[] { normalizedPhone }
-            };
-            var response = await _httpClient.PostAsJsonAsync("messages", payload);
-            response.EnsureSuccessStatusCode();
-            _logger.LogInformation("SMS sent successfully to {Phone}", normalizedPhone);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Failed to send SMS via Android gateway to {Phone}", normalizedPhone);
-            throw;
+                var payload = new
+                {
+                    textMessage = new { text = message },
+                    simNumber = _options.SimNumber,
+                    phoneNumbers = new[] { normalizedPhone }
+                };
+                var response = await _httpClient.PostAsJsonAsync("messages", payload);
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("SMS sent successfully to {Phone} on attempt {Attempt}", normalizedPhone, attempt);
+                    return;
+                }
+
+                if ((int)response.StatusCode >= 500 || response.StatusCode == HttpStatusCode.RequestTimeout)
+                {
+                    _logger.LogWarning(
+                        "Android SMS gateway returned {StatusCode} for {Phone} on attempt {Attempt}; retrying.",
+                        response.StatusCode,
+                        normalizedPhone,
+                        attempt);
+                    if (attempt < 3)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(attempt * 2));
+                        continue;
+                    }
+                }
+
+                response.EnsureSuccessStatusCode();
+            }
+            catch (HttpRequestException ex)
+            {
+                if (attempt < 3)
+                {
+                    _logger.LogWarning(ex, "Temporary SMS send failure to {Phone} on attempt {Attempt}; retrying.", normalizedPhone, attempt);
+                    await Task.Delay(TimeSpan.FromSeconds(attempt * 2));
+                    continue;
+                }
+
+                _logger.LogError(ex, "Failed to send SMS via Android gateway to {Phone} after retries", normalizedPhone);
+                throw;
+            }
         }
     }
 
