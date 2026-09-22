@@ -65,7 +65,7 @@ public class Program
 
             // ── Controllers & SignalR (Step 1.13) ────────────────────────────────
             builder.Services.AddControllers();
-            builder.Services.AddSignalR(); 
+            builder.Services.AddSignalR();
 
             // ── Database Context (Phase 2) ───────────────────────────────────────
             if (!string.IsNullOrEmpty(dbOptions.Postgres))
@@ -139,7 +139,7 @@ public class Program
             });
 
             // ── Authentication & Authorization (Step 1.10) ───────────────────────
-            
+
             // Prevent default renaming of claims (e.g. "role" to "http://schemas.microsoft.com/ws/...")
             System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
@@ -187,9 +187,9 @@ public class Program
 
             // ── Integrations & Services (Steps 1.14, 1.15, Phase 2A) ─────────────
             builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
-            
+
             builder.Services.AddScoped<WebOfWork.Api.Services.IContentService, WebOfWork.Api.Services.ContentService>();
-            
+
             // Phase 3 Identity & Auth Services
             builder.Services.AddScoped<WebOfWork.Api.Services.IPasswordHasher, WebOfWork.Api.Services.PasswordHasher>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IOtpService, WebOfWork.Api.Services.OtpService>();
@@ -199,7 +199,7 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Services.IPasswordResetService, WebOfWork.Api.Services.PasswordResetService>();
             builder.Services.AddScoped<WebOfWork.Api.Integrations.Google.IGoogleTokenVerifier, WebOfWork.Api.Integrations.Google.GoogleTokenVerifier>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IGoogleAuthService, WebOfWork.Api.Services.GoogleAuthService>();
-            
+
             // Phase 5 Services
             builder.Services.AddScoped<WebOfWork.Api.Services.IProfileService, WebOfWork.Api.Services.ProfileService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IPortfolioService, WebOfWork.Api.Services.PortfolioService>();
@@ -216,7 +216,7 @@ public class Program
                 var credentials = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{config.Username}:{config.Password}"));
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
             });
-            
+
             builder.Services.AddValidatorsFromAssemblyContaining<WebOfWork.Api.DTOs.Platform.UpdateGlobalSettingsRequestValidator>();
 
             // ──────────────────────────────────────────────────────────────────────
@@ -224,41 +224,45 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Services.IProjectService, WebOfWork.Api.Services.ProjectService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IProjectRecommendationService, WebOfWork.Api.Services.ProjectRecommendationService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IProposalService, WebOfWork.Api.Services.ProposalService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IInvitationService, WebOfWork.Api.Services.InvitationService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IContractService, WebOfWork.Api.Services.ContractService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IContractDocumentService, WebOfWork.Api.Services.ContractDocumentService>();
-builder.Services.AddScoped<WebOfWork.Api.Integrations.Cloudinary.ICloudinaryStorageService, WebOfWork.Api.Integrations.Cloudinary.CloudinaryStorageService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IMilestoneService, WebOfWork.Api.Services.MilestoneService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IDeliverableService, WebOfWork.Api.Services.DeliverableService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IRevisionService, WebOfWork.Api.Services.RevisionService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IDisputeService, WebOfWork.Api.Services.DisputeService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IReviewService, WebOfWork.Api.Services.ReviewService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IPaymentService, WebOfWork.Api.Services.PaymentService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.ICommissionCalculator, WebOfWork.Api.Services.CommissionCalculator>();
-builder.Services.Configure<WebOfWork.Api.Configuration.PayPalOptions>(builder.Configuration.GetSection(WebOfWork.Api.Configuration.PayPalOptions.Section));
-builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalClient, WebOfWork.Api.Integrations.PayPal.PayPalClient>();
-builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalPayoutClient, WebOfWork.Api.Integrations.PayPal.PayPalPayoutClient>();
-builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalRefundClient, WebOfWork.Api.Integrations.PayPal.PayPalRefundClient>();
-builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalWebhookVerifier, WebOfWork.Api.Integrations.PayPal.PayPalWebhookVerifier>();
-builder.Services.AddScoped<WebOfWork.Api.Integrations.PayPal.IPayPalOrderVerifier, WebOfWork.Api.Integrations.PayPal.PayPalOrderVerifier>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IPayoutService, WebOfWork.Api.Services.PayoutService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IRefundService, WebOfWork.Api.Services.RefundService>();
-builder.Services.AddTransient<WebOfWork.Api.Jobs.RecalculateRatingsJob>();
-builder.Services.AddTransient<WebOfWork.Api.Jobs.SendSupportReplyJob>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IInvitationService, WebOfWork.Api.Services.InvitationService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IContractService, WebOfWork.Api.Services.ContractService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IContractDocumentService, WebOfWork.Api.Services.ContractDocumentService>();
+            builder.Services.AddScoped<WebOfWork.Api.Integrations.Cloudinary.ICloudinaryStorageService, WebOfWork.Api.Integrations.Cloudinary.CloudinaryStorageService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IMilestoneService, WebOfWork.Api.Services.MilestoneService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IDeliverableService, WebOfWork.Api.Services.DeliverableService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IRevisionService, WebOfWork.Api.Services.RevisionService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IDisputeService, WebOfWork.Api.Services.DisputeService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IReviewService, WebOfWork.Api.Services.ReviewService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IPaymentService, WebOfWork.Api.Services.PaymentService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.ICommissionCalculator, WebOfWork.Api.Services.CommissionCalculator>();
+            builder.Services.Configure<WebOfWork.Api.Configuration.PayPalOptions>(builder.Configuration.GetSection(WebOfWork.Api.Configuration.PayPalOptions.Section));
+            builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalClient, WebOfWork.Api.Integrations.PayPal.PayPalClient>();
+            builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalPayoutClient, WebOfWork.Api.Integrations.PayPal.PayPalPayoutClient>();
+            builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalRefundClient, WebOfWork.Api.Integrations.PayPal.PayPalRefundClient>();
+            builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalWebhookVerifier, WebOfWork.Api.Integrations.PayPal.PayPalWebhookVerifier>();
+            builder.Services.AddScoped<WebOfWork.Api.Integrations.PayPal.IPayPalOrderVerifier, WebOfWork.Api.Integrations.PayPal.PayPalOrderVerifier>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IPayoutService, WebOfWork.Api.Services.PayoutService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IRefundService, WebOfWork.Api.Services.RefundService>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.RecalculateRatingsJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.SendSupportReplyJob>();
 
-// Phase 14 Chat & Notifications
-builder.Services.AddScoped<WebOfWork.Api.Services.IContactInformationPolicy, WebOfWork.Api.Services.ContactInformationPolicy>();
-builder.Services.AddScoped<WebOfWork.Api.Services.IChatService, WebOfWork.Api.Services.ChatService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.INotificationService, WebOfWork.Api.Services.NotificationService>();
-builder.Services.AddScoped<WebOfWork.Api.Services.INotificationPublisher>(sp =>
-    sp.GetRequiredService<WebOfWork.Api.Services.INotificationService>() as WebOfWork.Api.Services.NotificationService
-    ?? throw new InvalidOperationException("Notification service not registered correctly."));
-builder.Services.AddSingleton<WebOfWork.Api.Integrations.Sms.Strategies.SmsStrategyFactory>(); // re-register to guarantee DI order
+            // Phase 14 Chat & Notifications
+            builder.Services.AddScoped<WebOfWork.Api.Services.IContactInformationPolicy, WebOfWork.Api.Services.ContactInformationPolicy>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IChatService, WebOfWork.Api.Services.ChatService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.INotificationService, WebOfWork.Api.Services.NotificationService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.INotificationPublisher>(sp =>
+                sp.GetRequiredService<WebOfWork.Api.Services.INotificationService>() as WebOfWork.Api.Services.NotificationService
+                ?? throw new InvalidOperationException("Notification service not registered correctly."));
+            builder.Services.AddSingleton<WebOfWork.Api.Integrations.Sms.Strategies.SmsStrategyFactory>(); // re-register to guarantee DI order
 
-// Phase 15 Support & Content
-builder.Services.AddScoped<WebOfWork.Api.Services.ISupportService, WebOfWork.Api.Services.SupportService>();
+            // Phase 15 Support & Content
+            builder.Services.AddScoped<WebOfWork.Api.Services.ISupportService, WebOfWork.Api.Services.SupportService>();
 
-var app = builder.Build();
+            // Phase 16 Admin
+            builder.Services.AddScoped<WebOfWork.Api.Services.IAdminUserService, WebOfWork.Api.Services.AdminUserService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IAdminAnalyticsService, WebOfWork.Api.Services.AdminAnalyticsService>();
+
+            var app = builder.Build();
 
             // ── Locked Middleware Pipeline (Plan §7) ─────────────────────────────
             app.UseExceptionHandlingMiddleware();
