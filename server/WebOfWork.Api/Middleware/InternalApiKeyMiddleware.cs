@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
+using System.Text;
 using WebOfWork.Api.Configuration;
 using System.Text.Json;
 
@@ -28,21 +30,30 @@ public sealed class InternalApiKeyMiddleware
         IOptions<InternalApiOptions> options,
         ILogger<InternalApiKeyMiddleware> logger)
     {
-        _next    = next;
+        _next = next;
         _options = options;
-        _logger  = logger;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
-        if (path.StartsWith(InternalApiOptions.InternalRoutePrefix, StringComparison.OrdinalIgnoreCase))
+        var isInternalRoute = path.Equals(InternalApiOptions.InternalRoutePrefix, StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(InternalApiOptions.InternalRoutePrefix + "/", StringComparison.OrdinalIgnoreCase);
+
+        if (isInternalRoute)
         {
             var incomingKey = context.Request.Headers[InternalApiOptions.HeaderName].FirstOrDefault();
             var expectedKey = _options.Value.ApiKey;
 
-            if (string.IsNullOrWhiteSpace(expectedKey) || incomingKey != expectedKey)
+            var keysMatch = !string.IsNullOrWhiteSpace(expectedKey)
+                && !string.IsNullOrWhiteSpace(incomingKey)
+                && CryptographicOperations.FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(incomingKey),
+                    Encoding.UTF8.GetBytes(expectedKey));
+
+            if (!keysMatch)
             {
                 var correlationId = context.Items.TryGetValue("CorrelationId", out var id)
                     ? id?.ToString()
@@ -53,13 +64,13 @@ public sealed class InternalApiKeyMiddleware
                     path, correlationId);
 
                 context.Response.ContentType = "application/problem+json";
-                context.Response.StatusCode  = StatusCodes.Status401Unauthorized;
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 
                 var problem = new ProblemDetails
                 {
-                    Status   = StatusCodes.Status401Unauthorized,
-                    Title    = "Unauthorized",
-                    Detail   = "Missing or invalid X-Internal-Api-Key.",
+                    Status = StatusCodes.Status401Unauthorized,
+                    Title = "Unauthorized",
+                    Detail = "Missing or invalid X-Internal-Api-Key.",
                     Instance = context.Request.Path,
                     Extensions = { ["correlationId"] = correlationId }
                 };

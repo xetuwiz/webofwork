@@ -74,6 +74,13 @@ public class Program
             // ── Controllers & SignalR (Step 1.13) ────────────────────────────────
             builder.Services.AddControllers();
             builder.Services.AddSignalR();
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.AddPolicy(
+                    InternalReadRateLimitPolicy.PolicyName,
+                    InternalReadRateLimitPolicy.Create);
+            });
 
             // ── Database Context (Phase 2) ───────────────────────────────────────
             if (!string.IsNullOrEmpty(dbOptions.Postgres))
@@ -286,6 +293,10 @@ public class Program
             // Phase 18A AI workflow backend
             builder.Services.AddScoped<WebOfWork.Api.Services.IAiWorkflowService, WebOfWork.Api.Services.AiWorkflowService>();
 
+            // Phase 18B internal read projections
+            builder.Services.AddScoped<WebOfWork.Api.Services.IInternalReadService, WebOfWork.Api.Services.InternalReadService>();
+            builder.Services.AddSingleton<WebOfWork.Api.Services.IInternalReadAuditService, WebOfWork.Api.Services.InternalReadAuditService>();
+
             var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
@@ -304,6 +315,7 @@ public class Program
             app.UseInternalApiKeyMiddleware(); // MUST BE BEFORE UseRouting
 
             app.UseRouting();
+            app.UseRateLimiter();
             app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
