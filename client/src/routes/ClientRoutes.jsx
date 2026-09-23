@@ -22,6 +22,9 @@ import ProfileOverview from "../features/client/profile/ProfileOverview.jsx";
 import EditProfile from "../features/client/profile/EditProfile.jsx";
 import Interests from "../features/client/profile/Interests.jsx";
 import SpendingSummary from "../features/client/profile/SpendingSummary.jsx";
+import OnboardingManager from "../features/client/onboarding/OnboardingManager.jsx";
+import FreelancerProfile from "../features/client/freelancerprofile/FreelancerProfile.jsx";
+import AllFreelancerReviews from "../features/client/freelancerprofile/AllFreelancerReviews.jsx";
 
 const page = (title, description) => <RoutePlaceholder area="Client" title={title} description={description} />;
 
@@ -39,7 +42,8 @@ export default function ClientRoutes() {
       <Route path="home" element={<ClientHomepage />} />
       <Route element={<ClientLayout />}>
         <Route path="find-talents" element={page("Find talent", "Search the freelancer marketplace by skills and fit.")} />
-        <Route path="find-talents/:id" element={page("Freelancer profile", "Review a freelancer profile and portfolio.")} />
+        <Route path="find-talents/:id" element={<FreelancerProfile />} />
+        <Route path="find-talents/:id/reviews" element={<AllFreelancerReviews />} />
         <Route path="create-project" element={page("Create project", "Describe the work you need completed.")} />
         <Route path="my-projects" element={page("My projects", "Track your active and completed projects.")} />
         <Route path="my-projects/:id" element={page("Project details", "Review project requirements and proposals.")} />
@@ -47,7 +51,7 @@ export default function ClientRoutes() {
         <Route path="contracts/:id" element={page("Contract details", "Inspect contract status and delivery progress.")} />
         <Route path="chat" element={<Chat />} />
         <Route path="notifications" element={<Notifications />} />
-        <Route path="onboarding" element={<OnboardingProvider><OnBoardingLayout><RoutePlaceholder area="Onboarding" title="Start your profile" description="The onboarding steps will be connected in Phase 19C." /></OnBoardingLayout></OnboardingProvider>} />
+        <Route path="onboarding" element={<OnboardingProvider><OnBoardingLayout><OnboardingManager /></OnBoardingLayout></OnboardingProvider>} />
         <Route element={<ClientProtectedRoute />}>
           <Route element={<ClientProfileLayout />}>
             <Route path="profile" element={<ProfileOverview />} />
