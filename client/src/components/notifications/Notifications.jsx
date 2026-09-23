@@ -1,3 +1,4 @@
+import { useNotificationSocket } from "../../hooks/notification/useNotificationSocket.jsx";
 import { useDeleteNotification, useMarkAllNotificationsRead, useMarkNotificationRead } from "./notificationMutations.js";
 import { useNotifications } from "./notificationQueries.js";
 
@@ -19,6 +20,7 @@ export default function Notifications() {
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const deleteNotification = useDeleteNotification();
+  useNotificationSocket();
 
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 

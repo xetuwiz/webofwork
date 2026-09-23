@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useChatSocket } from "../../hooks/chat/UseChatRooms.jsx";
 import { useSendChatMessage, useMarkChatRoomRead } from "./chatMutations.js";
 import { useChatMessages, useChatRooms } from "./chatQueries.js";
 
@@ -108,6 +109,13 @@ export default function Chat() {
   const { data: messages = [] } = useChatMessages(selectedRoom?.id);
   const sendMessage = useSendChatMessage();
   const markRoomRead = useMarkChatRoomRead();
+  const { joinRoom } = useChatSocket();
+
+  useEffect(() => {
+    if (selectedRoom?.id) {
+      joinRoom(selectedRoom.id);
+    }
+  }, [joinRoom, selectedRoom?.id]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
