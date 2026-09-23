@@ -1,0 +1,4 @@
+export default function DeleteUserModal({ user, onClose, onConfirm, pending, error }) {
+  if (!user) return null;
+  return <div className="admin-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="admin-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><button className="admin-modal__close" type="button" onClick={onClose} aria-label="Close">X</button><h2>Archive user?</h2><p>{user.fullName} will be soft-deleted and removed from normal admin listings.</p>{error && <div className="admin-form-error">Unable to archive this user.</div>}<div className="admin-modal__actions"><button className="button button--quiet" type="button" onClick={onClose}>Cancel</button><button className="button button--danger" type="button" disabled={pending} onClick={onConfirm}>{pending ? "Archiving..." : "Archive user"}</button></div></section></div>;
+}

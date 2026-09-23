@@ -1,0 +1,4 @@
+export default function ViewUserModal({ user, onClose }) {
+  if (!user) return null;
+  return <div className="admin-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="view-user-title" onMouseDown={(event) => event.stopPropagation()}><button className="admin-modal__close" type="button" onClick={onClose} aria-label="Close">X</button><span className="admin-user-avatar">{user.fullName?.slice(0, 1).toUpperCase()}</span><h2 id="view-user-title">{user.fullName}</h2><p>{user.email}</p><dl><div><dt>Role</dt><dd>{user.role}</dd></div><div><dt>Status</dt><dd>{user.status}</dd></div><div><dt>Email verified</dt><dd>{user.isEmailVerified ? "Yes" : "No"}</dd></div><div><dt>Joined</dt><dd>{new Date(user.createdAt).toLocaleDateString()}</dd></div></dl><button className="button button--quiet" type="button" onClick={onClose}>Close profile</button></section></div>;
+}

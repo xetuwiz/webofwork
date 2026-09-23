@@ -8,13 +8,14 @@ import AdminRoutes from "./AdminRoutes.jsx";
 import ClientRoutes from "./ClientRoutes.jsx";
 import FreelancerProtectedRoute from "./FreelancerProtectedRoutes.jsx";
 import FreelancerRoutes from "./FreelancerRoutes.jsx";
+import AdminLogin from "../features/admin/auth/AdminLogin.jsx";
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<RootLayout />}>
-          <Route path="/admin/login" element={<RoutePlaceholder area="Admin" title="Admin sign in" description="Administrator authentication will be connected in the authentication feature phase." />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/reset-password" element={<RoutePlaceholder area="Account" title="Reset password" description="Password recovery will be connected in the authentication feature phase." />} />
           <Route element={<AdminProtectedRoute />}>
             <Route path="/admin" element={<AdminLayout />}>

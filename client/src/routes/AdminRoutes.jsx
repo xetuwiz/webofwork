@@ -1,6 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import RoutePlaceholder from "../components/RoutePlaceholder.jsx";
 import NotFound from "../components/NotFound.jsx";
+import AdminOverview from "../features/admin/dashboard/components/AdminOverview.jsx";
+import AdminUserList from "../features/admin/usermanagement/AdminUserList.jsx";
 
 const pages = [
   ["users", "Users", "Manage platform accounts and access."],
@@ -18,8 +20,9 @@ const pages = [
 export default function AdminRoutes() {
   return (
     <Routes>
-      <Route index element={<RoutePlaceholder area="Admin" title="Platform overview" description="The admin dashboard will appear here when Phase 18F feature components are connected." />} />
-      {pages.map(([path, title, description]) => <Route key={path} path={path} element={<RoutePlaceholder area="Admin" title={title} description={description} />} />)}
+      <Route index element={<AdminOverview />} />
+      <Route path="users" element={<AdminUserList />} />
+      {pages.filter(([path]) => path !== "users").map(([path, title, description]) => <Route key={path} path={path} element={<RoutePlaceholder area="Admin" title={title} description={description} />} />)}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

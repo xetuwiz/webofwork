@@ -1,0 +1,5 @@
+export default function SuspendUserModal({ user, onClose, onConfirm, pending, error }) {
+  if (!user) return null;
+  const action = user.isActive ? "block" : "reactivate";
+  return <div className="admin-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="admin-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><button className="admin-modal__close" type="button" onClick={onClose} aria-label="Close">X</button><h2>{user.isActive ? "Block user?" : "Reactivate user?"}</h2><p>This will {action} access for {user.fullName}.</p>{error && <div className="admin-form-error">Unable to update this user.</div>}<div className="admin-modal__actions"><button className="button button--quiet" type="button" onClick={onClose}>Cancel</button><button className="button button--accent" type="button" disabled={pending} onClick={onConfirm}>{pending ? "Saving..." : user.isActive ? "Block user" : "Reactivate"}</button></div></section></div>;
+}
