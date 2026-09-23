@@ -1,0 +1,3 @@
+export default function AuthLayout({ eyebrow, title, description, children, onClose }) {
+  return <div className="auth-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="auth-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><button className="auth-modal__close" type="button" onClick={onClose} aria-label="Close">X</button><span className="app-shell__eyebrow">{eyebrow}</span><h2>{title}</h2><p>{description}</p>{children}</section></div>;
+}

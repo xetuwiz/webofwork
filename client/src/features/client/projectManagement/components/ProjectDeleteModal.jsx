@@ -1,0 +1,4 @@
+export default function ProjectDeleteModal({ project, onClose, onConfirm, pending }) {
+  if (!project) return null;
+  return <div className="auth-modal-backdrop" role="presentation" onMouseDown={onClose}><section className="auth-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><button className="auth-modal__close" type="button" onClick={onClose} aria-label="Close">X</button><span className="app-shell__eyebrow">Destructive action</span><h2>Archive project?</h2><p>{project.title} will no longer appear in your active project list.</p><div className="auth-modal__actions"><button className="button button--quiet" type="button" onClick={onClose}>Cancel</button><button className="button button--danger" type="button" disabled={pending} onClick={onConfirm}>{pending ? "Archiving..." : "Archive project"}</button></div></section></div>;
+}
