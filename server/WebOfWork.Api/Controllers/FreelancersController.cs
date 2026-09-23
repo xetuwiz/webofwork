@@ -18,17 +18,20 @@ public class FreelancersController : ControllerBase
     private readonly IProfileService _profileService;
     private readonly IPhoneVerificationService _phoneService;
     private readonly IFreelancerOnboardingService _onboardingService;
+    private readonly IProjectRecommendationService _recommendationService;
     private readonly ICurrentUser _currentUser;
 
     public FreelancersController(
         IProfileService profileService,
         IPhoneVerificationService phoneService,
         IFreelancerOnboardingService onboardingService,
+        IProjectRecommendationService recommendationService,
         ICurrentUser currentUser)
     {
         _profileService = profileService;
         _phoneService = phoneService;
         _onboardingService = onboardingService;
+        _recommendationService = recommendationService;
         _currentUser = currentUser;
     }
 
@@ -36,6 +39,13 @@ public class FreelancersController : ControllerBase
     public async Task<IActionResult> GetFreelancers()
     {
         return Ok(await _profileService.GetFreelancersListAsync());
+    }
+
+    [HttpGet("{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicProfile(Guid id)
+    {
+        return Ok(await _profileService.GetPublicFreelancerProfileAsync(id));
     }
 
     [Authorize(Policy = "RequireFreelancer")]
@@ -124,7 +134,7 @@ public class FreelancersController : ControllerBase
         return NoContent();
     }
 
-    
+
     [HttpPatch("packages/{id}")]
     [Authorize(Policy = "RequireFreelancer")]
     public async Task<IActionResult> UpdatePackage(Guid id, [FromBody] WebOfWork.Api.DTOs.Profiles.PackageDto package)
@@ -155,10 +165,13 @@ public class FreelancersController : ControllerBase
     {
         var db = HttpContext.RequestServices.GetRequiredService<WebOfWork.Api.Data.WebOfWorkDbContext>();
         var settings = await db.Set<WebOfWork.Api.Models.FreelancerPaymentSettings>().FirstOrDefaultAsync(p => p.UserId == _currentUser.Id!.Value);
-        if (settings == null) {
+        if (settings == null)
+        {
             settings = new WebOfWork.Api.Models.FreelancerPaymentSettings { UserId = _currentUser.Id!.Value, PaypalEmail = PaypalEmail };
             db.Set<WebOfWork.Api.Models.FreelancerPaymentSettings>().Add(settings);
-        } else {
+        }
+        else
+        {
             settings.PaypalEmail = PaypalEmail;
         }
         await db.SaveChangesAsync();
@@ -167,12 +180,12 @@ public class FreelancersController : ControllerBase
 
     [HttpGet("recommended-projects")]
     [Authorize(Policy = "RequireFreelancer")]
-    public IActionResult GetRecommendedProjects()
+    public async Task<IActionResult> GetRecommendedProjects()
     {
-        return Ok(new object[] {});
+        return Ok(await _recommendationService.GetRecommendationsAsync(_currentUser.Id!.Value));
     }
 
-            public record CreatePortfolioTestDto(string Title, string Description, string ImageUrl);
+    public record CreatePortfolioTestDto(string Title, string Description, string ImageUrl);
 
     [HttpPost("~/api/profile/freelancer/portfolio")]
     [Authorize(Policy = "RequireFreelancer")]
@@ -190,13 +203,13 @@ public class FreelancersController : ControllerBase
         return Ok(new { id = portfolio.Id });
     }
 
-[HttpPost("~/api/profile/freelancer/portfolio/media")]
+    [HttpPost("~/api/profile/freelancer/portfolio/media")]
     [Authorize(Policy = "RequireFreelancer")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadMedia(
-        [FromServices] IPortfolioService portfolioService,
-        [FromForm] UploadPortfolioMediaRequest request,
-        [FromServices] FluentValidation.IValidator<UploadPortfolioMediaRequest> validator)
+            [FromServices] IPortfolioService portfolioService,
+            [FromForm] UploadPortfolioMediaRequest request,
+            [FromServices] FluentValidation.IValidator<UploadPortfolioMediaRequest> validator)
     {
         var validationResult = await validator.ValidateAsync(request);
         if (!validationResult.IsValid)

@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -44,9 +45,9 @@ public class ReviewsController : ControllerBase
     }
 
     // Step 11.27: GET /api/reviews/freelancer/{profileId} — get freelancer reviews by profile id (public)
-    [HttpGet("freelancer/{profileId:int}")]
+    [HttpGet("freelancer/{profileId:guid}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetFreelancerReviews(int profileId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetFreelancerReviews(Guid profileId, CancellationToken cancellationToken)
     {
         var result = await _reviewService.GetFreelancerReviewsByIdAsync(profileId, cancellationToken);
         return Ok(result);

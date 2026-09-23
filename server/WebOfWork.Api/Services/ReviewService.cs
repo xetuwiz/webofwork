@@ -115,31 +115,14 @@ public class ReviewService : IReviewService
         return reviews.Select(MapToResponse).ToList();
     }
 
-    public async Task<List<ReviewResponse>> GetFreelancerReviewsByIdAsync(int freelancerProfileId, CancellationToken cancellationToken)
+    public async Task<List<ReviewResponse>> GetFreelancerReviewsByIdAsync(Guid freelancerProfileId, CancellationToken cancellationToken)
     {
         var profile = await _db.FreelancerProfiles
-            .FirstOrDefaultAsync(p => p.Id == new Guid(freelancerProfileId.ToString()), cancellationToken);
-
-        // FreelancerProfile.Id is Guid not int — look up by sequence
-        // Use numeric index from ordered list or expose a separate int Id
-        // Fallback: treat profileId as a unique sequence-indexed lookup
-        // The plan says GET /freelancer/{profileId} — we expose int in URL but match Guid Id in DB
-        // Since FreelancerProfile.Id is Guid, we need to cast. Use a dedicated int PK approach via offset
-        // Simpler: query by Guid using the int as positional offset (not production-safe)
-        // Correct approach: expose int surrogate key on FreelancerProfile or use UserId
-        // For now, per the spec we accept int profileId and match Guid by offset (dev-only)
-        // Production note: add int SurrogateId to FreelancerProfile in a later migration
-        var allProfiles = await _db.FreelancerProfiles
-            .OrderBy(p => p.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        if (freelancerProfileId < 1 || freelancerProfileId > allProfiles.Count)
-            throw new KeyNotFoundException("Freelancer profile not found.");
-
-        var targetProfile = allProfiles[freelancerProfileId - 1];
+            .FirstOrDefaultAsync(p => p.Id == freelancerProfileId, cancellationToken);
+        if (profile == null) throw new KeyNotFoundException("Freelancer profile not found.");
 
         var reviews = await _db.Reviews
-            .Where(r => r.RevieweeId == targetProfile.UserId && r.Type == ReviewType.Freelancer)
+            .Where(r => r.RevieweeId == profile.UserId && r.Type == ReviewType.Freelancer)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 

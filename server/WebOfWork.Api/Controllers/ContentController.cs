@@ -30,6 +30,14 @@ public class ContentController : ControllerBase
         _cmsValidator = cmsValidator;
     }
 
+    [HttpGet("~/api/common/platform-percentage")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPlatformPercentage(CancellationToken ct)
+    {
+        var settings = await _content.GetGlobalSettingsAsync(ct);
+        return Ok(new { CommissionPercentage = settings.CommissionPercentage, Currency = "USD" });
+    }
+
     [HttpGet("faq")]
     [AllowAnonymous]
     public async Task<IActionResult> GetPublicFaq([FromQuery] string? category, CancellationToken ct)
