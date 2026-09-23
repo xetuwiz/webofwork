@@ -11,6 +11,8 @@ import WhyUs from "../components/common/WhyUs.jsx";
 import FAQ from "../components/common/faq/FAQ.jsx";
 import PrivacyPolicies from "../components/common/privacypolicy/PrivacyPolicies.jsx";
 import TermsAndConditions from "../components/common/termsandconditions/TermsAndConditions.jsx";
+import Chat from "../components/chat/Chat.jsx";
+import Notifications from "../components/notifications/Notifications.jsx";
 import Landingpage from "../features/client/landingPage/Landingpage.jsx";
 import ClientHomepage from "../features/client/homepage/ClientHomepage.jsx";
 import HowItWorks from "../features/client/howitworks/HowItWorks.jsx";
@@ -37,6 +39,8 @@ export default function ClientRoutes() {
         <Route path="my-projects/:id" element={page("Project details", "Review project requirements and proposals.")} />
         <Route path="contracts" element={page("Contracts", "Review client-side contracts and milestones.")} />
         <Route path="contracts/:id" element={page("Contract details", "Inspect contract status and delivery progress.")} />
+        <Route path="chat" element={<Chat />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="onboarding" element={<OnboardingProvider><OnBoardingLayout><RoutePlaceholder area="Onboarding" title="Start your profile" description="The onboarding steps will be connected in Phase 19C." /></OnBoardingLayout></OnboardingProvider>} />
         <Route element={<ClientProfileLayout />}>
           <Route path="profile" element={page("Profile overview", "Review your client profile and marketplace activity.")} />
