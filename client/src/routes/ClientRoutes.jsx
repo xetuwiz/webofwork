@@ -5,14 +5,31 @@ import ClientProfileLayout from "../layouts/ClientProfileLayout.jsx";
 import OnBoardingLayout from "../layouts/OnBoardingLayout.jsx";
 import NotFound from "../components/NotFound.jsx";
 import RoutePlaceholder from "../components/RoutePlaceholder.jsx";
+import AboutUs from "../components/common/AboutUs.jsx";
+import ContactUs from "../components/common/ContactUs.jsx";
+import WhyUs from "../components/common/WhyUs.jsx";
+import FAQ from "../components/common/faq/FAQ.jsx";
+import PrivacyPolicies from "../components/common/privacypolicy/PrivacyPolicies.jsx";
+import TermsAndConditions from "../components/common/termsandconditions/TermsAndConditions.jsx";
+import Landingpage from "../features/client/landingPage/Landingpage.jsx";
+import ClientHomepage from "../features/client/homepage/ClientHomepage.jsx";
+import HowItWorks from "../features/client/howitworks/HowItWorks.jsx";
 
 const page = (title, description) => <RoutePlaceholder area="Client" title={title} description={description} />;
 
 export default function ClientRoutes() {
   return (
     <Routes>
+      <Route index element={<Landingpage />} />
+      <Route path="about-us" element={<AboutUs />} />
+      <Route path="contact-us" element={<ContactUs />} />
+      <Route path="why-us" element={<WhyUs />} />
+      <Route path="faq" element={<FAQ />} />
+      <Route path="privacy-policies" element={<PrivacyPolicies />} />
+      <Route path="terms-and-conditions" element={<TermsAndConditions />} />
+      <Route path="how-it-works" element={<HowItWorks />} />
+      <Route path="home" element={<ClientHomepage />} />
       <Route element={<ClientLayout />}>
-        <Route index element={page("Client home", "Your marketplace workspace will appear here when the homepage feature is connected.")} />
         <Route path="find-talents" element={page("Find talent", "Search the freelancer marketplace by skills and fit.")} />
         <Route path="find-talents/:id" element={page("Freelancer profile", "Review a freelancer profile and portfolio.")} />
         <Route path="create-project" element={page("Create project", "Describe the work you need completed.")} />
@@ -28,11 +45,7 @@ export default function ClientRoutes() {
           <Route path="profile/edit" element={page("Edit profile", "Update your public client information.")} />
           <Route path="profile/spending" element={page("Spending summary", "Review your project spending history.")} />
         </Route>
-        <Route path="how-it-works" element={page("How it works", "Understand the WebOfWork marketplace flow.")} />
         <Route path="support" element={page("Support", "Get help with your WebOfWork account.")} />
-        <Route path="faq" element={page("FAQ", "Find answers to common questions.")} />
-        <Route path="terms-and-conditions" element={page("Terms and conditions", "Read the platform terms.")} />
-        <Route path="privacy-policies" element={page("Privacy policy", "Read how platform data is handled.")} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

@@ -1,0 +1,5 @@
+import PublicPageFrame from "./PublicPageFrame.jsx";
+
+export default function ContactUs() {
+  return <PublicPageFrame><section className="editorial-hero editorial-hero--compact"><span className="app-shell__eyebrow">Contact</span><h1>Bring a real question. We will bring the context.</h1><p>For account, project, or platform questions, contact the WebOfWork support team.</p></section><section className="contact-grid"><a href="mailto:support@webofwork.lk"><span className="app-shell__eyebrow">Email</span><strong>support@webofwork.lk</strong><p>General support and platform questions.</p></a><div><span className="app-shell__eyebrow">Support rhythm</span><strong>One documented conversation</strong><p>We keep your question, context, and next step together.</p></div><div><span className="app-shell__eyebrow">Security</span><strong>Never share credentials</strong><p>WebOfWork support will never ask for your password or payment keys.</p></div></section></PublicPageFrame>;
+}

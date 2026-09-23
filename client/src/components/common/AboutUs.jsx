@@ -1,0 +1,5 @@
+import PublicPageFrame from "./PublicPageFrame.jsx";
+
+export default function AboutUs() {
+  return <PublicPageFrame><section className="editorial-hero"><span className="app-shell__eyebrow">Our purpose</span><h1>Make professional collaboration feel considered from the first exchange.</h1><p>WebOfWork connects ambitious clients with independent professionals through clear scope, visible progress, and practical trust.</p></section><section className="content-section feature-band"><div className="section-heading"><span className="app-shell__eyebrow">What we protect</span><h2>Clarity for clients. Dignity for talent.</h2></div><div className="feature-grid"><article><span className="feature-grid__line" /><h3>Clear agreements</h3><p>Project expectations and delivery decisions stay close to the work.</p></article><article><span className="feature-grid__line" /><h3>Visible milestones</h3><p>Progress is easier to inspect, discuss, and approve.</p></article><article><span className="feature-grid__line" /><h3>Documented support</h3><p>When a project needs help, the context does not disappear.</p></article></div></section></PublicPageFrame>;
+}
