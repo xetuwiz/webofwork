@@ -20,9 +20,9 @@ export const fetchClientSpendingSummary = async () => {
   return response.data;
 };
 
-export const fetchClientReviews = async (userId) => {
+export const fetchClientReviews = async (userId, page = 1) => {
   const response = await axiosInstance.get("/reviews/me/client", {
-    params: userId ? { userId } : undefined,
+    params: userId ? { userId, page } : { page },
   });
   return response.data;
 };

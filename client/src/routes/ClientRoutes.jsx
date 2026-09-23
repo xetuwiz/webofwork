@@ -18,6 +18,10 @@ import ClientHomepage from "../features/client/homepage/ClientHomepage.jsx";
 import HowItWorks from "../features/client/howitworks/HowItWorks.jsx";
 import ClientProtectedRoute from "./ClientProtectedRoute.jsx";
 import AccountSettings from "../features/client/profile/AccountSettings.jsx";
+import ProfileOverview from "../features/client/profile/ProfileOverview.jsx";
+import EditProfile from "../features/client/profile/EditProfile.jsx";
+import Interests from "../features/client/profile/Interests.jsx";
+import SpendingSummary from "../features/client/profile/SpendingSummary.jsx";
 
 const page = (title, description) => <RoutePlaceholder area="Client" title={title} description={description} />;
 
@@ -46,11 +50,11 @@ export default function ClientRoutes() {
         <Route path="onboarding" element={<OnboardingProvider><OnBoardingLayout><RoutePlaceholder area="Onboarding" title="Start your profile" description="The onboarding steps will be connected in Phase 19C." /></OnBoardingLayout></OnboardingProvider>} />
         <Route element={<ClientProtectedRoute />}>
           <Route element={<ClientProfileLayout />}>
-            <Route path="profile" element={page("Profile overview", "Review your client profile and marketplace activity.")} />
+            <Route path="profile" element={<ProfileOverview />} />
             <Route path="profile/settings" element={<AccountSettings />} />
-            <Route path="profile/interests" element={page("Interests", "Tune the work categories you care about.")} />
-            <Route path="profile/edit" element={page("Edit profile", "Update your public client information.")} />
-            <Route path="profile/spending" element={page("Spending summary", "Review your project spending history.")} />
+            <Route path="profile/interests" element={<Interests />} />
+            <Route path="profile/edit" element={<EditProfile />} />
+            <Route path="profile/spending" element={<SpendingSummary />} />
           </Route>
         </Route>
         <Route path="support" element={page("Support", "Get help with your WebOfWork account.")} />

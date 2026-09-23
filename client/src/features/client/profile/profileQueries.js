@@ -14,9 +14,9 @@ export const useClientSpendingSummary = () =>
     queryFn: fetchClientSpendingSummary,
   });
 
-export const useClientReviews = (userId) =>
+export const useClientReviews = (userId, page = 1) =>
   useQuery({
-    queryKey: ["client-reviews", userId],
-    queryFn: () => fetchClientReviews(userId),
-    enabled: userId === undefined || userId !== null,
+    queryKey: ["client-reviews", userId, page],
+    queryFn: () => fetchClientReviews(userId, page),
+    enabled: userId !== undefined && userId !== null,
   });
