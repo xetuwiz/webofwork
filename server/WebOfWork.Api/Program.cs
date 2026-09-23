@@ -30,6 +30,14 @@ public class Program
 
         try
         {
+            var appEnv = Environment.GetEnvironmentVariable("APP_ENV");
+            var checkpointBackend = Environment.GetEnvironmentVariable("CHECKPOINT_BACKEND");
+            if (string.Equals(appEnv, "production", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(checkpointBackend, "postgres", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Production requires CHECKPOINT_BACKEND=postgres to fail closed.");
+            }
+
             var builder = WebApplication.CreateBuilder(args);
 
             // ── Host Configuration ───────────────────────────────────────────────
@@ -240,6 +248,12 @@ public class Program
             builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalPayoutClient, WebOfWork.Api.Integrations.PayPal.PayPalPayoutClient>();
             builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalRefundClient, WebOfWork.Api.Integrations.PayPal.PayPalRefundClient>();
             builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalWebhookVerifier, WebOfWork.Api.Integrations.PayPal.PayPalWebhookVerifier>();
+            builder.Services.AddHttpClient("AgenticAi", (sp, client) =>
+            {
+                var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebOfWork.Api.Configuration.AgenticAiOptions>>().Value;
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+                client.Timeout = TimeSpan.FromSeconds(3);
+            });
             builder.Services.AddScoped<WebOfWork.Api.Integrations.PayPal.IPayPalOrderVerifier, WebOfWork.Api.Integrations.PayPal.PayPalOrderVerifier>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IPayoutService, WebOfWork.Api.Services.PayoutService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IRefundService, WebOfWork.Api.Services.RefundService>();
@@ -250,6 +264,7 @@ public class Program
             builder.Services.AddTransient<WebOfWork.Api.Jobs.SendPhoneOtpJob>();
             builder.Services.AddTransient<WebOfWork.Api.Jobs.GenerateContractDocumentJob>();
             builder.Services.AddTransient<WebOfWork.Api.Jobs.PublishNotificationJob>();
+            builder.Services.AddTransient<WebOfWork.Api.Jobs.ContractOfferNotificationJob>();
             builder.Services.AddTransient<WebOfWork.Api.Jobs.CleanupExpiredOtpsJob>();
 
             // Phase 14 Chat & Notifications
@@ -268,7 +283,16 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Services.IAdminUserService, WebOfWork.Api.Services.AdminUserService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IAdminAnalyticsService, WebOfWork.Api.Services.AdminAnalyticsService>();
 
+            // Phase 18A AI workflow backend
+            builder.Services.AddScoped<WebOfWork.Api.Services.IAiWorkflowService, WebOfWork.Api.Services.AiWorkflowService>();
+
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<WebOfWork.Api.Data.WebOfWorkDbContext>();
+                db.Database.Migrate();
+            }
 
             // ── Locked Middleware Pipeline (Plan §7) ─────────────────────────────
             app.UseExceptionHandlingMiddleware();

@@ -23,6 +23,59 @@ namespace WebOfWork.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("WebOfWork.Api.Models.AgentRecommendation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FactorsJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("factors_json");
+
+                    b.Property<Guid>("FreelancerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("freelancer_id");
+
+                    b.Property<string>("PortfolioSamplesJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("portfolio_samples_json");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("project_id");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<decimal>("Score")
+                        .HasColumnType("decimal(18,4)")
+                        .HasColumnName("score");
+
+                    b.Property<int>("WorkflowRunId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_run_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_agent_recommendations");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_agent_recommendations_created_at");
+
+                    b.HasIndex("WorkflowRunId", "ProjectId", "FreelancerId")
+                        .HasDatabaseName("ix_agent_recommendations_workflow_run_id_project_id_freelancer");
+
+                    b.ToTable("agent_recommendations", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Brief", b =>
                 {
                     b.Property<int>("Id")
@@ -1730,6 +1783,61 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("proposals", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.ProposalScreening", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ConcernsJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("concerns_json");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("FitScore")
+                        .HasColumnType("decimal(18,4)")
+                        .HasColumnName("fit_score");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("integer")
+                        .HasColumnName("proposal_id");
+
+                    b.Property<string>("Rationale")
+                        .HasColumnType("text")
+                        .HasColumnName("rationale");
+
+                    b.Property<string>("Recommendation")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("recommendation");
+
+                    b.Property<string>("StrengthsJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("strengths_json");
+
+                    b.Property<int>("WorkflowRunId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_run_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_proposal_screenings");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_proposal_screenings_created_at");
+
+                    b.HasIndex("WorkflowRunId", "ProposalId")
+                        .HasDatabaseName("ix_proposal_screenings_workflow_run_id_proposal_id");
+
+                    b.ToTable("proposal_screenings", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Review", b =>
                 {
                     b.Property<int>("Id")
@@ -1945,6 +2053,57 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("support_tickets", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.ToolCallLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("Input")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("input");
+
+                    b.Property<string>("Output")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("output");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean")
+                        .HasColumnName("success");
+
+                    b.Property<string>("ToolName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("tool_name");
+
+                    b.Property<int>("WorkflowRunId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_run_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tool_call_logs");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_tool_call_logs_created_at");
+
+                    b.HasIndex("WorkflowRunId")
+                        .HasDatabaseName("ix_tool_call_logs_workflow_run_id");
+
+                    b.ToTable("tool_call_logs", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2026,6 +2185,217 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasDatabaseName("ix_users_email");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ValidationResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CostBreakdownJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("cost_breakdown_json");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("FreelancerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("freelancer_id");
+
+                    b.Property<string>("HumanSummary")
+                        .HasColumnType("text")
+                        .HasColumnName("human_summary");
+
+                    b.Property<string>("IssuesJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("issues_json");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("project_id");
+
+                    b.Property<int>("ProposalId")
+                        .HasColumnType("integer")
+                        .HasColumnName("proposal_id");
+
+                    b.Property<bool>("RequiresHumanApproval")
+                        .HasColumnType("boolean")
+                        .HasColumnName("requires_human_approval");
+
+                    b.Property<bool>("Valid")
+                        .HasColumnType("boolean")
+                        .HasColumnName("valid");
+
+                    b.Property<int>("WorkflowRunId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_run_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_validation_results");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_validation_results_created_at");
+
+                    b.HasIndex("WorkflowRunId", "ProjectId", "ProposalId", "FreelancerId")
+                        .HasDatabaseName("ix_validation_results_workflow_run_id_project_id_proposal_id_f");
+
+                    b.ToTable("validation_results", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.WorkflowRun", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApprovalDecision")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("approval_decision");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_at");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved_by_user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FinalOutput")
+                        .HasColumnType("text")
+                        .HasColumnName("final_output");
+
+                    b.Property<string>("Objective")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("objective");
+
+                    b.Property<string>("Plan")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("plan");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("project_id");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_runs");
+
+                    b.HasIndex("ApprovedByUserId")
+                        .HasDatabaseName("ix_workflow_runs_approved_by_user_id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_workflow_runs_created_at");
+
+                    b.HasIndex("ProjectId")
+                        .HasDatabaseName("ix_workflow_runs_project_id");
+
+                    b.HasIndex("RequestedByUserId")
+                        .HasDatabaseName("ix_workflow_runs_requested_by_user_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_workflow_runs_status");
+
+                    b.ToTable("workflow_runs", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.WorkflowStepLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgentName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("agent_name");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("Input")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("input");
+
+                    b.Property<string>("Output")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("output");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StepName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("step_name");
+
+                    b.Property<int>("WorkflowRunId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_run_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_step_logs");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_workflow_step_logs_created_at");
+
+                    b.HasIndex("StepName")
+                        .HasDatabaseName("ix_workflow_step_logs_step_name");
+
+                    b.HasIndex("WorkflowRunId")
+                        .HasDatabaseName("ix_workflow_step_logs_workflow_run_id");
+
+                    b.ToTable("workflow_step_logs", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.AgentRecommendation", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.WorkflowRun", "WorkflowRun")
+                        .WithMany()
+                        .HasForeignKey("WorkflowRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_agent_recommendations_workflow_runs_workflow_run_id");
+
+                    b.Navigation("WorkflowRun");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Brief", b =>
@@ -2522,6 +2892,18 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.ProposalScreening", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.WorkflowRun", "WorkflowRun")
+                        .WithMany()
+                        .HasForeignKey("WorkflowRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_proposal_screenings_workflow_runs_workflow_run_id");
+
+                    b.Navigation("WorkflowRun");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Review", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
@@ -2602,6 +2984,70 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("ResolvedByAdmin");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ToolCallLog", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.WorkflowRun", "WorkflowRun")
+                        .WithMany()
+                        .HasForeignKey("WorkflowRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tool_call_logs_workflow_runs_workflow_run_id");
+
+                    b.Navigation("WorkflowRun");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.ValidationResult", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.WorkflowRun", "WorkflowRun")
+                        .WithMany()
+                        .HasForeignKey("WorkflowRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_validation_results_workflow_runs_workflow_run_id");
+
+                    b.Navigation("WorkflowRun");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.WorkflowRun", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_workflow_runs_users_approved_by_user_id");
+
+                    b.HasOne("WebOfWork.Api.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_workflow_runs_projects_project_id");
+
+                    b.HasOne("WebOfWork.Api.Models.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_workflow_runs_users_requested_by_user_id");
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RequestedByUser");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.WorkflowStepLog", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.WorkflowRun", "WorkflowRun")
+                        .WithMany()
+                        .HasForeignKey("WorkflowRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_workflow_step_logs_workflow_runs_workflow_run_id");
+
+                    b.Navigation("WorkflowRun");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Brief", b =>

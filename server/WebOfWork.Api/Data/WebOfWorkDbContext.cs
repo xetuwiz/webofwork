@@ -12,7 +12,7 @@ public class WebOfWorkDbContext : DbContext
 
     // Phase 3
     public DbSet<WebOfWork.Api.Models.User> Users { get; set; }
-    
+
     // Phase 5: Profiles
     public DbSet<WebOfWork.Api.Models.ClientProfile> ClientProfiles { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerProfile> FreelancerProfiles { get; set; }
@@ -40,7 +40,7 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.FreelancerPortfolio> FreelancerPortfolios { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPaymentSettings> FreelancerPaymentSettings { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerTodo> FreelancerTodos { get; set; }
-    
+
     // Phase 2A
     public DbSet<WebOfWork.Api.Models.PortfolioMedia> PortfolioMedia { get; set; }
     public DbSet<WebOfWork.Api.Models.PortfolioTag> PortfolioTags { get; set; }
@@ -58,6 +58,14 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.SupportTicket> SupportTickets { get; set; }
     public DbSet<WebOfWork.Api.Models.Faq> Faqs { get; set; }
     public DbSet<WebOfWork.Api.Models.CmsSection> CmsSections { get; set; }
+
+    // Phase 18A
+    public DbSet<WebOfWork.Api.Models.WorkflowRun> WorkflowRuns { get; set; }
+    public DbSet<WebOfWork.Api.Models.WorkflowStepLog> WorkflowStepLogs { get; set; }
+    public DbSet<WebOfWork.Api.Models.ToolCallLog> ToolCallLogs { get; set; }
+    public DbSet<WebOfWork.Api.Models.AgentRecommendation> AgentRecommendations { get; set; }
+    public DbSet<WebOfWork.Api.Models.ProposalScreening> ProposalScreenings { get; set; }
+    public DbSet<WebOfWork.Api.Models.ValidationResult> ValidationResults { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -120,7 +128,7 @@ public class WebOfWorkDbContext : DbContext
                 entry.State = EntityState.Modified;
                 softDeletable.IsDeleted = true;
                 softDeletable.DeletedAt = DateTime.UtcNow;
-                
+
                 // Also update UpdatedAt for auditable entities when soft deleting
                 if (entry.Entity is IAuditableEntity auditableDeleted)
                 {

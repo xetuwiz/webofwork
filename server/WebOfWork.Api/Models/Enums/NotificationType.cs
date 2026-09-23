@@ -2,6 +2,7 @@ namespace WebOfWork.Api.Models.Enums;
 
 public enum NotificationType
 {
+    WorkflowApprovalRequired,
     ProposalAccepted,
     InvitationReceived,
     OfferReceived,

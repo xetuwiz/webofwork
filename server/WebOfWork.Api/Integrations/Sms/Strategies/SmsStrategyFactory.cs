@@ -75,6 +75,9 @@ public class OfferReceivedSmsStrategy : ISmsMessageStrategy
 {
     public string GenerateMessage(params object[] args)
     {
+        if (args.Length > 0 && decimal.TryParse(args[0]?.ToString(), out var amount))
+            return $"You have received a new contract offer for {amount:0.00} USD on WebOfWork!";
+
         return "You have received a new offer on WebOfWork.";
     }
 }
