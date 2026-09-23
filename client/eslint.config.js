@@ -32,4 +32,10 @@ export default defineConfig([
       "react-refresh/only-export-components": "off",
     },
   },
+  {
+    files: ["src/hooks/modal/useModalStore.jsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 ]);
