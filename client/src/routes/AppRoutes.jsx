@@ -9,6 +9,7 @@ import ClientRoutes from "./ClientRoutes.jsx";
 import FreelancerProtectedRoute from "./FreelancerProtectedRoutes.jsx";
 import FreelancerRoutes from "./FreelancerRoutes.jsx";
 import AdminLogin from "../features/admin/auth/AdminLogin.jsx";
+import ResetPasswordPage from "../features/client/account/pages/ResetPasswordPage.jsx";
 
 export default function AppRoutes() {
   return (
@@ -16,7 +17,7 @@ export default function AppRoutes() {
       <Routes>
         <Route element={<RootLayout />}>
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/reset-password" element={<RoutePlaceholder area="Account" title="Reset password" description="Password recovery will be connected in the authentication feature phase." />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<AdminProtectedRoute />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="*" element={<AdminRoutes />} />

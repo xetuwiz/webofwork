@@ -54,3 +54,13 @@ export const googleAuth = async ({ idToken, role }) => {
   const response = await axiosInstance.post("/auth/google", { idToken, role });
   return response.data;
 };
+
+export const requestDeleteOtp = async () => {
+  const response = await axiosInstance.post("/auth/request-delete-otp");
+  return response.data;
+};
+
+export const deleteAccount = async ({ otp }) => {
+  const response = await axiosInstance.post("/auth/delete-account", { otp });
+  return response.data;
+};

@@ -16,6 +16,8 @@ import Notifications from "../components/notifications/Notifications.jsx";
 import Landingpage from "../features/client/landingPage/Landingpage.jsx";
 import ClientHomepage from "../features/client/homepage/ClientHomepage.jsx";
 import HowItWorks from "../features/client/howitworks/HowItWorks.jsx";
+import ClientProtectedRoute from "./ClientProtectedRoute.jsx";
+import AccountSettings from "../features/client/profile/AccountSettings.jsx";
 
 const page = (title, description) => <RoutePlaceholder area="Client" title={title} description={description} />;
 
@@ -42,12 +44,14 @@ export default function ClientRoutes() {
         <Route path="chat" element={<Chat />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="onboarding" element={<OnboardingProvider><OnBoardingLayout><RoutePlaceholder area="Onboarding" title="Start your profile" description="The onboarding steps will be connected in Phase 19C." /></OnBoardingLayout></OnboardingProvider>} />
-        <Route element={<ClientProfileLayout />}>
-          <Route path="profile" element={page("Profile overview", "Review your client profile and marketplace activity.")} />
-          <Route path="profile/settings" element={page("Account settings", "Manage account preferences and security.")} />
-          <Route path="profile/interests" element={page("Interests", "Tune the work categories you care about.")} />
-          <Route path="profile/edit" element={page("Edit profile", "Update your public client information.")} />
-          <Route path="profile/spending" element={page("Spending summary", "Review your project spending history.")} />
+        <Route element={<ClientProtectedRoute />}>
+          <Route element={<ClientProfileLayout />}>
+            <Route path="profile" element={page("Profile overview", "Review your client profile and marketplace activity.")} />
+            <Route path="profile/settings" element={<AccountSettings />} />
+            <Route path="profile/interests" element={page("Interests", "Tune the work categories you care about.")} />
+            <Route path="profile/edit" element={page("Edit profile", "Update your public client information.")} />
+            <Route path="profile/spending" element={page("Spending summary", "Review your project spending history.")} />
+          </Route>
         </Route>
         <Route path="support" element={page("Support", "Get help with your WebOfWork account.")} />
         <Route path="*" element={<NotFound />} />
