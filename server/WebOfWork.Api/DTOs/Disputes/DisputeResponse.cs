@@ -8,6 +8,7 @@ public class DisputeResponse
 {
     public int Id { get; set; }
     public int ContractId { get; set; }
+    public int? PaymentId { get; set; }
     public Guid OpenerId { get; set; }
     public string? OpenerRole { get; set; }
     public DisputeReason Reason { get; set; }

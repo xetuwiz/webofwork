@@ -108,6 +108,7 @@ public class DisputeService : IDisputeService
         var dispute = await _db.Disputes
             .Include(d => d.Evidence)
             .Include(d => d.Contract)
+            .Include(d => d.Contract!.Payment)
             .FirstOrDefaultAsync(d => d.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException("Dispute not found.");
 
@@ -235,6 +236,7 @@ public class DisputeService : IDisputeService
     {
         Id = d.Id,
         ContractId = d.ContractId,
+        PaymentId = d.Contract?.Payment?.Id,
             OpenerId = d.OpenerId,
             OpenerRole = d.OpenedByClientId.HasValue ? "Client" : d.OpenedByFreelancerId.HasValue ? "Freelancer" : null,
         Reason = d.Reason,

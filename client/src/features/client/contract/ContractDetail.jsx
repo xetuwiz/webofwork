@@ -3,6 +3,7 @@ import { useContract } from "./contractQueries";
 import { useAcceptContract, useRequestRevision, useUpdateContractStatus } from "./contractMutations";
 import { useParams } from "react-router-dom";
 import { useModal } from "../../../hooks/modal/useModalStore.jsx";
+import ContractOfferModal from "./components/ContractOfferModal.jsx";
 import formatMoney from "../../../utils/formatMoney";
 
 export default function ContractDetail() {

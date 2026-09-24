@@ -4,6 +4,8 @@ import NotFound from "../components/NotFound.jsx";
 import AdminOverview from "../features/admin/dashboard/components/AdminOverview.jsx";
 import CategoriesAndSkills from "../features/admin/categorymanagement/CategoriesAndSkills.jsx";
 import AdminUserList from "../features/admin/usermanagement/AdminUserList.jsx";
+import PaymentRelease from "../features/admin/payoutmanagement/PaymentRelease.jsx";
+import AdminTransactions from "../features/admin/transactions/AdminTransactions.jsx";
 import DisputeList from "../features/admin/disputemanagement/DisputeList.jsx";
 import DisputeDetail from "../features/admin/disputemanagement/DisputeDetail.jsx";
 import ReviewList from "../features/admin/reviews/ReviewList.jsx";
@@ -26,6 +28,8 @@ export default function AdminRoutes() {
       <Route index element={<AdminOverview />} />
       <Route path="users" element={<AdminUserList />} />
       <Route path="category-management" element={<CategoriesAndSkills />} />
+      <Route path="payment-release" element={<PaymentRelease />} />
+      <Route path="transactions" element={<AdminTransactions />} />
       <Route path="disputes" element={<DisputeList />} />
       <Route path="disputes/:id" element={<DisputeDetail />} />
       <Route path="reviews" element={<ReviewList />} />
