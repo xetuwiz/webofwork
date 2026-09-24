@@ -5,6 +5,9 @@ import ClientProfileLayout from "../layouts/ClientProfileLayout.jsx";
 import OnBoardingLayout from "../layouts/OnBoardingLayout.jsx";
 import NotFound from "../components/NotFound.jsx";
 import RoutePlaceholder from "../components/RoutePlaceholder.jsx";
+import ClientContracts from "../features/client/contract/ClientContracts.jsx";
+import ClientContractDetail from "../features/client/contract/ContractDetail.jsx";
+
 import AboutUs from "../components/common/AboutUs.jsx";
 import ContactUs from "../components/common/ContactUs.jsx";
 import WhyUs from "../components/common/WhyUs.jsx";
@@ -49,8 +52,8 @@ export default function ClientRoutes() {
         <Route path="my-projects/:id" element={<ProjectDetails />} />
         <Route path="my-projects/:id/edit" element={<EditProject />} />
         <Route path="my-projects/:id/proposals" element={<ProposalsPage />} />
-        <Route path="contracts" element={page("Contracts", "Review client-side contracts and delivery progress.")} />
-        <Route path="contracts/:id" element={page("Contract details", "Inspect contract status and delivery progress.")} />
+        <Route path="contracts" element={<ClientContracts />} />
+        <Route path="contracts/:id" element={<ClientContractDetail />} />
         <Route path="chat" element={<Chat />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="onboarding" element={<OnboardingProvider><OnBoardingLayout><OnboardingManager /></OnBoardingLayout></OnboardingProvider>} />

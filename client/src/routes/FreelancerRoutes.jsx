@@ -10,6 +10,11 @@ import MyProposals from "../features/freelancer/proposals/components/MyProposals
 import FindJobs from "../features/freelancer/findJobs/FindJobs.jsx";
 import JobDetails from "../features/freelancer/jobdetails/JobDetails.jsx";
 import InvitationsPage from "../features/freelancer/invitations/InvitationsPage.jsx";
+import FreelancerContracts from "../features/freelancer/contracts/Contracts.jsx";
+import FreelancerContractDetail from "../features/freelancer/contracts/ContractDetail.jsx";
+import FreelancerOffers from "../features/freelancer/offers/FreelancerOffers.jsx";
+import ClientContracts from "../features/client/contract/ClientContracts.jsx";
+import ClientContractDetail from "../features/client/contract/ContractDetail.jsx";
 
 export default function FreelancerRoutes() {
   return (
@@ -23,9 +28,9 @@ export default function FreelancerRoutes() {
         <Route path="profile/earnings-overview" element={<EarningsOverview />} />
         <Route path="invitations" element={<InvitationsPage />} />
         <Route path="my-proposals" element={<MyProposals />} />
-        <Route path="offers" element={<div className="p-8 text-gray-500">Offers are not implemented in this phase.</div>} />
-        <Route path="contracts" element={<div className="p-8 text-gray-500">Contracts are not implemented in this phase.</div>} />
-        <Route path="contracts/:id" element={<div className="p-8 text-gray-500">Contract detail view is not implemented in this phase.</div>} />
+        <Route path="offers" element={<FreelancerOffers />} />
+        <Route path="contracts" element={<FreelancerContracts />} />
+        <Route path="contracts/:id" element={<FreelancerContractDetail />} />
         <Route path="settings/payment" element={<PaymentSettings />} />
         <Route path="support" element={<div className="p-8 text-gray-500">Support is not implemented in this phase.</div>} />
         <Route path="faq" element={<div className="p-8 text-gray-500">FAQ is not implemented in this phase.</div>} />
