@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useProjectDetails } from "./projectQueries.js";
+import { useAiWorkflowStatus } from "../../aiworkflow/aiWorkflowQueries.js";
 import { useDeleteProject } from "./projectMutations.js";
 import DeleteProjectModal from "./components/DeleteProjectModal.jsx";
 import { useState } from "react";
@@ -8,6 +9,7 @@ export default function ProjectDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data, isLoading, isError } = useProjectDetails(id);
+  const { data: workflow } = useAiWorkflowStatus(data?.workflowRunId ?? data?.aiWorkflowRunId);
   const mutation = useDeleteProject();
   const [confirming, setConfirming] = useState(false);
 
@@ -42,6 +44,7 @@ export default function ProjectDetails() {
             <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs uppercase tracking-wide text-slate-500">Budget</p><p className="mt-2 text-lg font-bold text-slate-900">${Number(budget || 0).toLocaleString()}</p></div>
             <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs uppercase tracking-wide text-slate-500">Delivery</p><p className="mt-2 text-lg font-bold text-slate-900">{data.expectedDays || 0} days</p></div>
             <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs uppercase tracking-wide text-slate-500">Status</p><p className="mt-2 text-lg font-bold text-slate-900">{data.status || "Open"}</p></div>
+           {workflow && <div className="rounded-xl bg-blue-50 p-4"><p className="text-xs uppercase tracking-wide text-blue-600">AI workflow</p><p className="mt-2 text-lg font-bold text-blue-900">{workflow.status}</p></div>}
           </div>
 
           <div>

@@ -13,7 +13,7 @@ namespace WebOfWork.Api.Services;
 public interface IAiWorkflowService
 {
     Task<WorkflowRun> StartWorkflowAsync(Guid requestedByUserId, string objective, string? plan = null, int? projectId = null, CancellationToken ct = default);
-    Task<WorkflowRun> ApproveWorkflowAsync(int workflowRunId, Guid approvedByUserId, string? decision = null, WorkflowContractSpec? contractSpec = null, CancellationToken ct = default);
+    Task<WorkflowRun> ApproveWorkflowAsync(int workflowRunId, Guid approvedByUserId, string? decision = null, string? rationale = null, WorkflowContractSpec? contractSpec = null, CancellationToken ct = default);
     Task<WorkflowRun> CancelWorkflowAsync(int workflowRunId, Guid requestedByUserId, CancellationToken ct = default);
     Task<WorkflowStepLog> AppendStepLogAsync(int workflowRunId, string stepName, string? agentName, string? input, string? output, string status, long durationMs, CancellationToken ct = default);
     Task<ToolCallLog> AppendToolCallLogAsync(int workflowRunId, string toolName, string? input, string? output, bool success, long durationMs, CancellationToken ct = default);
@@ -102,7 +102,7 @@ public class AiWorkflowService : IAiWorkflowService
         return run;
     }
 
-    public async Task<WorkflowRun> ApproveWorkflowAsync(int workflowRunId, Guid approvedByUserId, string? decision = null, WorkflowContractSpec? contractSpec = null, CancellationToken ct = default)
+    public async Task<WorkflowRun> ApproveWorkflowAsync(int workflowRunId, Guid approvedByUserId, string? decision = null, string? rationale = null, WorkflowContractSpec? contractSpec = null, CancellationToken ct = default)
     {
         var run = await _db.WorkflowRuns
             .FirstOrDefaultAsync(x => x.Id == workflowRunId, ct)
@@ -112,6 +112,7 @@ public class AiWorkflowService : IAiWorkflowService
         var rejected = string.Equals(approvalDecision, "Rejected", StringComparison.OrdinalIgnoreCase);
         run.Status = rejected ? WorkflowRunStatus.Rejected : WorkflowRunStatus.Approved;
         run.ApprovalDecision = approvalDecision;
+        run.ApprovalRationale = string.IsNullOrWhiteSpace(rationale) ? null : rationale.Trim();
         run.ApprovedByUserId = approvedByUserId;
         run.ApprovedAt = DateTime.UtcNow;
         run.UpdatedAt = DateTime.UtcNow;

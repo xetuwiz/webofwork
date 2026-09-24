@@ -16,6 +16,8 @@ import AdminTransactions from "../features/admin/transactions/AdminTransactions.
 import DisputeList from "../features/admin/disputemanagement/DisputeList.jsx";
 import DisputeDetail from "../features/admin/disputemanagement/DisputeDetail.jsx";
 import ReviewList from "../features/admin/reviews/ReviewList.jsx";
+import AiWorkflowMonitor from "../features/aiworkflow/AiWorkflowMonitor.jsx";
+import AiWorkflowDetail from "../features/aiworkflow/AiWorkflowDetail.jsx";
 
 const pages = [
   ["users", "Users", "Manage platform accounts and access."],
@@ -47,6 +49,8 @@ export default function AdminRoutes() {
       <Route path="privacy-policy" element={<PrivacyPolicy />} />
       <Route path="settings" element={<AdminSettings />} />
       <Route path="dashboard" element={<AdminDashboard />} />
+      <Route path="ai-workflows" element={<AiWorkflowMonitor />} />
+      <Route path="ai-workflows/:id" element={<AiWorkflowDetail />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

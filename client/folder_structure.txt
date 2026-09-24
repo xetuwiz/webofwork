@@ -1,0 +1,1855 @@
+{
+  "type": "directory",
+  "name": "client",
+  "root": true,
+  "children": [
+    {
+      "type": "directory",
+      "name": "dist",
+      "excluded": true
+    },
+    {
+      "type": "directory",
+      "name": "node_modules",
+      "excluded": true
+    },
+    {
+      "type": "directory",
+      "name": "src",
+      "children": [
+        {
+          "type": "directory",
+          "name": "api",
+          "children": [
+            {
+              "type": "directory",
+              "name": "auth",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "authApi.js"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "axiosInstance.js"
+            },
+            {
+              "type": "file",
+              "name": "axiosInterceptors.js"
+            },
+            {
+              "type": "file",
+              "name": "queryHelpers.js"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "app",
+          "children": [
+            {
+              "type": "file",
+              "name": "store.js"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "components",
+          "children": [
+            {
+              "type": "directory",
+              "name": "chat",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "__tests__",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "chatDisplay.test.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "Chat.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "chatApi.js"
+                },
+                {
+                  "type": "file",
+                  "name": "chatDisplay.js"
+                },
+                {
+                  "type": "file",
+                  "name": "chatMutations.js"
+                },
+                {
+                  "type": "file",
+                  "name": "chatQueries.js"
+                },
+                {
+                  "type": "file",
+                  "name": "chatSchema.js"
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "common",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "faq",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "FAQ.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "faqApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "faqQuries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "privacypolicy",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "PrivacyPolicies.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "privacyPolicyApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "privacyPolicyQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "termsandconditions",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "termsAndConditionQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "TermsAndConditions.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "termsAndConditionsApi.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "AboutUs.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "commonApi.js"
+                },
+                {
+                  "type": "file",
+                  "name": "ContactUs.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "GlobalErrorBoundary.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "PublicPageFrame.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "SupportPage.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "WhyUs.jsx"
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "notifications",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "__tests__",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "notificationDisplay.test.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "notificationDisplay.js"
+                },
+                {
+                  "type": "file",
+                  "name": "notificationMutations.js"
+                },
+                {
+                  "type": "file",
+                  "name": "notificationQueries.js"
+                },
+                {
+                  "type": "file",
+                  "name": "Notifications.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "notificationsApi.js"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "InfrastructureShell.jsx"
+            },
+            {
+              "type": "file",
+              "name": "NotFound.jsx"
+            },
+            {
+              "type": "file",
+              "name": "RoutePlaceholder.jsx"
+            },
+            {
+              "type": "file",
+              "name": "Spinner.jsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "features",
+          "children": [
+            {
+              "type": "directory",
+              "name": "admin",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "auth",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "AdminLogin.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "adminLoginSchema.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "categorymanagement",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "AddCategoryModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AddSkillsModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "DeleteCategoryModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "DeleteSkillModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "EditCategoryModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "EditSkillsModal.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "CategoriesAndSkills.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "categoryApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "categoryMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "categoryQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ManagementList.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "skillMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "skillQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "dashboard",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "AdminFooter.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AdminHeader.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AdminOverview.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AdminProposalsChart.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AdminRevenueChart.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AdminSidebar.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AdminStatsCard.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "AdminDashboard.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "dashboardApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "dashboardQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "disputemanagement",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "__tests__",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "adminErrorState.test.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "adminErrorState.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "disputeApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "DisputeDetail.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "DisputeList.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "disputeMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "disputeQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "faq",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "faqApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "FAQManagement.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "faqMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "faqQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "payoutmanagement",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "PaymentRelease.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "payoutApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "payoutMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "payoutQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PayoutReleaseModal.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "privacypolicymanagement",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "privacyApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "privacyMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PrivacyPolicy.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "privacyQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "reviews",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "reviewApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ReviewList.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "reviewQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "settings",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "AdminSettings.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "adminSettingsApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "adminsettingsMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "adminSettingsQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "support",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "supportApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "supportMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "supportQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "SupportTicketDetials.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "SupportTicketList.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "termsandconditionsmanagement",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "temsMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "TermAndConditions.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "termsApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "termsQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "transactions",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "AdminTransactions.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "transactionQuery.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "transactionsApi.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "usermanagement",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "DeleteUserModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "SuspendUserModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ViewUserModal.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "AdminUserList.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "userManagementApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "usersMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "usersQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "userTable.jsx"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "aiworkflow",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "__tests__",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "aiWorkflowMonitor.test.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "approvalPanel.test.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "aiWorkflowApi.js"
+                },
+                {
+                  "type": "file",
+                  "name": "AiWorkflowDetail.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "AiWorkflowMonitor.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "aiWorkflowMutations.js"
+                },
+                {
+                  "type": "file",
+                  "name": "aiWorkflowQueries.js"
+                },
+                {
+                  "type": "file",
+                  "name": "WorkflowApprovalPanel.jsx"
+                },
+                {
+                  "type": "file",
+                  "name": "workflowDisplay.js"
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "client",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "account",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "__tests__",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "authSchemas.test.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "auth",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "authslice.js"
+                        },
+                        {
+                          "type": "file",
+                          "name": "authThunks.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "AuthLayout.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "AuthModalHost.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "DeleteAccountModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "DeleteModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ForgotPasswordModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "InputBox.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ModelWrapper.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "SignInForm.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "SigninLayout.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "SignupForm.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "SignupLayout.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "helper",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "googleSignupHelper.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "pages",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "ResetPasswordPage.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "validation",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "authSchemas.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "DeleteModal.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ForgotPasswordModal.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "OtpModal.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "SignInModal.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "SignupModal.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "contract",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "__tests__",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "contractDisplay.test.js"
+                        },
+                        {
+                          "type": "file",
+                          "name": "paymentForm.test.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "ApproveContractModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ClientDisputeModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ContractOfferModal.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "ClientContracts.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "contractApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ContractDetail.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "contractDisplay.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "contractMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "contractQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "paymentForm.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "findtalent",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "FreelancerCard.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "InvitationModal.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "FindTalent.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "findTalentApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "findTalentQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "freelancerprofile",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "AllFreelancerReviews.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "FreelancerProfile.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "freelancerProfileApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "freelancerProfileQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "homepage",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "ClientFooter.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ClientHeader.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ClientHeroSection.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ClientWhyUs.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "HomeFreelancerCard.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "JoinNow.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ProfileModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "TopFreelancers.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "ClientHomepage.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "homePageApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "homePageMutation.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "homePageQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "howitworks",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "HowItWorks.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "landingPage",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "CategoriesSection.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "CTASection.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "Features.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "Footer.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "Header.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "HeroSection.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "StepsSection.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "Testimonials.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "Landingpage.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "onboarding",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "__tests__",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "onboardingFlow.test.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "step1",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "PhoneOtpModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "StepOne.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "stepOneSchema.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "step2",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "StepTwo.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "stepTwoSchema.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "step3",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "StepThree.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "stepThreeSchema.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "step4",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "StepFour.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "stepFourSchema.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "step5",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "StepFive.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "stepFiveSchema.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "step6",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "StepSix.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "stepSixSchema.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "OnboardingAPI.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "OnBoardingContext.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "onBoardingHelper.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "OnboardingManager.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "onBoardingMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "onBoardingQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "profile",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "ProfileSidebar.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "AccountSettings.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "EditProfile.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Interests.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "profileApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "profileMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ProfileOverview.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "profileQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "profileSchema.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "SpendingSummary.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "projectManagement",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "__tests__",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "projectSchemas.test.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "ConfirmProjectModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "DeleteProjectModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ProjectCard.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ProjectDeleteModal.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "proposals",
+                      "children": [
+                        {
+                          "type": "directory",
+                          "name": "components",
+                          "children": [
+                            {
+                              "type": "file",
+                              "name": "ProposalHeader.jsx"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "file",
+                          "name": "proposalsApi.js"
+                        },
+                        {
+                          "type": "file",
+                          "name": "proposalsMutations.js"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ProposalsPage.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "proposalsQueries.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "AddProject.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "EditProject.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "MyProjects.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ProjectApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ProjectDetails.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "projectMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "projectQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "projectSchemas.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "resetpassword",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "ResetPasswordPage.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "resetPasswordSchema.js"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "freelancer",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "contracts",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "__tests__",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "disputeForm.test.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "DisputeModal.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "ContractDetail.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "contractMutation.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Contracts.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "contractsApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "contractsQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "disputeForm.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "dashboard",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "ActiveContacts.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "FreelancerFooter.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "Header.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "Invitations.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "JobRecommendation.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "Sidebar.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "TodoList.jsx"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "DashboardApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "dashboardMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "dashboardQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "FreelancerDashboard.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "findJobs",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "FindJobs.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "findJobsAPI.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "findJobsQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "invitations",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "invitationApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "invitationMutation.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "invitationMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "invitationQueries.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "InvitationsPage.jsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "jobdetails",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "JobDetails.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "jobDetailsApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "jobDetailsQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "offers",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "FreelancerOffers.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "OfferModal.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "offersApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "offersMutations.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "offersQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "profile",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "EarningsOverview.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "EditPaymentModal.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PaymentSettings.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PortfolioModal.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Profile.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "profileApi.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ProfileEdit.jsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "profileMutation.js"
+                    },
+                    {
+                      "type": "file",
+                      "name": "profileQueries.js"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "proposals",
+                  "children": [
+                    {
+                      "type": "directory",
+                      "name": "components",
+                      "children": [
+                        {
+                          "type": "file",
+                          "name": "MyProposals.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "proposalApi.js"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ProposalDetailModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ProposalModal.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "proposalMutations.js"
+                        },
+                        {
+                          "type": "file",
+                          "name": "ProposalsCard.jsx"
+                        },
+                        {
+                          "type": "file",
+                          "name": "proposalsMutation.js"
+                        },
+                        {
+                          "type": "file",
+                          "name": "proposalsQueries.js"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "file",
+                      "name": "proposalMutations.js"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "hooks",
+          "children": [
+            {
+              "type": "directory",
+              "name": "chat",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "UseChatRooms.jsx"
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "modal",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "useModalStore.jsx"
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "notification",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "useNotificationSocket.jsx"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "layouts",
+          "children": [
+            {
+              "type": "file",
+              "name": "AdminLayout.jsx"
+            },
+            {
+              "type": "file",
+              "name": "ClientLayout.jsx"
+            },
+            {
+              "type": "file",
+              "name": "ClientProfileLayout.jsx"
+            },
+            {
+              "type": "file",
+              "name": "FreelancerLayout.jsx"
+            },
+            {
+              "type": "file",
+              "name": "OnBoardingLayout.jsx"
+            },
+            {
+              "type": "file",
+              "name": "RootLayout.jsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "routes",
+          "children": [
+            {
+              "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "ClientProtectedRoute.test.js"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "AdminProtectedRoutes.jsx"
+            },
+            {
+              "type": "file",
+              "name": "AdminRoutes.jsx"
+            },
+            {
+              "type": "file",
+              "name": "AppRoutes.jsx"
+            },
+            {
+              "type": "file",
+              "name": "ClientProtectedRoute.jsx"
+            },
+            {
+              "type": "file",
+              "name": "clientRouteAccess.js"
+            },
+            {
+              "type": "file",
+              "name": "ClientRoutes.jsx"
+            },
+            {
+              "type": "file",
+              "name": "FreelancerProtectedRoutes.jsx"
+            },
+            {
+              "type": "file",
+              "name": "FreelancerRoutes.jsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "utils",
+          "children": [
+            {
+              "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "formatMoney.test.js"
+                }
+              ]
+            },
+            {
+              "type": "file",
+              "name": "cloudinaryHelper.js"
+            },
+            {
+              "type": "file",
+              "name": "date.js"
+            },
+            {
+              "type": "file",
+              "name": "formatMoney.js"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "App.jsx"
+        },
+        {
+          "type": "file",
+          "name": "fonts.css"
+        },
+        {
+          "type": "file",
+          "name": "index.css"
+        },
+        {
+          "type": "file",
+          "name": "main.jsx"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": ".env"
+    },
+    {
+      "type": "file",
+      "name": ".env.example"
+    },
+    {
+      "type": "file",
+      "name": "eslint.config.js"
+    },
+    {
+      "type": "file",
+      "name": "index.html"
+    },
+    {
+      "type": "file",
+      "name": "package-lock.json"
+    },
+    {
+      "type": "file",
+      "name": "package.json"
+    },
+    {
+      "type": "file",
+      "name": "run.bat"
+    },
+    {
+      "type": "file",
+      "name": "script.py"
+    },
+    {
+      "type": "file",
+      "name": "tree.py"
+    },
+    {
+      "type": "file",
+      "name": "vite.config.js"
+    }
+  ]
+}

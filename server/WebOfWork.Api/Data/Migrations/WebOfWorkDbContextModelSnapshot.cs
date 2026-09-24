@@ -2223,6 +2223,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("approval_decision");
 
+                    b.Property<string>("ApprovalRationale")
+                        .HasColumnType("text")
+                        .HasColumnName("approval_rationale");
+
                     b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("approved_at");
@@ -2332,6 +2336,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("workflow_run_id");
 
+                    b.Property<int?>("WorkflowRunId1")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_run_id1");
+
                     b.HasKey("Id")
                         .HasName("pk_workflow_step_logs");
 
@@ -2343,6 +2351,9 @@ namespace WebOfWork.Api.Data.Migrations
 
                     b.HasIndex("WorkflowRunId")
                         .HasDatabaseName("ix_workflow_step_logs_workflow_run_id");
+
+                    b.HasIndex("WorkflowRunId1")
+                        .HasDatabaseName("ix_workflow_step_logs_workflow_run_id1");
 
                     b.ToTable("workflow_step_logs", (string)null);
                 });
@@ -3003,6 +3014,11 @@ namespace WebOfWork.Api.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_workflow_step_logs_workflow_runs_workflow_run_id");
 
+                    b.HasOne("WebOfWork.Api.Models.WorkflowRun", null)
+                        .WithMany("StepLogs")
+                        .HasForeignKey("WorkflowRunId1")
+                        .HasConstraintName("fk_workflow_step_logs_workflow_runs_workflow_run_id1");
+
                     b.Navigation("WorkflowRun");
                 });
 
@@ -3063,6 +3079,11 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>
                 {
                     b.Navigation("Skills");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.WorkflowRun", b =>
+                {
+                    b.Navigation("StepLogs");
                 });
 #pragma warning restore 612, 618
         }

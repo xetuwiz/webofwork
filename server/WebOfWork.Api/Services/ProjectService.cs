@@ -137,6 +137,7 @@ public class ProjectService : IProjectService
         response.ClientInfo = new { project.Client.User.FullName, project.Client.User.Email };
         response.ProposalsCount = await _db.Proposals.CountAsync(p => p.ProjectId == projectId);
         response.ContractId = await _db.Contracts.Where(c => c.ProjectId == projectId).Select(c => (int?)c.Id).FirstOrDefaultAsync();
+        response.WorkflowRunId = await _db.WorkflowRuns.Where(w => w.ProjectId == projectId).OrderByDescending(w => w.CreatedAt).Select(w => (int?)w.Id).FirstOrDefaultAsync();
         if (_currentUser?.Id is Guid viewerId)
         {
             var freelancerId = await _db.FreelancerProfiles.Where(f => f.UserId == viewerId).Select(f => (Guid?)f.Id).FirstOrDefaultAsync();

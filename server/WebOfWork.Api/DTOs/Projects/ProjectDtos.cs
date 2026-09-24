@@ -61,6 +61,7 @@ public class ProjectResponse
     public bool IsApplied { get; set; }
     public int ProposalsCount { get; set; }
     public int? ContractId { get; set; }
+    public int? WorkflowRunId { get; set; }
 }
 
 public class ProjectSkillResponse

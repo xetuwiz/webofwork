@@ -32,6 +32,11 @@ export function useNotificationSocket(onNotificationReceived) {
       onNotificationReceived?.(notification);
     });
 
+    connection.on("AiWorkflowUpdated", (workflow) => {
+      queryClient.invalidateQueries({ queryKey: ["ai-workflow"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-workflows"] });
+      onNotificationReceived?.(workflow);
+    });
     connectionRef.current = connection;
 
     connection.start().catch((error) => {

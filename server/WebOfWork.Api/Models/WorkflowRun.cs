@@ -30,9 +30,12 @@ public class WorkflowRun
     public User RequestedByUser { get; set; } = null!;
 
     public string? ApprovalDecision { get; set; }
+    public string? ApprovalRationale { get; set; }
     public Guid? ApprovedByUserId { get; set; }
     public User? ApprovedByUser { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public ICollection<WorkflowStepLog> StepLogs { get; set; } = new List<WorkflowStepLog>();
+
 
     public string? FinalOutput { get; set; }
 

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useCategories, useSkills } from "./projectQueries.js";
-import { useCreateProject } from "./projectMutations.js";
+import { useCreateProject, useStartAiWorkflow } from "./projectMutations.js";
 import { projectCreateSchema } from "./projectSchemas.js";
 
 const defaultValues = {
@@ -24,6 +24,7 @@ const defaultValues = {
 export default function AddProject() {
   const navigate = useNavigate();
   const mutation = useCreateProject();
+  const startAi = useStartAiWorkflow();
   const { data: categoryData } = useCategories();
   const categories = categoryData?.results || categoryData || [];
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } = useForm({
@@ -57,8 +58,9 @@ export default function AddProject() {
     };
 
     mutation.mutate(payload, {
-      onSuccess: () => {
+      onSuccess: (createdProject) => {
         toast.success("Project created.");
+        if (createdProject?.id) startAi.mutate({ objective: values.title, plan: values.description, projectId: Number(createdProject.id) });
         reset(defaultValues);
         navigate("/my-projects");
       },
@@ -171,6 +173,7 @@ export default function AddProject() {
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2">
+          <button type="button" onClick={() => startAi.mutate({ objective: watch("title"), plan: watch("description") })} disabled={startAi.isPending} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 disabled:opacity-60" title="Create the project first; the project-bound AI workflow starts automatically after creation.">{startAi.isPending ? "Starting AI..." : "Find matches with AI"}</button>
           <button type="button" onClick={() => navigate("/my-projects")} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
           <button type="submit" disabled={mutation.isPending} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
             {mutation.isPending ? "Saving..." : "Create project"}
