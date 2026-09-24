@@ -54,6 +54,14 @@ public class ReviewsController : ControllerBase
     }
 
     // Step 11.28a: DELETE /api/reviews/{id} — admin only
+    [HttpGet("admin")]
+    [Authorize(Policy = "RequireAdmin")]
+    public async Task<IActionResult> GetAdminReviews(CancellationToken cancellationToken)
+    {
+        return Ok(await _reviewService.GetAllReviewsAsync(cancellationToken));
+    }
+
+
     [HttpDelete("{id:int}")]
     [Authorize(Policy = "RequireAdmin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)

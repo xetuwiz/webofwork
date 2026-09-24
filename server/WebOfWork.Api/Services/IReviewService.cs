@@ -11,5 +11,6 @@ public interface IReviewService
     Task<List<ReviewResponse>> GetFreelancerReviewsAsync(CancellationToken cancellationToken);
     Task<List<ReviewResponse>> GetClientReviewsAsync(CancellationToken cancellationToken);
     Task<List<ReviewResponse>> GetFreelancerReviewsByIdAsync(Guid freelancerProfileId, CancellationToken cancellationToken);
+    Task<List<ReviewResponse>> GetAllReviewsAsync(CancellationToken cancellationToken);
     Task DeleteReviewAsync(int id, CancellationToken cancellationToken);
 }

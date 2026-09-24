@@ -142,6 +142,13 @@ public class ReviewService : IReviewService
         return reviews.Select(MapToResponse).ToList();
     }
 
+    public async Task<List<ReviewResponse>> GetAllReviewsAsync(CancellationToken cancellationToken)
+    {
+        var reviews = await _db.Reviews.AsNoTracking().OrderByDescending(r => r.CreatedAt).ToListAsync(cancellationToken);
+        return reviews.Select(MapToResponse).ToList();
+    }
+
+
     public async Task DeleteReviewAsync(int id, CancellationToken cancellationToken)
     {
         var review = await _db.Reviews.FindAsync(new object[] { id }, cancellationToken)
