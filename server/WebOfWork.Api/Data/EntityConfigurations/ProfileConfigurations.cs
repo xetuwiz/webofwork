@@ -4,6 +4,17 @@ using WebOfWork.Api.Models;
 
 namespace WebOfWork.Api.Data.EntityConfigurations;
 
+public class ClientProfileCategoryConfiguration : IEntityTypeConfiguration<ClientProfileCategory>
+{
+    public void Configure(EntityTypeBuilder<ClientProfileCategory> builder)
+    {
+        builder.ToTable("client_profile_categories");
+        builder.HasKey(l => new { l.ClientProfileId, l.CategoryId });
+        builder.HasOne(l => l.ClientProfile).WithMany(c => c.CategoryLinks).HasForeignKey(l => l.ClientProfileId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(l => l.Category).WithMany().HasForeignKey(l => l.CategoryId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public class ClientProfileConfiguration : IEntityTypeConfiguration<ClientProfile>
 {
     public void Configure(EntityTypeBuilder<ClientProfile> builder)
@@ -17,6 +28,13 @@ public class ClientProfileConfiguration : IEntityTypeConfiguration<ClientProfile
                .OnDelete(DeleteBehavior.Cascade);
                
         builder.Property(c => c.TotalSpent).HasColumnType("decimal(18,2)");
+
+        builder.HasIndex(c => c.TotalSpent);
+        builder.HasMany(c => c.CategoryLinks)
+            .WithOne(l => l.ClientProfile)
+            .HasForeignKey(l => l.ClientProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Property(c => c.AverageRating).HasColumnType("decimal(3,2)");
         
         builder.HasIndex(c => c.TotalSpent);

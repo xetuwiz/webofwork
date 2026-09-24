@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WebOfWork.Api.DTOs.Common;
 using Microsoft.EntityFrameworkCore;
 using WebOfWork.Api.Data;
 using WebOfWork.Api.DTOs.Proposals;
@@ -15,6 +16,7 @@ public interface IProposalService
     Task<ProposalResponse> CreateProposalAsync(Guid userId, CreateProposalRequest request);
     Task<List<ProposalResponse>> GetMyProposalsAsync(Guid userId);
     Task<List<ProposalResponse>> GetProjectProposalsAsync(Guid userId, int projectId);
+    Task<WebOfWork.Api.DTOs.Common.PagedResponse<ProposalResponse>> GetPagedProjectProposalsAsync(Guid userId, int projectId, ProposalStatus? status, string? search, int page, int pageSize);
     Task<bool> RejectProposalAsync(Guid userId, int proposalId);
     Task<bool> WithdrawProposalAsync(Guid userId, int proposalId);
 }
@@ -22,10 +24,12 @@ public interface IProposalService
 public class ProposalService : IProposalService
 {
     private readonly WebOfWorkDbContext _db;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public ProposalService(WebOfWorkDbContext db)
+    public ProposalService(WebOfWorkDbContext db, INotificationPublisher? notificationPublisher = null)
     {
         _db = db;
+        _notificationPublisher = notificationPublisher;
     }
 
     private async Task<Guid> GetFreelancerIdAsync(Guid userId)
@@ -34,7 +38,7 @@ public class ProposalService : IProposalService
         if (profile == null) throw new UnauthorizedAccessException("Freelancer profile not found.");
         return profile.Id;
     }
-    
+
     private async Task<Guid> GetClientIdAsync(Guid userId)
     {
         var profile = await _db.ClientProfiles.FirstOrDefaultAsync(c => c.UserId == userId);
@@ -55,10 +59,16 @@ public class ProposalService : IProposalService
         // Only block if an active (Pending or Accepted) proposal exists.
         // Withdrawn or Rejected proposals allow re-submission.
         var existing = await _db.Proposals.AnyAsync(p =>
-            p.ProjectId    == request.ProjectId &&
-            p.FreelancerId == freelancerId       &&
+            p.ProjectId == request.ProjectId &&
+            p.FreelancerId == freelancerId &&
             (p.Status == ProposalStatus.Pending || p.Status == ProposalStatus.Accepted));
         if (existing) throw new InvalidOperationException("You have already submitted a proposal for this project.");
+
+        var invitationExists = await _db.Invitations.AnyAsync(i =>
+            i.ProjectId == request.ProjectId &&
+            i.FreelancerId == freelancerId &&
+            (i.Status == InvitationStatus.Pending || i.Status == InvitationStatus.Accepted));
+        if (invitationExists) throw new InvalidOperationException("An active invitation already exists for this project.");
 
         var proposal = new Proposal
         {
@@ -80,7 +90,7 @@ public class ProposalService : IProposalService
     public async Task<List<ProposalResponse>> GetMyProposalsAsync(Guid userId)
     {
         var freelancerId = await GetFreelancerIdAsync(userId);
-        
+
         var proposals = await _db.Proposals
             .Include(p => p.Project)
             .Include(p => p.Freelancer)
@@ -110,12 +120,26 @@ public class ProposalService : IProposalService
         return proposals.Select(MapToResponse).ToList();
     }
 
+    public async Task<WebOfWork.Api.DTOs.Common.PagedResponse<ProposalResponse>> GetPagedProjectProposalsAsync(Guid userId, int projectId, ProposalStatus? status, string? search, int page, int pageSize)
+    {
+        var clientId = await GetClientIdAsync(userId);
+        if (!await _db.Projects.AnyAsync(p => p.Id == projectId && p.ClientId == clientId)) throw new UnauthorizedAccessException("You do not own this project.");
+        var query = _db.Proposals.Include(p => p.Project).Include(p => p.Freelancer).ThenInclude(f => f.User).Where(p => p.ProjectId == projectId).AsQueryable();
+        if (status.HasValue) query = query.Where(p => p.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(search)) query = query.Where(p => p.CoverLetter.Contains(search) || p.Project.Title.Contains(search));
+        var normalizedPage = Math.Max(page, 1); var normalizedSize = Math.Clamp(pageSize, 1, 100);
+        var count = await query.CountAsync();
+        var items = await query.OrderByDescending(p => p.CreatedAt).Skip((normalizedPage - 1) * normalizedSize).Take(normalizedSize).ToListAsync();
+        return new WebOfWork.Api.DTOs.Common.PagedResponse<ProposalResponse> { Results = items.Select(MapToResponse).ToList(), Count = count, Page = normalizedPage, PageSize = normalizedSize };
+    }
+
     public async Task<bool> RejectProposalAsync(Guid userId, int proposalId)
     {
         var clientId = await GetClientIdAsync(userId);
-        
+
         var proposal = await _db.Proposals
             .Include(p => p.Project)
+            .Include(p => p.Freelancer)
             .FirstOrDefaultAsync(p => p.Id == proposalId);
 
         if (proposal == null) return false;
@@ -125,13 +149,22 @@ public class ProposalService : IProposalService
 
         proposal.Status = ProposalStatus.Rejected;
         await _db.SaveChangesAsync();
+        if (_notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                proposal.Freelancer.UserId,
+                NotificationType.ProposalRejected,
+                $"Your proposal for project '{proposal.Project.Title}' was rejected.",
+                "Proposal",
+                proposal.Id);
+        }
         return true;
     }
 
     public async Task<bool> WithdrawProposalAsync(Guid userId, int proposalId)
     {
         var freelancerId = await GetFreelancerIdAsync(userId);
-        
+
         var proposal = await _db.Proposals.FirstOrDefaultAsync(p => p.Id == proposalId);
         if (proposal == null) return false;
         if (proposal.FreelancerId != freelancerId) throw new UnauthorizedAccessException("You do not own this proposal.");
@@ -150,7 +183,7 @@ public class ProposalService : IProposalService
             .Include(p => p.Freelancer)
             .ThenInclude(f => f.User)
             .FirstOrDefaultAsync(p => p.Id == proposalId);
-            
+
         return MapToResponse(proposal!);
     }
 

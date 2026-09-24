@@ -46,8 +46,13 @@ public class ProfilesController : ControllerBase
     [Authorize(Policy = "RequireClient")]
     public async Task<IActionResult> GetRecommendedFreelancers()
     {
-        var freelancers = await _profileService.GetFreelancersListAsync();
-        return Ok(freelancers.Take(5));
+        var freelancers = (await _profileService.GetFreelancersListAsync())
+            .OrderByDescending(f => f.AverageRating * 10m + f.StartingPrice / 100m)
+            .Take(5)
+            .ToList();
+        if (freelancers.Count == 0)
+            return NotFound(new { detail = "No highly rated freelancers found at this time." });
+        return Ok(freelancers);
     }
 
 }

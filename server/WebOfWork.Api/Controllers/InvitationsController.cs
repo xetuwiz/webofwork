@@ -45,18 +45,18 @@ public class InvitationsController : ControllerBase
 
     [HttpGet("sent")]
     [Authorize(Policy = "RequireClient")]
-    public async Task<IActionResult> GetSentInvitations()
+    public async Task<IActionResult> GetSentInvitations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var invitations = await _invitationService.GetSentInvitationsAsync(_currentUser.Id!.Value);
-        return Ok(invitations);
+        InvitationStatus? statusFilter = Enum.TryParse<InvitationStatus>(status, true, out var parsed) ? parsed : null;
+        return Ok(await _invitationService.GetPagedSentInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, pageSize));
     }
 
     [HttpGet("received")]
     [Authorize(Policy = "RequireFreelancer")]
-    public async Task<IActionResult> GetReceivedInvitations()
+    public async Task<IActionResult> GetReceivedInvitations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var invitations = await _invitationService.GetReceivedInvitationsAsync(_currentUser.Id!.Value);
-        return Ok(invitations);
+        InvitationStatus? statusFilter = Enum.TryParse<InvitationStatus>(status, true, out var parsed) ? parsed : null;
+        return Ok(await _invitationService.GetPagedReceivedInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, pageSize));
     }
 
     [HttpPatch("{id}/status")]

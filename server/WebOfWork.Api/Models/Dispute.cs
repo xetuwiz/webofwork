@@ -14,6 +14,13 @@ public class Dispute
     public Guid OpenerId { get; set; }
     public User Opener { get; set; } = null!;
 
+    // Explicit participant identity retained alongside the legacy user id.
+    // Exactly one is set for new disputes; nullable keeps existing rows compatible.
+    public Guid? OpenedByClientId { get; set; }
+    public ClientProfile? OpenedByClient { get; set; }
+    public Guid? OpenedByFreelancerId { get; set; }
+    public FreelancerProfile? OpenedByFreelancer { get; set; }
+
     public DisputeReason Reason { get; set; }
     public string Description { get; set; } = string.Empty;
     public DisputeStatus Status { get; set; } = DisputeStatus.Pending;

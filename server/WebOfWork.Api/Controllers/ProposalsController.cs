@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using WebOfWork.Api.DTOs.Proposals;
+using WebOfWork.Api.Models.Enums;
 using WebOfWork.Api.Services;
 
 namespace WebOfWork.Api.Controllers;
@@ -51,11 +52,13 @@ public class ProposalsController : ControllerBase
 
     [HttpGet("project/{projectId}")]
     [Authorize(Policy = "RequireClient")]
-    public async Task<IActionResult> GetProjectProposals(int projectId)
+    public async Task<IActionResult> GetProjectProposals(int projectId, [FromQuery] string? status, [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         try
         {
-            var proposals = await _proposalService.GetProjectProposalsAsync(_currentUser.Id!.Value, projectId);
+            ProposalStatus? statusFilter = null;
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<WebOfWork.Api.Models.Enums.ProposalStatus>(status, true, out var parsedStatus)) statusFilter = parsedStatus;
+            var proposals = await _proposalService.GetPagedProjectProposalsAsync(_currentUser.Id!.Value, projectId, statusFilter, search, page, pageSize);
             return Ok(proposals);
         }
         catch (UnauthorizedAccessException) { return Forbid(); }

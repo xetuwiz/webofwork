@@ -45,16 +45,16 @@ public class PortfolioService : IPortfolioService
             throw new Exception("Portfolio item not found or unauthorized");
 
         await using var stream = request.File.OpenReadStream();
-        
+
         var isVideo = request.File.ContentType.StartsWith("video");
         var isPdf = request.File.ContentType == "application/pdf";
-        
+
         var uploadParams = new RawUploadParams()
         {
             File = new FileDescription(request.File.FileName, stream),
-            
+
         };
-        
+
         RawUploadResult uploadResult;
         MediaType mediaType;
 
@@ -63,7 +63,7 @@ public class PortfolioService : IPortfolioService
             var videoParams = new VideoUploadParams()
             {
                 File = new FileDescription(request.File.FileName, stream),
-                
+
             };
             uploadResult = await _cloudinary.UploadAsync(videoParams);
             mediaType = MediaType.Video;
@@ -78,7 +78,7 @@ public class PortfolioService : IPortfolioService
             var imageParams = new ImageUploadParams()
             {
                 File = new FileDescription(request.File.FileName, stream),
-                
+
             };
             uploadResult = await _cloudinary.UploadAsync(imageParams);
             mediaType = MediaType.Image;
@@ -171,45 +171,4 @@ public class PortfolioService : IPortfolioService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<SkillEndorsementResponse> AddEndorsementAsync(Guid endorserId, CreateSkillEndorsementRequest request)
-    {
-        var skill = await _context.FreelancerSkills
-            .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.Id == request.SkillId);
-
-        if (skill == null)
-            throw new Exception("Skill not found");
-            
-        if (skill.UserId == endorserId)
-            throw new Exception("Cannot endorse your own skill");
-
-        var endorser = await _context.Users.FindAsync(endorserId);
-        if (endorser == null)
-            throw new Exception("Endorser not found");
-
-        var existing = await _context.SkillEndorsements
-            .FirstOrDefaultAsync(e => e.SkillId == request.SkillId && e.EndorserId == endorserId);
-            
-        if (existing != null)
-            throw new Exception("You have already endorsed this skill");
-
-        var endorsement = new SkillEndorsement
-        {
-            SkillId = request.SkillId,
-            EndorserId = endorserId,
-            Comment = request.Comment
-        };
-
-        _context.SkillEndorsements.Add(endorsement);
-        await _context.SaveChangesAsync();
-
-        return new SkillEndorsementResponse(
-            endorsement.Id,
-            endorsement.SkillId,
-            endorsement.EndorserId,
-            endorser.FullName,
-            endorsement.Comment,
-            endorsement.CreatedAt
-        );
-    }
 }

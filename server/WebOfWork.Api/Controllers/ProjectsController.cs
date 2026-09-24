@@ -37,9 +37,17 @@ public class ProjectsController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetProjects([FromQuery] string? search)
+    public async Task<IActionResult> GetProjects(
+        [FromQuery] string? search,
+        [FromQuery] int? categoryId,
+        [FromQuery] int? skillId,
+        [FromQuery] decimal? minPrice,
+        [FromQuery] decimal? maxPrice,
+        [FromQuery] int? deliveryDays,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        var projects = await _projectService.GetProjectsAsync(search);
+        var projects = await _projectService.GetPagedProjectsAsync(search, categoryId, skillId, minPrice, maxPrice, deliveryDays, page, pageSize);
         return Ok(projects);
     }
 

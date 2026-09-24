@@ -27,8 +27,6 @@ public sealed record WorkflowContractSpec(
     Guid FreelancerId,
     decimal TotalAmount,
     Guid? PackageId = null,
-    bool IsMilestoneBased = false,
-    int MilestoneCount = 0,
     int? ProjectId = null);
 
 public class AiWorkflowService : IAiWorkflowService
@@ -131,6 +129,9 @@ public class AiWorkflowService : IAiWorkflowService
                 if (contractSpec.TotalAmount <= 0)
                     throw new InvalidOperationException("The approved contract amount must be greater than zero.");
 
+                if (await _db.Contracts.AnyAsync(x => x.ProjectId == projectId, ct))
+                    throw new InvalidOperationException($"Project {projectId} already has a contract.");
+
                 var project = await _db.Projects.FirstOrDefaultAsync(x => x.Id == projectId, ct)
                     ?? throw new KeyNotFoundException($"Project {projectId} was not found.");
                 var freelancer = await _db.FreelancerProfiles.FirstOrDefaultAsync(x => x.Id == contractSpec.FreelancerId, ct)
@@ -143,8 +144,6 @@ public class AiWorkflowService : IAiWorkflowService
                     FreelancerId = freelancer.Id,
                     PackageId = contractSpec.PackageId,
                     TotalAmount = contractSpec.TotalAmount,
-                    IsMilestoneBased = contractSpec.IsMilestoneBased,
-                    MilestoneCount = contractSpec.MilestoneCount,
                     ClientSignature = "AI-Workflow-Approval",
                     ClientSignatureType = "workflow",
                     Status = ContractStatus.Offered,

@@ -6,6 +6,7 @@ public enum NotificationType
     ProposalAccepted,
     InvitationReceived,
     OfferReceived,
+    ProposalRejected,
     ContractStarted,
     WorkDelivered,
     RevisionRequested,

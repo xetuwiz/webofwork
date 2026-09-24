@@ -17,12 +17,14 @@ public class DisputeService : IDisputeService
     private readonly WebOfWorkDbContext _db;
     private readonly ICurrentUser _currentUser;
     private readonly IRefundService _refundService;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public DisputeService(WebOfWorkDbContext db, ICurrentUser currentUser, IRefundService refundService)
+    public DisputeService(WebOfWorkDbContext db, ICurrentUser currentUser, IRefundService refundService, INotificationPublisher? notificationPublisher = null)
     {
         _db = db;
         _currentUser = currentUser;
         _refundService = refundService;
+        _notificationPublisher = notificationPublisher;
     }
 
     public async Task<DisputeResponse> CreateDisputeAsync(int contractId, CreateDisputeRequest request, CancellationToken cancellationToken)
@@ -50,6 +52,8 @@ public class DisputeService : IDisputeService
         {
             ContractId = contractId,
             OpenerId = userId,
+            OpenedByClientId = contract.Client.UserId == userId ? contract.ClientId : null,
+            OpenedByFreelancerId = contract.Freelancer.UserId == userId ? contract.FreelancerId : null,
             Reason = request.Reason,
             Description = request.Description,
             Status = DisputeStatus.Pending,
@@ -73,6 +77,18 @@ public class DisputeService : IDisputeService
         contract.Status = ContractStatus.Disputed;
         await _db.SaveChangesAsync(cancellationToken);
 
+        if (_notificationPublisher != null)
+        {
+            var recipientId = contract.Client.UserId == userId ? contract.Freelancer.UserId : contract.Client.UserId;
+            await _notificationPublisher.PublishAsync(
+                recipientId,
+                NotificationType.DisputeOpened,
+                $"A dispute was opened for contract #{contractId}.",
+                "Dispute",
+                dispute.Id,
+                cancellationToken);
+        }
+
         return MapToResponse(dispute, request.EvidenceUrls);
     }
 
@@ -80,6 +96,7 @@ public class DisputeService : IDisputeService
     {
         var disputes = await _db.Disputes
             .Include(d => d.Evidence)
+            .Include(d => d.Contract)
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -90,6 +107,7 @@ public class DisputeService : IDisputeService
     {
         var dispute = await _db.Disputes
             .Include(d => d.Evidence)
+            .Include(d => d.Contract)
             .FirstOrDefaultAsync(d => d.Id == id, cancellationToken)
             ?? throw new KeyNotFoundException("Dispute not found.");
 
@@ -112,6 +130,7 @@ public class DisputeService : IDisputeService
 
         var dispute = await _db.Disputes
             .Include(d => d.Evidence)
+            .Include(d => d.Contract)
             .FirstOrDefaultAsync(d => d.ContractId == contractId, cancellationToken)
             ?? throw new KeyNotFoundException("Dispute not found.");
 
@@ -120,6 +139,7 @@ public class DisputeService : IDisputeService
 
     public async Task<DisputeResponse> ResolveDisputeAsync(int id, ResolveDisputeRequest request, CancellationToken cancellationToken)
     {
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         var dispute = await _db.Disputes
             .Include(d => d.Contract)
             .Include(d => d.Evidence)
@@ -128,6 +148,9 @@ public class DisputeService : IDisputeService
 
         if (dispute.Status != DisputeStatus.Pending && dispute.Status != DisputeStatus.UnderReview)
             throw new InvalidOperationException("Dispute is already resolved or rejected.");
+
+        if (request.Status != DisputeStatus.Resolved && request.Status != DisputeStatus.Rejected)
+            throw new InvalidOperationException("A dispute can only be finalized as Resolved or Rejected.");
 
         dispute.Status = request.Status;
         dispute.AdminNotes = request.AdminNotes;
@@ -162,10 +185,48 @@ public class DisputeService : IDisputeService
         }
         else if (request.Resolution == DisputeResolution.Split)
         {
-            dispute.Contract.Status = ContractStatus.Refunded;
+            if (!request.ClientRefundAmountUsd.HasValue || request.ClientRefundAmountUsd.Value <= 0m)
+                throw new InvalidOperationException("A split resolution requires ClientRefundAmountUsd.");
+
+            var payment = await _db.Payments.Include(p => p.Refunds)
+                .Where(p => p.ContractId == dispute.ContractId && p.Status == PaymentStatus.Escrow)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (payment == null) throw new InvalidOperationException("No escrow payment found to split.");
+
+            await _refundService.RefundPaymentAsync(new RefundPaymentRequest
+            {
+                PaymentId = payment.Id,
+                Amount = request.ClientRefundAmountUsd.Value,
+                Reason = string.IsNullOrWhiteSpace(request.AdminNotes) ? "Dispute split refund" : request.AdminNotes
+            }, cancellationToken);
+
+            var remaining = payment.Amount - payment.RefundedAmount;
+            if (remaining <= 0m) throw new InvalidOperationException("Split refund must leave a positive freelancer balance.");
+            dispute.Contract.Status = ContractStatus.Completed;
+            dispute.Contract.PayoutEligibleAfter = DateTime.UtcNow;
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        if (_notificationPublisher != null)
+        {
+            var participantIds = await _db.Contracts
+                .Where(c => c.Id == dispute.ContractId)
+                .Select(c => new { c.Client.UserId, FreelancerUserId = c.Freelancer.UserId })
+                .FirstAsync(cancellationToken);
+            foreach (var recipientId in new[] { participantIds.UserId, participantIds.FreelancerUserId }.Distinct())
+            {
+                await _notificationPublisher.PublishAsync(
+                    recipientId,
+                    NotificationType.DisputeResolved,
+                    $"The dispute for contract #{dispute.ContractId} was resolved.",
+                    "Dispute",
+                    dispute.Id,
+                    cancellationToken);
+            }
+        }
 
         return MapToResponse(dispute, dispute.Evidence.Select(e => e.FileUrl).ToList());
     }
@@ -174,7 +235,8 @@ public class DisputeService : IDisputeService
     {
         Id = d.Id,
         ContractId = d.ContractId,
-        OpenerId = d.OpenerId,
+            OpenerId = d.OpenerId,
+            OpenerRole = d.OpenedByClientId.HasValue ? "Client" : d.OpenedByFreelancerId.HasValue ? "Freelancer" : null,
         Reason = d.Reason,
         Description = d.Description,
         Status = d.Status,

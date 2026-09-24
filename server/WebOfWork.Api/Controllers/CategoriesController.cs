@@ -20,9 +20,9 @@ public class CategoriesController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetCategories()
+    public async Task<IActionResult> GetCategories([FromQuery] bool noPagination = false)
     {
-        var categories = await _categoryService.GetCategoriesAsync();
+        var categories = await _categoryService.GetCategoriesAsync(noPagination);
         return Ok(categories);
     }
 

@@ -13,7 +13,7 @@ namespace WebOfWork.Api.Services;
 
 public interface IContractService
 {
-    Task<List<ContractResponse>> GetContractsAsync(Guid userId);
+    Task<List<ContractResponse>> GetContractsAsync(Guid userId, string? search = null, ContractStatus? status = null, string? role = null);
     Task<ContractResponse?> GetContractDetailAsync(Guid userId, int contractId);
     Task<List<ContractResponse>> GetMyOffersAsync(Guid userId);
     Task<bool> AcceptContractAsync(Guid userId, int contractId, AcceptContractRequest request, string ipAddress);
@@ -25,12 +25,14 @@ public class ContractService : IContractService
     private readonly WebOfWorkDbContext _db;
     private readonly IContractDocumentService _documentService;
     private readonly ICloudinaryStorageService _cloudinaryService;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public ContractService(WebOfWorkDbContext db, IContractDocumentService documentService, ICloudinaryStorageService cloudinaryService)
+    public ContractService(WebOfWorkDbContext db, IContractDocumentService documentService, ICloudinaryStorageService cloudinaryService, INotificationPublisher? notificationPublisher = null)
     {
         _db = db;
         _documentService = documentService;
         _cloudinaryService = cloudinaryService;
+        _notificationPublisher = notificationPublisher;
     }
 
     private async Task<Guid?> GetFreelancerIdAsync(Guid userId)
@@ -45,16 +47,30 @@ public class ContractService : IContractService
         return profile?.Id;
     }
 
-    public async Task<List<ContractResponse>> GetContractsAsync(Guid userId)
+    public async Task<List<ContractResponse>> GetContractsAsync(Guid userId, string? search = null, ContractStatus? status = null, string? role = null)
     {
         var clientId = await GetClientIdAsync(userId);
         var freelancerId = await GetFreelancerIdAsync(userId);
 
-        var contracts = await _db.Contracts
+        var query = _db.Contracts
             .Include(c => c.Project)
             .Include(c => c.Client).ThenInclude(p => p.User)
             .Include(c => c.Freelancer).ThenInclude(p => p.User)
             .Where(c => c.ClientId == clientId || c.FreelancerId == freelancerId)
+            .AsQueryable();
+        if (status.HasValue) query = query.Where(c => c.Status == status.Value);
+        if (string.Equals(role, "client", StringComparison.OrdinalIgnoreCase)) query = query.Where(c => c.ClientId == clientId);
+        else if (string.Equals(role, "freelancer", StringComparison.OrdinalIgnoreCase)) query = query.Where(c => c.FreelancerId == freelancerId);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            if (term.StartsWith("ORD-", StringComparison.OrdinalIgnoreCase) && int.TryParse(term[4..], out var contractId))
+                query = query.Where(c => c.Id == contractId);
+            else
+                query = query.Where(c => c.Project.Title.Contains(term) || c.Client.User.FullName.Contains(term) || c.Freelancer.User.FullName.Contains(term));
+        }
+
+        var contracts = await query
             .OrderByDescending(c => c.Id)
             .ToListAsync();
 
@@ -68,8 +84,14 @@ public class ContractService : IContractService
 
         var contract = await _db.Contracts
             .Include(c => c.Project)
+            .Include(c => c.Package)
             .Include(c => c.Client).ThenInclude(p => p.User)
             .Include(c => c.Freelancer).ThenInclude(p => p.User)
+            .Include(c => c.Deliverables)
+            .Include(c => c.Revisions)
+            .Include(c => c.Dispute)
+            .Include(c => c.Payment)
+            .Include(c => c.Reviews)
             .FirstOrDefaultAsync(c => c.Id == contractId);
 
         if (contract == null) return null;
@@ -108,7 +130,7 @@ public class ContractService : IContractService
             .FirstOrDefaultAsync(c => c.Id == contractId);
 
         if (contract == null) return false;
-        
+
         if (contract.FreelancerId != freelancerId)
         {
             throw new UnauthorizedAccessException("Only the assigned freelancer can accept this contract.");
@@ -124,6 +146,7 @@ public class ContractService : IContractService
         contract.FreelancerSignedAt = DateTime.UtcNow;
         contract.FreelancerIp = ipAddress;
         contract.Status = ContractStatus.Active;
+        contract.Project.Status = ProjectStatus.InProgress;
 
         // Generate PDF Document
         var pdfBytes = await _documentService.GenerateContractPdfAsync(contract);
@@ -132,6 +155,15 @@ public class ContractService : IContractService
         contract.LegalDocumentUrl = pdfUrl;
 
         await _db.SaveChangesAsync();
+        if (_notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                contract.Client.UserId,
+                NotificationType.ContractStarted,
+                $"Contract #{contract.Id} has started.",
+                "Contract",
+                contract.Id);
+        }
         return true;
     }
 
@@ -140,7 +172,9 @@ public class ContractService : IContractService
         var clientId = await GetClientIdAsync(userId);
         var freelancerId = await GetFreelancerIdAsync(userId);
 
-        var contract = await _db.Contracts.FirstOrDefaultAsync(c => c.Id == contractId);
+        var contract = await _db.Contracts
+            .Include(c => c.Freelancer)
+            .FirstOrDefaultAsync(c => c.Id == contractId);
         if (contract == null) return false;
 
         if (contract.ClientId != clientId && contract.FreelancerId != freelancerId)
@@ -158,15 +192,31 @@ public class ContractService : IContractService
             throw new InvalidOperationException($"Invalid state transition from {contract.Status} to {newStatus}.");
         }
 
+        if (newStatus == ContractStatus.Completed && contract.ClientId != clientId)
+        {
+            throw new UnauthorizedAccessException("Only the client can complete this contract.");
+        }
+
         contract.Status = newStatus;
 
         if (newStatus == ContractStatus.Completed)
         {
             contract.CompletedAt = DateTime.UtcNow;
             contract.PayoutEligibleAfter = contract.CompletedAt.Value.AddDays(7);
+            var project = await _db.Projects.FirstAsync(p => p.Id == contract.ProjectId);
+            project.Status = ProjectStatus.Completed;
         }
 
         await _db.SaveChangesAsync();
+        if (newStatus == ContractStatus.Completed && _notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                contract.Freelancer.UserId,
+                NotificationType.ContractCompleted,
+                $"Contract #{contract.Id} has been completed.",
+                "Contract",
+                contract.Id);
+        }
         return true;
     }
 
@@ -186,15 +236,17 @@ public class ContractService : IContractService
             IsFunded = contract.IsFunded,
             PaidToFreelancer = contract.PaidToFreelancer,
             PayoutEligibleAfter = contract.PayoutEligibleAfter,
-            IsMilestoneBased = contract.IsMilestoneBased,
-            MilestoneCount = contract.MilestoneCount,
             ClientHasSigned = !string.IsNullOrEmpty(contract.ClientSignature),
             ClientSignedAt = contract.ClientSignedAt,
             FreelancerHasSigned = !string.IsNullOrEmpty(contract.FreelancerSignature),
             FreelancerSignedAt = contract.FreelancerSignedAt,
             LegalDocumentUrl = contract.LegalDocumentUrl,
             CompletedAt = contract.CompletedAt,
-            Status = contract.Status.ToString()
+            Status = contract.Status.ToString(),
+            Deliverables = contract.Deliverables.Select(d => new WebOfWork.Api.DTOs.Deliverables.DeliverableResponse(d.Id, d.ContractId, d.FreelancerId, d.Title, d.FileUrl, d.LinkUrl, d.Notes, d.DeliverableType, d.SubmittedAt)).ToList(),
+            Revisions = contract.Revisions.Select(r => new WebOfWork.Api.DTOs.Revisions.ContractRevisionResponse(r.Id, r.ContractId, r.UserId, r.Reason, r.Status, r.RejectionMessage, r.RequestedAt, r.ResolvedAt)).ToList(),
+            PaymentStatus = contract.Payment?.Status.ToString(),
+            Reviews = contract.Reviews.Select(r => (object)new { Id = r.Id, ContractId = r.ContractId, ReviewerId = r.ReviewerId, RevieweeId = r.RevieweeId, Rating = r.Rating, Comment = r.Comment, CreatedAt = r.CreatedAt }).ToList()
         };
     }
 }

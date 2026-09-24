@@ -22,6 +22,7 @@ public class PayPalOrderDetails
     public string Status    { get; set; } = string.Empty;
     public decimal Amount   { get; set; }
     public string Currency  { get; set; } = string.Empty;
+    public string? CaptureId { get; set; }
 }
 
 // ── Internal DTO shapes from PayPal API ────────────────────────────────────
@@ -41,6 +42,17 @@ file sealed class PayPalOrderResponse
 file sealed class PayPalPurchaseUnit
 {
     [JsonPropertyName("amount")] public PayPalAmount? Amount { get; set; }
+    [JsonPropertyName("payments")] public PayPalPayments? Payments { get; set; }
+}
+
+file sealed class PayPalPayments
+{
+    [JsonPropertyName("captures")] public PayPalCapture[]? Captures { get; set; }
+}
+
+file sealed class PayPalCapture
+{
+    [JsonPropertyName("id")] public string Id { get; set; } = string.Empty;
 }
 
 file sealed class PayPalAmount
@@ -115,7 +127,8 @@ public class PayPalClient : IPayPalClient
                 OrderId  = order.Id,
                 Status   = order.Status,
                 Amount   = amount,
-                Currency = unit?.Amount?.CurrencyCode ?? string.Empty
+                Currency = unit?.Amount?.CurrencyCode ?? string.Empty,
+                CaptureId = unit?.Payments?.Captures?.FirstOrDefault()?.Id
             };
         }
         catch (Exception ex)

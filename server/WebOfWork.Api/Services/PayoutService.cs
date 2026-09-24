@@ -27,13 +27,15 @@ public class PayoutService : IPayoutService
     private readonly IPayPalPayoutClient _payPalPayoutClient;
     private readonly ISmsSender _smsSender;
     private readonly SmsStrategyFactory _smsFactory;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public PayoutService(WebOfWorkDbContext db, IPayPalPayoutClient payPalPayoutClient, ISmsSender smsSender)
+    public PayoutService(WebOfWorkDbContext db, IPayPalPayoutClient payPalPayoutClient, ISmsSender smsSender, INotificationPublisher? notificationPublisher = null)
     {
         _db = db;
         _payPalPayoutClient = payPalPayoutClient;
         _smsSender = smsSender;
         _smsFactory = new SmsStrategyFactory();
+        _notificationPublisher = notificationPublisher;
     }
 
     public async Task<List<PaymentResponse>> GetPendingPayoutsAsync(CancellationToken ct)
@@ -41,9 +43,10 @@ public class PayoutService : IPayoutService
         var now = DateTime.UtcNow;
         var payouts = await _db.Payments
             .Include(p => p.Contract)
-            .Where(p => p.Status == PaymentStatus.Escrow 
-                     && p.Contract.Status == ContractStatus.Completed 
-                     && p.Contract.PayoutEligibleAfter.HasValue 
+            .Include(p => p.Contract.Project)
+            .Where(p => p.Status == PaymentStatus.Escrow
+                     && p.Contract.Status == ContractStatus.Completed
+                     && p.Contract.PayoutEligibleAfter.HasValue
                      && p.Contract.PayoutEligibleAfter.Value <= now)
             .OrderBy(p => p.CreatedAt)
             .ToListAsync(ct);
@@ -52,9 +55,8 @@ public class PayoutService : IPayoutService
         {
             Id = p.Id,
             ContractId = p.ContractId,
-            MilestoneId = p.MilestoneId,
             PayPalOrderId = p.PayPalOrderId,
-            Amount = p.Amount - p.PlatformFee,
+            Amount = (p.Amount - p.RefundedAmount) - (p.PlatformFee * (p.Amount - p.RefundedAmount) / p.Amount),
             Status = p.Status.ToString(),
             CreatedAt = p.CreatedAt
         }).ToList();
@@ -70,19 +72,29 @@ public class PayoutService : IPayoutService
 
         if (payment == null) throw new InvalidOperationException("Payment not found.");
         if (payment.Status == PaymentStatus.Released) throw new InvalidOperationException("Payout already released.");
+
         if (payment.Status != PaymentStatus.Escrow) throw new InvalidOperationException("Payment is not in Escrow.");
-        
+
         // 13.5: Prevent payout before contract completion
         if (payment.Contract.Status != ContractStatus.Completed) throw new InvalidOperationException("Contract is not completed.");
-        
+
         // 13.5a: Enforce payout eligibility window
-        if (!payment.Contract.PayoutEligibleAfter.HasValue || payment.Contract.PayoutEligibleAfter.Value > DateTime.UtcNow) 
+        if (!payment.Contract.PayoutEligibleAfter.HasValue || payment.Contract.PayoutEligibleAfter.Value > DateTime.UtcNow)
             throw new InvalidOperationException("Payout is not yet eligible.");
 
-        var netAmount = payment.Amount - payment.PlatformFee;
+        var remainingGross = payment.Amount - payment.RefundedAmount;
+        var remainingFee = payment.RefundedAmount >= payment.Amount ? 0m : payment.PlatformFee * remainingGross / payment.Amount;
+        var netAmount = remainingGross - remainingFee;
+        if (netAmount <= 0m) throw new InvalidOperationException("No payable balance remains after refunds.");
         var note = $"Payout for Contract #{payment.ContractId}";
-        
-        var email = payment.Contract.Freelancer.User.Email; 
+
+        var paypalEmail = await _db.FreelancerPaymentSettings
+            .Where(settings => settings.UserId == payment.Contract.Freelancer.UserId)
+            .Select(settings => settings.PaypalEmail)
+            .FirstOrDefaultAsync(ct);
+        var email = string.IsNullOrWhiteSpace(paypalEmail)
+            ? payment.Contract.Freelancer.User.Email
+            : paypalEmail;
 
         var success = await _payPalPayoutClient.SendPayoutAsync(email, netAmount, note);
         if (!success) throw new InvalidOperationException("PayPal payout failed.");
@@ -90,8 +102,21 @@ public class PayoutService : IPayoutService
         payment.Status = PaymentStatus.Released;
         payment.ProcessedAt = DateTime.UtcNow;
         payment.Contract.PaidToFreelancer = true;
-        
+
         await _db.SaveChangesAsync(ct);
+
+        if (_notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                payment.Contract.Freelancer.UserId,
+                NotificationType.PayoutReleased,
+                $"Payout for contract #{payment.ContractId} has been released.",
+                "Payment",
+                payment.Id,
+                ct,
+                netAmount,
+                payment.ContractId);
+        }
 
         if (payment.Contract.Freelancer.IsPhoneVerified && !string.IsNullOrEmpty(payment.Contract.Freelancer.Phone))
         {

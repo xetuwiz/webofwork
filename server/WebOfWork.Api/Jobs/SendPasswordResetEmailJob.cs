@@ -1,5 +1,6 @@
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using WebOfWork.Api.Integrations.Email;
 
 namespace WebOfWork.Api.Jobs;
@@ -8,11 +9,13 @@ public class SendPasswordResetEmailJob
 {
     private readonly IEmailSender _emailSender;
     private readonly ILogger<SendPasswordResetEmailJob> _logger;
+    private readonly IEmailTemplateRenderer _templates;
 
-    public SendPasswordResetEmailJob(IEmailSender emailSender, ILogger<SendPasswordResetEmailJob> logger)
+    public SendPasswordResetEmailJob(IEmailSender emailSender, ILogger<SendPasswordResetEmailJob> logger, IEmailTemplateRenderer templates)
     {
         _emailSender = emailSender;
         _logger = logger;
+        _templates = templates;
     }
 
     public async Task ExecuteAsync(string email, string token, CancellationToken ct = default)
@@ -23,9 +26,7 @@ public class SendPasswordResetEmailJob
             return;
         }
 
-        var html = $@"<h2>Password Reset</h2>
-<p>Use the following token to reset your password:</p>
-<p><strong>{token}</strong></p>";
+        var html = await _templates.RenderAsync("PasswordResetEmail.cshtml", new Dictionary<string, string> { ["Token"] = token }, ct);
 
         await _emailSender.SendAsync(email, "Password Reset Request", html, ct);
     }

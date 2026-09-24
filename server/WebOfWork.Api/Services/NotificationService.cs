@@ -144,7 +144,8 @@ public class NotificationService : INotificationService, INotificationPublisher
             Type = type,
             Message = message,
             RelatedEntityType = relatedEntityType,
-            RelatedEntityId = relatedEntityId
+            RelatedEntityId = relatedEntityId,
+            TargetRole = recipient.CurrentRole.ToString()
         };
         _db.Notifications.Add(notification);
         await _db.SaveChangesAsync(ct);
@@ -256,7 +257,8 @@ public class NotificationService : INotificationService, INotificationPublisher
         RelatedEntityType = n.RelatedEntityType,
         RelatedEntityId = n.RelatedEntityId,
         IsRead = n.IsRead,
-        CreatedAt = n.CreatedAt
+        CreatedAt = n.CreatedAt,
+        TargetRole = n.TargetRole
     };
 }
 

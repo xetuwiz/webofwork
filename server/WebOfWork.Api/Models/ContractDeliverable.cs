@@ -15,6 +15,7 @@ public class ContractDeliverable
     public string Title { get; set; } = string.Empty;
     public string? FileUrl { get; set; }
     public string? LinkUrl { get; set; }
+    public string DeliverableType { get; set; } = "file";
     public string? Notes { get; set; }
     
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;

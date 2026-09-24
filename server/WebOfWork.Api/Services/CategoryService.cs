@@ -18,7 +18,7 @@ public class CategoryService : ICategoryService
         _context = context;
     }
 
-    public async Task<IEnumerable<CategoryResponse>> GetCategoriesAsync()
+    public async Task<IEnumerable<CategoryResponse>> GetCategoriesAsync(bool noPagination = false)
     {
         return await _context.Categories
             .OrderBy(c => c.Name)
@@ -78,12 +78,12 @@ public class CategoryService : ICategoryService
 
         return await query
             .OrderBy(s => s.Name)
-            .Select(s => new SkillResponse 
-            { 
-                Id = s.Id, 
-                Name = s.Name, 
-                CategoryId = s.CategoryId ?? 0, 
-                IsCustom = s.IsCustom 
+            .Select(s => new SkillResponse
+            {
+                Id = s.Id,
+                Name = s.Name,
+                CategoryId = s.CategoryId ?? 0,
+                IsCustom = s.IsCustom
             })
             .ToListAsync();
     }
@@ -131,6 +131,10 @@ public class CategoryService : ICategoryService
         var inUse = await _context.FreelancerSkills.AnyAsync(fs => fs.SkillId == id);
         if (inUse)
             throw new InvalidOperationException("Cannot delete a skill that is used by freelancers.");
+
+        var usedByProjects = await _context.ProjectSkills.AnyAsync(ps => ps.SkillId == id);
+        if (usedByProjects)
+            throw new InvalidOperationException("Cannot delete a skill that is used by projects.");
 
         _context.Skills.Remove(skill);
         await _context.SaveChangesAsync();

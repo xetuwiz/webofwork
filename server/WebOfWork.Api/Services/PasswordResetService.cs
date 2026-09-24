@@ -9,6 +9,7 @@ namespace WebOfWork.Api.Services;
 public interface IPasswordResetService
 {
     Task GenerateResetTokenAsync(string email);
+    Task<bool> ValidateResetTokenAsync(string email, string token);
     Task ResetPasswordAsync(string email, string token, string newPassword);
 }
 
@@ -54,5 +55,11 @@ public class PasswordResetService : IPasswordResetService
         user.PasswordHash = _hasher.HashPassword(newPassword);
         await _db.SaveChangesAsync();
         await _otpService.DeleteOtpAsync($"reset:{email}");
+    }
+
+    public async Task<bool> ValidateResetTokenAsync(string email, string token)
+    {
+        var stored = await _otpService.GetOtpAsync($"reset:{email}");
+        return !string.IsNullOrWhiteSpace(stored) && stored == token;
     }
 }

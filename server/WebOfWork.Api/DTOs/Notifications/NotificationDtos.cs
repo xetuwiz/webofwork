@@ -3,6 +3,7 @@ namespace WebOfWork.Api.DTOs.Notifications;
 public record NotificationResponse
 {
     public int Id { get; init; }
+    public string? TargetRole { get; init; }
     public string Type { get; init; } = string.Empty;
     public string Message { get; init; } = string.Empty;
     public string? RelatedEntityType { get; init; }

@@ -15,7 +15,7 @@ export default function HeroSection() {
       <div className="landing-hero__visual" role="img" aria-label="A collaborative workspace represented by layered work surfaces">
         <div className="landing-hero__image" />
         <div className="landing-hero__note"><span>Brief clarity</span><strong>Before the first message</strong></div>
-        <div className="landing-hero__status"><i /> Protected milestone flow</div>
+        <div className="landing-hero__status"><i /> Protected delivery flow</div>
       </div>
     </section>
   );

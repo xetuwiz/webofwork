@@ -7,18 +7,21 @@ import ProfileEdit from "../features/freelancer/profile/ProfileEdit.jsx";
 import PaymentSettings from "../features/freelancer/profile/PaymentSettings.jsx";
 import EarningsOverview from "../features/freelancer/profile/EarningsOverview.jsx";
 import MyProposals from "../features/freelancer/proposals/components/MyProposals.jsx";
+import FindJobs from "../features/freelancer/findJobs/FindJobs.jsx";
+import JobDetails from "../features/freelancer/jobdetails/JobDetails.jsx";
+import InvitationsPage from "../features/freelancer/invitations/InvitationsPage.jsx";
 
 export default function FreelancerRoutes() {
   return (
     <Routes>
       <Route element={<FreelancerLayout />}>
         <Route index element={<FreelancerDashboard />} />
-        <Route path="jobs" element={<div className="p-8 text-gray-500">Job discovery is not implemented in this phase.</div>} />
-        <Route path="jobs/:id" element={<div className="p-8 text-gray-500">Job detail view is not implemented in this phase.</div>} />
+        <Route path="jobs" element={<FindJobs />} />
+        <Route path="jobs/:id" element={<JobDetails />} />
         <Route path="profile" element={<Profile />} />
         <Route path="profile/edit" element={<ProfileEdit />} />
         <Route path="profile/earnings-overview" element={<EarningsOverview />} />
-        <Route path="invitations" element={<div className="p-8 text-gray-500">Invitations are not implemented in this phase.</div>} />
+        <Route path="invitations" element={<InvitationsPage />} />
         <Route path="my-proposals" element={<MyProposals />} />
         <Route path="offers" element={<div className="p-8 text-gray-500">Offers are not implemented in this phase.</div>} />
         <Route path="contracts" element={<div className="p-8 text-gray-500">Contracts are not implemented in this phase.</div>} />

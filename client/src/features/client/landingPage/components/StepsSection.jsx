@@ -1,7 +1,7 @@
 const steps = [
   ["01", "Describe the work", "Turn an idea into a focused brief with the context professionals need."],
   ["02", "Choose with confidence", "Compare relevant profiles, proposals, and practical fit in one place."],
-  ["03", "Deliver in milestones", "Keep decisions, files, feedback, and payment tied to the agreed work."],
+  ["03", "Deliver with clarity", "Keep decisions, files, feedback, and payment tied to the agreed work."],
 ];
 
 export default function StepsSection() {

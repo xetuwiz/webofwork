@@ -59,14 +59,6 @@ BEGIN
         IF v > 0 THEN RAISE WARNING 'payments contains negative amount values'; END IF;
     END IF;
 
-    IF to_regclass('public.milestones') IS NOT NULL THEN
-        SELECT count(*) INTO v
-        FROM public.milestones
-        WHERE amount < 0;
-        RAISE NOTICE 'negative milestone amounts: %', v;
-        IF v > 0 THEN RAISE WARNING 'milestones contains negative amounts'; END IF;
-    END IF;
-
     IF to_regclass('public.global_settings') IS NOT NULL THEN
         SELECT count(*) INTO v
         FROM public.global_settings

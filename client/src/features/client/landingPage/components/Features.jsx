@@ -1,6 +1,6 @@
 const features = [
   ["Briefs with signal", "Put goals, constraints, and expectations in the same room before work begins."],
-  ["Milestones with accountability", "Make progress visible and decisions easy to revisit."],
+  ["Delivery with accountability", "Make progress visible and decisions easy to revisit."],
   ["Support when the work gets complicated", "A documented path for questions, revisions, and resolution."],
 ];
 

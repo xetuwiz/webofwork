@@ -36,9 +36,9 @@ public class FreelancersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetFreelancers()
+    public async Task<IActionResult> GetFreelancers([FromQuery] int? categoryId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice)
     {
-        return Ok(await _profileService.GetFreelancersListAsync());
+        return Ok(await _profileService.GetFreelancersListAsync(categoryId, minPrice, maxPrice));
     }
 
     [HttpGet("{id:guid}")]
@@ -259,19 +259,4 @@ public class FreelancersController : ControllerBase
         }
     }
 
-    [HttpPost("~/api/profile/freelancer/skills/endorse")]
-    [Authorize]
-    public async Task<IActionResult> EndorseSkill([FromServices] IPortfolioService portfolioService, [FromBody] CreateSkillEndorsementRequest request)
-    {
-        var endorserId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!);
-        try
-        {
-            var result = await portfolioService.AddEndorsementAsync(endorserId, request);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
 }

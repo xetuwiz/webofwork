@@ -57,10 +57,33 @@ public class ProjectResponse
     public DateTime UpdatedAt { get; set; }
 
     public List<ProjectSkillResponse> Skills { get; set; } = new();
+    public object? ClientInfo { get; set; }
+    public bool IsApplied { get; set; }
+    public int ProposalsCount { get; set; }
+    public int? ContractId { get; set; }
 }
 
 public class ProjectSkillResponse
 {
     public int? SkillId { get; set; }
     public string Name { get; set; } = string.Empty;  // Skill.Name or CustomName
+}
+
+
+public class ProjectListResponse
+{
+    public IReadOnlyList<ProjectResponse> Results { get; set; } = Array.Empty<ProjectResponse>();
+    public int Count { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => PageSize == 0 ? 0 : (int)Math.Ceiling(Count / (double)PageSize);
+    public ProjectCountResponse Counts { get; set; } = new();
+}
+
+public class ProjectCountResponse
+{
+    public int All { get; set; }
+    public int Completed { get; set; }
+    public int InProgress { get; set; }
+    public int Open { get; set; }
 }

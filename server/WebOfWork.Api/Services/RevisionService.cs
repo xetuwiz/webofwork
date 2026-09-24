@@ -20,16 +20,19 @@ public interface IRevisionService
 public class RevisionService : IRevisionService
 {
     private readonly WebOfWorkDbContext _context;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public RevisionService(WebOfWorkDbContext context)
+    public RevisionService(WebOfWorkDbContext context, INotificationPublisher? notificationPublisher = null)
     {
         _context = context;
+        _notificationPublisher = notificationPublisher;
     }
 
     public async Task<ContractRevisionResponse> RequestRevisionAsync(int contractId, Guid clientUserId, RequestRevisionRequest request)
     {
         var contract = await _context.Contracts
             .Include(c => c.Client)
+            .Include(c => c.Freelancer)
             .FirstOrDefaultAsync(c => c.Id == contractId);
 
         if (contract == null)
@@ -37,6 +40,11 @@ public class RevisionService : IRevisionService
 
         if (contract.Client.UserId != clientUserId)
             throw new UnauthorizedAccessException("Only the client can request revisions.");
+
+        var hasPendingRevision = await _context.ContractRevisions
+            .AnyAsync(r => r.ContractId == contractId && r.Status == RevisionStatus.Pending);
+        if (hasPendingRevision)
+            throw new InvalidOperationException("This contract already has a pending revision.");
 
         var revision = new ContractRevision
         {
@@ -50,6 +58,16 @@ public class RevisionService : IRevisionService
         _context.ContractRevisions.Add(revision);
         await _context.SaveChangesAsync();
 
+        if (_notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                contract.Freelancer.UserId,
+                NotificationType.RevisionRequested,
+                $"A revision was requested for contract #{contractId}.",
+                "Contract",
+                contractId);
+        }
+
         return MapToResponse(revision);
     }
 
@@ -58,6 +76,8 @@ public class RevisionService : IRevisionService
         var revision = await _context.ContractRevisions
             .Include(r => r.Contract)
             .ThenInclude(c => c.Freelancer)
+            .Include(r => r.Contract)
+            .ThenInclude(c => c.Client)
             .FirstOrDefaultAsync(r => r.Id == revisionId);
 
         if (revision == null)
@@ -70,6 +90,10 @@ public class RevisionService : IRevisionService
             throw new InvalidOperationException("This revision has already been actioned.");
 
         revision.Status = request.Accept ? RevisionStatus.Accepted : RevisionStatus.Rejected;
+        if (request.Accept)
+        {
+            revision.Contract.Status = ContractStatus.Active;
+        }
         if (!request.Accept)
         {
             revision.RejectionMessage = request.RejectionMessage;
@@ -77,6 +101,18 @@ public class RevisionService : IRevisionService
         revision.ResolvedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        if (_notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                revision.Contract.Client.UserId,
+                request.Accept ? NotificationType.RevisionAccepted : NotificationType.RevisionRejected,
+                request.Accept
+                    ? $"Your revision request for contract #{revision.ContractId} was accepted."
+                    : $"Your revision request for contract #{revision.ContractId} was rejected.",
+                "Contract",
+                revision.ContractId);
+        }
 
         return MapToResponse(revision);
     }

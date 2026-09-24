@@ -9,5 +9,6 @@ public class RefundPaymentValidator : AbstractValidator<RefundPaymentRequest>
     {
         RuleFor(x => x.PaymentId).GreaterThan(0);
         RuleFor(x => x.Reason).NotEmpty();
+        RuleFor(x => x.Amount).GreaterThan(0m).When(x => x.Amount.HasValue);
     }
 }

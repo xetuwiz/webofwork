@@ -26,6 +26,28 @@ public class AdminAnalyticsService : IAdminAnalyticsService
 
     public async Task<DashboardStatsResponse> GetDashboardStatsAsync(CancellationToken ct = default)
     {
+        var now = DateTime.UtcNow;
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var previousMonthStart = currentMonthStart.AddMonths(-1);
+
+        var currentMonthPayments = await _db.Payments.AsNoTracking()
+            .Where(p => p.Status == PaymentStatus.Released && p.ProcessedAt >= currentMonthStart)
+            .ToListAsync(ct);
+        var previousMonthPayments = await _db.Payments.AsNoTracking()
+            .Where(p => p.Status == PaymentStatus.Released && p.ProcessedAt >= previousMonthStart && p.ProcessedAt < currentMonthStart)
+            .ToListAsync(ct);
+        var currentMonthRevenue = currentMonthPayments.Sum(p => p.Amount);
+        var previousMonthRevenue = previousMonthPayments.Sum(p => p.Amount);
+
+        var currentMonthUsers = await _db.Users.AsNoTracking().CountAsync(u => !u.IsDeleted && u.CreatedAt >= currentMonthStart, ct);
+        var previousMonthUsers = await _db.Users.AsNoTracking().CountAsync(u => !u.IsDeleted && u.CreatedAt >= previousMonthStart && u.CreatedAt < currentMonthStart, ct);
+        var currentMonthProjects = await _db.Projects.AsNoTracking().CountAsync(p => p.CreatedAt >= currentMonthStart, ct);
+        var previousMonthProjects = await _db.Projects.AsNoTracking().CountAsync(p => p.CreatedAt >= previousMonthStart && p.CreatedAt < currentMonthStart, ct);
+        var currentMonthCompleted = await _db.Contracts.AsNoTracking().CountAsync(c => c.Status == ContractStatus.Completed && c.CompletedAt >= currentMonthStart, ct);
+        var previousMonthCompleted = await _db.Contracts.AsNoTracking().CountAsync(c => c.Status == ContractStatus.Completed && c.CompletedAt >= previousMonthStart && c.CompletedAt < currentMonthStart, ct);
+
+        static decimal PercentChange(decimal current, decimal previous) => previous == 0m ? (current == 0m ? 0m : 100m) : (current - previous) / previous * 100m;
+
         var payments = await _db.Payments
             .AsNoTracking()
             .Where(p => p.Status == PaymentStatus.Released || p.Status == PaymentStatus.Escrow)
@@ -57,7 +79,11 @@ public class AdminAnalyticsService : IAdminAnalyticsService
             ActiveUsers = activeUsers,
             TotalProjects = totalProjects,
             OpenProjects = openProjects,
-            CompletedContracts = completedContracts
+            CompletedContracts = completedContracts,
+            UsersMonthOverMonthChange = PercentChange(currentMonthUsers, previousMonthUsers),
+            ProjectsMonthOverMonthChange = PercentChange(currentMonthProjects, previousMonthProjects),
+            RevenueMonthOverMonthChange = PercentChange(currentMonthRevenue, previousMonthRevenue),
+            CompletedContractsMonthOverMonthChange = PercentChange(currentMonthCompleted, previousMonthCompleted)
         };
     }
 
@@ -145,9 +171,10 @@ public class AdminAnalyticsService : IAdminAnalyticsService
             {
                 Id = p.Id,
                 ContractId = p.ContractId,
-                MilestoneId = p.MilestoneId,
                 PayPalOrderId = p.PayPalOrderId,
-                Amount = p.Amount - p.PlatformFee,
+                Amount = p.Amount,
+                PlatformFee = p.PlatformFee,
+                FreelancerAmount = p.Amount - p.PlatformFee,
                 Status = p.Status.ToString(),
                 CreatedAt = p.CreatedAt
             })

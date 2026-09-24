@@ -49,4 +49,9 @@
     <PackageReference Include="MailKit" Version="4.8.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="Templates\Email\**\*.cshtml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+
 </Project>

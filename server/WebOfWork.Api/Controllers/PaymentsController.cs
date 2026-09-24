@@ -18,15 +18,18 @@ public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
     private readonly IPayPalWebhookVerifier _payPalWebhookVerifier;
+    private readonly IPayPalWebhookHandler _webhookHandler;
     private readonly ILogger<PaymentsController> _logger;
 
     public PaymentsController(
         IPaymentService paymentService,
         IPayPalWebhookVerifier payPalWebhookVerifier,
+        IPayPalWebhookHandler webhookHandler,
         ILogger<PaymentsController> logger)
     {
         _paymentService = paymentService;
         _payPalWebhookVerifier = payPalWebhookVerifier;
+        _webhookHandler = webhookHandler;
         _logger = logger;
     }
 
@@ -48,9 +51,9 @@ public class PaymentsController : ControllerBase
 
     [HttpGet("freelancer/history")]
     [Authorize(Roles = "Freelancer")]
-    public async Task<IActionResult> GetFreelancerHistory(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetFreelancerHistory([FromQuery] string? range, CancellationToken cancellationToken)
     {
-        var history = await _paymentService.GetFreelancerTransactionHistoryAsync(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), cancellationToken);
+        var history = await _paymentService.GetFreelancerTransactionHistoryAsync(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), range, cancellationToken);
         return Ok(history);
     }
 
@@ -70,12 +73,23 @@ public class PaymentsController : ControllerBase
         var rawBody = await reader.ReadToEndAsync(cancellationToken);
         var verified = await _payPalWebhookVerifier.VerifyAsync(Request.Headers, rawBody, cancellationToken);
         if (!verified)
-        {
             return BadRequest(new { message = "Invalid PayPal webhook signature." });
-        }
 
-        _logger.LogInformation("Verified PayPal webhook received: {TransmissionId}", Request.Headers["PAYPAL-TRANSMISSION-ID"].ToString());
-        return Ok(new { received = true });
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(rawBody);
+            var root = document.RootElement;
+            var eventType = root.TryGetProperty("event_type", out var eventElement) ? eventElement.GetString() : "unknown";
+            var resourceId = root.TryGetProperty("resource", out var resource) && resource.TryGetProperty("id", out var id) ? id.GetString() : null;
+            var result = await _webhookHandler.HandleAsync(root, cancellationToken);
+            _logger.LogInformation("Verified PayPal webhook {EventType} for resource {ResourceId}; outcome {Outcome}", eventType, resourceId, result.Outcome);
+            return Ok(new { received = true, eventType, resourceId, outcome = result.Outcome });
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            _logger.LogWarning(ex, "PayPal webhook body was not valid JSON.");
+            return BadRequest(new { message = "Invalid PayPal webhook payload." });
+        }
     }
 }
 

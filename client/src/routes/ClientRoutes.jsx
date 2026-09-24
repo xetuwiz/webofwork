@@ -41,13 +41,15 @@ export default function ClientRoutes() {
       <Route path="how-it-works" element={<HowItWorks />} />
       <Route path="home" element={<ClientHomepage />} />
       <Route element={<ClientLayout />}>
-        <Route path="find-talents" element={page("Find talent", "Search the freelancer marketplace by skills and fit.")} />
+        <Route path="find-talents" element={<FindTalent />} />
         <Route path="find-talents/:id" element={<FreelancerProfile />} />
         <Route path="find-talents/:id/reviews" element={<AllFreelancerReviews />} />
-        <Route path="create-project" element={page("Create project", "Describe the work you need completed.")} />
-        <Route path="my-projects" element={page("My projects", "Track your active and completed projects.")} />
-        <Route path="my-projects/:id" element={page("Project details", "Review project requirements and proposals.")} />
-        <Route path="contracts" element={page("Contracts", "Review client-side contracts and milestones.")} />
+        <Route path="create-project" element={<AddProject />} />
+        <Route path="my-projects" element={<MyProjects />} />
+        <Route path="my-projects/:id" element={<ProjectDetails />} />
+        <Route path="my-projects/:id/edit" element={<EditProject />} />
+        <Route path="my-projects/:id/proposals" element={<ProposalsPage />} />
+        <Route path="contracts" element={page("Contracts", "Review client-side contracts and delivery progress.")} />
         <Route path="contracts/:id" element={page("Contract details", "Inspect contract status and delivery progress.")} />
         <Route path="chat" element={<Chat />} />
         <Route path="notifications" element={<Notifications />} />

@@ -31,6 +31,11 @@ public class TodosController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddTodo([FromBody] string task)
     {
+        var todoCount = await _db.Set<FreelancerTodo>()
+            .CountAsync(t => t.UserId == _currentUser.Id!.Value);
+        if (todoCount >= 10)
+            return BadRequest(new { error = "You can have at most 10 todos." });
+
         var todo = new FreelancerTodo { UserId = _currentUser.Id!.Value, Todo = task, IsCompleted = false };
         _db.Set<FreelancerTodo>().Add(todo);
         await _db.SaveChangesAsync();
@@ -46,6 +51,17 @@ public class TodosController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(todo);
     }
+
+    [HttpPatch("{id}/mark-complete")]
+    public async Task<IActionResult> MarkComplete(Guid id)
+    {
+        var todo = await _db.Set<FreelancerTodo>().FirstOrDefaultAsync(t => t.Id == id && t.UserId == _currentUser.Id!.Value);
+        if (todo == null) return NotFound();
+        todo.IsCompleted = true;
+        await _db.SaveChangesAsync();
+        return Ok(todo);
+    }
+
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTodo(Guid id)

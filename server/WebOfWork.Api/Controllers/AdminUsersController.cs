@@ -20,7 +20,7 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> ListUsers([FromQuery] string? search, [FromQuery] string? role, [FromQuery] string? status, CancellationToken ct)
+    public async Task<IActionResult> ListUsers([FromQuery] string? search, [FromQuery] string? role, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
         UserRole? roleFilter = null;
         if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, true, out var parsedRole))
@@ -34,7 +34,7 @@ public class AdminUsersController : ControllerBase
             statusFilter = parsedStatus;
         }
 
-        var users = await _adminUserService.GetUsersAsync(search, roleFilter, statusFilter, ct);
+        var users = await _adminUserService.GetPagedUsersAsync(search, roleFilter, statusFilter, page, pageSize, ct);
         return Ok(users);
     }
 

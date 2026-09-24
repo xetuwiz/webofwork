@@ -65,10 +65,10 @@ public class SupportController : ControllerBase
     }
 
     [HttpGet("tickets")]
-    public async Task<IActionResult> GetMyTickets(CancellationToken ct)
+    public async Task<IActionResult> GetMyTickets([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
         var userId = _currentUser.Id ?? Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        return Ok(await _support.GetMyTicketsAsync(userId, ct));
+        return Ok(await _support.GetMyTicketsAsync(userId, page, pageSize, ct));
     }
 
     [HttpPatch("tickets/{id:int}/cancel")]
@@ -86,13 +86,13 @@ public class SupportController : ControllerBase
 
     [HttpGet("admin/tickets")]
     [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
-    public async Task<IActionResult> AdminListTickets([FromQuery] string? status, [FromQuery] string? senderRole, CancellationToken ct)
+    public async Task<IActionResult> AdminListTickets([FromQuery] string? status, [FromQuery] string? senderRole, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
         SupportTicketStatus? s = null;
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<SupportTicketStatus>(status, true, out var parsedStatus)) s = parsedStatus;
         UserRole? r = null;
         if (!string.IsNullOrEmpty(senderRole) && Enum.TryParse<UserRole>(senderRole, true, out var parsedRole)) r = parsedRole;
-        return Ok(await _support.GetAdminTicketsAsync(s, r, ct));
+        return Ok(await _support.GetAdminTicketsAsync(s, r, page, pageSize, ct));
     }
 
     [HttpGet("admin/tickets/{id:int}")]

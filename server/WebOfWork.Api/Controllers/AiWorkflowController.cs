@@ -34,7 +34,7 @@ public class AiWorkflowController : ControllerBase
     {
         var userId = _currentUser.Id ?? throw new UnauthorizedAccessException("Authenticated admin user is required.");
         var contractSpec = request?.FreelancerId is { } freelancerId && request.TotalAmount is { } totalAmount
-            ? new WorkflowContractSpec(freelancerId, totalAmount, request.PackageId, request.IsMilestoneBased, request.MilestoneCount, request.ProjectId)
+            ? new WorkflowContractSpec(freelancerId, totalAmount, request.PackageId, request.ProjectId)
             : null;
         var run = await _aiWorkflowService.ApproveWorkflowAsync(workflowRunId, userId, request?.Decision, contractSpec, cancellationToken);
         return Ok(run);
@@ -62,7 +62,5 @@ public sealed class ApproveWorkflowRequest
     public Guid? FreelancerId { get; set; }
     public decimal? TotalAmount { get; set; }
     public Guid? PackageId { get; set; }
-    public bool IsMilestoneBased { get; set; }
-    public int MilestoneCount { get; set; }
     public int? ProjectId { get; set; }
 }

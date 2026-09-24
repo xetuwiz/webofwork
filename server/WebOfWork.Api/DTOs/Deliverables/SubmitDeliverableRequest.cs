@@ -6,5 +6,6 @@ public record SubmitDeliverableRequest(
     string Title,
     string? FileUrl,
     string? LinkUrl,
-    string? Notes
+    string? Notes,
+    string? DeliverableType = null
 );

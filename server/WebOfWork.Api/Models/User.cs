@@ -17,14 +17,20 @@ public class User : IAuditableEntity, ISoftDeletable
     public bool IsEmailVerified { get; set; } = false;
 
     public string? Phone { get; set; }
+    public string? ProfilePhoto { get; set; }
+    public bool IsFreelancer { get; set; }
+    public UserRole CurrentRole { get; set; }
     
     // Refresh Token tracking
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
     
     // Google Auth integration
-    public bool IsGoogleAccount { get; set; } = false;
     public string? GoogleSub { get; set; }
+    public string? PendingEmail { get; set; }
+    public string? EmailOtp { get; set; }
+
+    public bool IsGoogleAccount { get; set; } = false;
 
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }

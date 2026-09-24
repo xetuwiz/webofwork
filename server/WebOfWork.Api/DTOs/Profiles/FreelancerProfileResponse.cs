@@ -19,7 +19,9 @@ public record FreelancerProfileResponse(
     DateTime CreatedAt,
     List<ProfileSkillDto> Skills,
     List<ProfilePackageDto> Packages,
-    List<PortfolioDto> Portfolios
+    List<PortfolioDto> Portfolios,
+    int CompletedProjectsCount = 0,
+    IReadOnlyList<object> Reviews = null!
 );
 
 public record ProfileSkillDto(Guid Id, int? SkillId, string CustomName);

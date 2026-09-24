@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using WebOfWork.Api.Data;
 using WebOfWork.Api.DTOs.Deliverables;
 using WebOfWork.Api.Models;
+using WebOfWork.Api.Models.Enums;
 
 namespace WebOfWork.Api.Services;
 
@@ -18,10 +19,12 @@ public interface IDeliverableService
 public class DeliverableService : IDeliverableService
 {
     private readonly WebOfWorkDbContext _context;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public DeliverableService(WebOfWorkDbContext context)
+    public DeliverableService(WebOfWorkDbContext context, INotificationPublisher? notificationPublisher = null)
     {
         _context = context;
+        _notificationPublisher = notificationPublisher;
     }
 
     public async Task<DeliverableResponse> SubmitDeliverableAsync(int contractId, Guid freelancerUserId, SubmitDeliverableRequest request)
@@ -37,7 +40,7 @@ public class DeliverableService : IDeliverableService
             throw new UnauthorizedAccessException("Only the assigned freelancer can submit deliverables for this contract.");
 
         // Additional checks like contract status could go here
-        
+
         var deliverable = new ContractDeliverable
         {
             ContractId = contractId,
@@ -46,11 +49,26 @@ public class DeliverableService : IDeliverableService
             FileUrl = request.FileUrl,
             LinkUrl = request.LinkUrl,
             Notes = request.Notes,
+            DeliverableType = string.IsNullOrWhiteSpace(request.DeliverableType) ? (request.FileUrl != null ? "file" : "link") : request.DeliverableType,
             SubmittedAt = DateTime.UtcNow
         };
 
         _context.ContractDeliverables.Add(deliverable);
         await _context.SaveChangesAsync();
+
+        if (_notificationPublisher != null)
+        {
+            var clientUserId = await _context.ClientProfiles
+                .Where(p => p.Id == contract.ClientId)
+                .Select(p => p.UserId)
+                .FirstAsync();
+            await _notificationPublisher.PublishAsync(
+                clientUserId,
+                NotificationType.WorkDelivered,
+                $"A deliverable was submitted for contract #{contractId}.",
+                "Contract",
+                contractId);
+        }
 
         return new DeliverableResponse(
             deliverable.Id,
@@ -60,6 +78,7 @@ public class DeliverableService : IDeliverableService
             deliverable.FileUrl,
             deliverable.LinkUrl,
             deliverable.Notes,
+            deliverable.DeliverableType,
             deliverable.SubmittedAt
         );
     }
@@ -88,6 +107,7 @@ public class DeliverableService : IDeliverableService
                 d.FileUrl,
                 d.LinkUrl,
                 d.Notes,
+                d.DeliverableType,
                 d.SubmittedAt
             ))
             .ToListAsync();

@@ -35,4 +35,7 @@ public record SupportTicketListResponse
     public IReadOnlyList<SupportTicketResponse> Items { get; init; } = Array.Empty<SupportTicketResponse>();
     public int TotalCount { get; init; }
     public int OpenCount { get; init; }
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalPages => PageSize == 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
 }

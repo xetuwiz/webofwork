@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using WebOfWork.Api.Models.Enums;
 
 namespace WebOfWork.Api.Models;
@@ -23,10 +23,7 @@ public class Contract
     public bool IsFunded { get; set; } = false;
     public bool PaidToFreelancer { get; set; } = false;
 
-    // Phase 9 explicit requests
     public DateTime? PayoutEligibleAfter { get; set; }
-    public bool IsMilestoneBased { get; set; } = false;
-    public int MilestoneCount { get; set; } = 0;
 
     public string ClientSignature { get; set; } = string.Empty;
     public string ClientSignatureType { get; set; } = string.Empty;
@@ -42,6 +39,11 @@ public class Contract
 
     public string? LegalDocumentUrl { get; set; }
     public DateTime? CompletedAt { get; set; }
-    
+
     public ContractStatus Status { get; set; } = ContractStatus.Offered;
+    public ICollection<ContractDeliverable> Deliverables { get; set; } = new List<ContractDeliverable>();
+    public ICollection<ContractRevision> Revisions { get; set; } = new List<ContractRevision>();
+    public Dispute? Dispute { get; set; }
+    public Payment? Payment { get; set; }
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

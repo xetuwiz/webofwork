@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using WebOfWork.Api.DTOs.Contracts;
 using WebOfWork.Api.Services;
 
@@ -23,9 +22,10 @@ public class ContractsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetContracts()
+    public async Task<IActionResult> GetContracts([FromQuery] string? search, [FromQuery] string? status, [FromQuery] string? role)
     {
-        var contracts = await _contractService.GetContractsAsync(_currentUser.Id!.Value);
+        WebOfWork.Api.Models.Enums.ContractStatus? statusFilter = Enum.TryParse<WebOfWork.Api.Models.Enums.ContractStatus>(status, true, out var parsed) ? parsed : null;
+        var contracts = await _contractService.GetContractsAsync(_currentUser.Id!.Value, search, statusFilter, role);
         return Ok(contracts);
     }
 
@@ -78,33 +78,4 @@ public class ContractsController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
-    [HttpPost("debug-create-offer")]
-    [Authorize(Policy = "RequireClient")]
-    public async Task<IActionResult> DebugCreateOffer(int projectId, Guid freelancerProfileId, decimal amount, bool isMilestoneBased = false, int milestoneCount = 0)
-    {
-        // DEBUG ONLY: Creates a contract offer to allow testing Phase 9 before Phase 10 (Payments) is built.
-        var db = HttpContext.RequestServices.GetRequiredService<WebOfWork.Api.Data.WebOfWorkDbContext>();
-
-        // Resolve ClientProfile.Id from User.Id (JWT)
-        var clientProfile = await db.ClientProfiles.FirstOrDefaultAsync(c => c.UserId == _currentUser.Id!.Value);
-        if (clientProfile == null) return BadRequest(new { error = "Client profile not found." });
-
-        var contract = new WebOfWork.Api.Models.Contract
-        {
-            ProjectId = projectId,
-            ClientId = clientProfile.Id,
-            FreelancerId = freelancerProfileId,
-            TotalAmount = amount,
-            ClientSignature = "Debug-Client-Signature",
-            ClientSignatureType = "type",
-            Status = WebOfWork.Api.Models.Enums.ContractStatus.Offered,
-            IsMilestoneBased = isMilestoneBased,
-            MilestoneCount = milestoneCount
-        };
-
-        db.Contracts.Add(contract);
-        await db.SaveChangesAsync();
-
-        return Ok(new { contract.Id, Status = contract.Status.ToString(), contract.TotalAmount, contract.IsMilestoneBased, contract.MilestoneCount });
-    }
 }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using WebOfWork.Api.Data;
 using WebOfWork.Api.DTOs.Invitations;
+using WebOfWork.Api.DTOs.Common;
 using WebOfWork.Api.Models;
 using WebOfWork.Api.Models.Enums;
 
@@ -15,6 +16,8 @@ public interface IInvitationService
     Task<InvitationResponse> CreateInvitationAsync(Guid userId, CreateInvitationRequest request);
     Task<List<InvitationResponse>> GetSentInvitationsAsync(Guid userId);
     Task<List<InvitationResponse>> GetReceivedInvitationsAsync(Guid userId);
+    Task<PagedResponse<InvitationResponse>> GetPagedSentInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize);
+    Task<PagedResponse<InvitationResponse>> GetPagedReceivedInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize);
     Task<bool> UpdateInvitationStatusAsync(Guid userId, int invitationId, UpdateInvitationStatusRequest request);
     Task<bool> CancelInvitationAsync(Guid userId, int invitationId);
     Task<List<Project>> GetEligibleProjectsAsync(Guid userId); // For UI dropdowns
@@ -23,10 +26,12 @@ public interface IInvitationService
 public class InvitationService : IInvitationService
 {
     private readonly WebOfWorkDbContext _db;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public InvitationService(WebOfWorkDbContext db)
+    public InvitationService(WebOfWorkDbContext db, INotificationPublisher? notificationPublisher = null)
     {
         _db = db;
+        _notificationPublisher = notificationPublisher;
     }
 
     private async Task<Guid> GetClientIdAsync(Guid userId)
@@ -50,6 +55,10 @@ public class InvitationService : IInvitationService
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == request.ProjectId && p.ClientId == clientId);
         if (project == null) throw new UnauthorizedAccessException("You do not own this project.");
 
+        var freelancer = await _db.FreelancerProfiles.FirstOrDefaultAsync(p => p.Id == request.FreelancerId);
+        if (freelancer == null) throw new ArgumentException("Freelancer not found.");
+        if (freelancer.UserId == userId) throw new InvalidOperationException("You cannot invite yourself.");
+
         var existingProposal = await _db.Proposals.AnyAsync(p => p.ProjectId == request.ProjectId && p.FreelancerId == request.FreelancerId);
         if (existingProposal) throw new InvalidOperationException("Freelancer has already submitted a proposal for this project.");
 
@@ -72,13 +81,23 @@ public class InvitationService : IInvitationService
         _db.Invitations.Add(invitation);
         await _db.SaveChangesAsync();
 
+        if (_notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                freelancer.UserId,
+                NotificationType.InvitationReceived,
+                $"You received an invitation for project '{project.Title}'.",
+                "Invitation",
+                invitation.Id);
+        }
+
         return await GetInvitationResponseAsync(invitation.Id);
     }
 
     public async Task<List<InvitationResponse>> GetSentInvitationsAsync(Guid userId)
     {
         var clientId = await GetClientIdAsync(userId);
-        
+
         var invitations = await _db.Invitations
             .Include(i => i.Client).ThenInclude(c => c.User)
             .Include(i => i.Freelancer).ThenInclude(f => f.User)
@@ -93,7 +112,7 @@ public class InvitationService : IInvitationService
     public async Task<List<InvitationResponse>> GetReceivedInvitationsAsync(Guid userId)
     {
         var freelancerId = await GetFreelancerIdAsync(userId);
-        
+
         var invitations = await _db.Invitations
             .Include(i => i.Client).ThenInclude(c => c.User)
             .Include(i => i.Freelancer).ThenInclude(f => f.User)
@@ -105,12 +124,37 @@ public class InvitationService : IInvitationService
         return invitations.Select(MapToResponse).ToList();
     }
 
+    public async Task<PagedResponse<InvitationResponse>> GetPagedSentInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize)
+    {
+        var clientId = await GetClientIdAsync(userId);
+        var query = _db.Invitations.Include(i => i.Client).ThenInclude(c => c.User).Include(i => i.Freelancer).ThenInclude(f => f.User).Include(i => i.Project).Where(i => i.ClientId == clientId).AsQueryable();
+        if (status.HasValue) query = query.Where(i => i.Status == status.Value);
+        return await PageAsync(query, page, pageSize);
+    }
+
+    public async Task<PagedResponse<InvitationResponse>> GetPagedReceivedInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize)
+    {
+        var freelancerId = await GetFreelancerIdAsync(userId);
+        var query = _db.Invitations.Include(i => i.Client).ThenInclude(c => c.User).Include(i => i.Freelancer).ThenInclude(f => f.User).Include(i => i.Project).Where(i => i.FreelancerId == freelancerId).AsQueryable();
+        if (status.HasValue) query = query.Where(i => i.Status == status.Value);
+        return await PageAsync(query, page, pageSize);
+    }
+
+    private async Task<PagedResponse<InvitationResponse>> PageAsync(IQueryable<Invitation> query, int page, int pageSize)
+    {
+        var p = Math.Max(page, 1); var size = Math.Clamp(pageSize, 1, 100); var count = await query.CountAsync();
+        var items = await query.OrderByDescending(i => i.CreatedAt).Skip((p - 1) * size).Take(size).ToListAsync();
+        return new PagedResponse<InvitationResponse> { Results = items.Select(MapToResponse).ToList(), Count = count, Page = p, PageSize = size };
+    }
+
     public async Task<bool> UpdateInvitationStatusAsync(Guid userId, int invitationId, UpdateInvitationStatusRequest request)
     {
         var freelancerId = await GetFreelancerIdAsync(userId);
-        
+
         var invitation = await _db.Invitations
             .Include(i => i.Package)
+            .Include(i => i.Client)
+            .Include(i => i.Freelancer)
             .FirstOrDefaultAsync(i => i.Id == invitationId);
 
         if (invitation == null) return false;
@@ -136,13 +180,22 @@ public class InvitationService : IInvitationService
 
         invitation.Status = request.Status;
         await _db.SaveChangesAsync();
+        if (_notificationPublisher != null && request.Status == InvitationStatus.Accepted)
+        {
+            await _notificationPublisher.PublishAsync(
+                invitation.Client.UserId,
+                NotificationType.ProposalAccepted,
+                $"Your invitation was accepted for project #{invitation.ProjectId}.",
+                "Invitation",
+                invitation.Id);
+        }
         return true;
     }
 
     public async Task<bool> CancelInvitationAsync(Guid userId, int invitationId)
     {
         var clientId = await GetClientIdAsync(userId);
-        
+
         var invitation = await _db.Invitations.FirstOrDefaultAsync(i => i.Id == invitationId);
         if (invitation == null) return false;
         if (invitation.ClientId != clientId) throw new UnauthorizedAccessException("You do not own this invitation.");
@@ -170,7 +223,7 @@ public class InvitationService : IInvitationService
             .Include(i => i.Freelancer).ThenInclude(f => f.User)
             .Include(i => i.Project)
             .FirstOrDefaultAsync(i => i.Id == invitationId);
-            
+
         return MapToResponse(invitation!);
     }
 

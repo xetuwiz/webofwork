@@ -202,6 +202,7 @@ public class Program
 
             // ── Integrations & Services (Steps 1.14, 1.15, Phase 2A) ─────────────
             builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+            builder.Services.AddSingleton<IEmailTemplateRenderer, EmailTemplateRenderer>();
 
             builder.Services.AddScoped<WebOfWork.Api.Services.IContentService, WebOfWork.Api.Services.ContentService>();
 
@@ -243,18 +244,19 @@ public class Program
             builder.Services.AddScoped<WebOfWork.Api.Services.IContractService, WebOfWork.Api.Services.ContractService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IContractDocumentService, WebOfWork.Api.Services.ContractDocumentService>();
             builder.Services.AddScoped<WebOfWork.Api.Integrations.Cloudinary.ICloudinaryStorageService, WebOfWork.Api.Integrations.Cloudinary.CloudinaryStorageService>();
-            builder.Services.AddScoped<WebOfWork.Api.Services.IMilestoneService, WebOfWork.Api.Services.MilestoneService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IDeliverableService, WebOfWork.Api.Services.DeliverableService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IRevisionService, WebOfWork.Api.Services.RevisionService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IDisputeService, WebOfWork.Api.Services.DisputeService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IReviewService, WebOfWork.Api.Services.ReviewService>();
             builder.Services.AddScoped<WebOfWork.Api.Services.IPaymentService, WebOfWork.Api.Services.PaymentService>();
+            builder.Services.AddScoped<WebOfWork.Api.Services.IPaymentService>(sp => new WebOfWork.Api.Services.PaymentService(sp.GetRequiredService<WebOfWork.Api.Data.WebOfWorkDbContext>(), sp.GetRequiredService<WebOfWork.Api.Integrations.PayPal.IPayPalOrderVerifier>(), sp.GetRequiredService<WebOfWork.Api.Services.ICommissionCalculator>(), sp.GetRequiredService<WebOfWork.Api.Integrations.Sms.ISmsSender>(), null, sp.GetRequiredService<WebOfWork.Api.Integrations.PayPal.IPayPalClient>()));
             builder.Services.AddScoped<WebOfWork.Api.Services.ICommissionCalculator, WebOfWork.Api.Services.CommissionCalculator>();
             builder.Services.Configure<WebOfWork.Api.Configuration.PayPalOptions>(builder.Configuration.GetSection(WebOfWork.Api.Configuration.PayPalOptions.Section));
             builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalClient, WebOfWork.Api.Integrations.PayPal.PayPalClient>();
             builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalPayoutClient, WebOfWork.Api.Integrations.PayPal.PayPalPayoutClient>();
             builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalRefundClient, WebOfWork.Api.Integrations.PayPal.PayPalRefundClient>();
             builder.Services.AddHttpClient<WebOfWork.Api.Integrations.PayPal.IPayPalWebhookVerifier, WebOfWork.Api.Integrations.PayPal.PayPalWebhookVerifier>();
+            builder.Services.AddScoped<WebOfWork.Api.Integrations.PayPal.IPayPalWebhookHandler, WebOfWork.Api.Integrations.PayPal.PayPalWebhookHandler>();
             builder.Services.AddHttpClient("AgenticAi", (sp, client) =>
             {
                 var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebOfWork.Api.Configuration.AgenticAiOptions>>().Value;

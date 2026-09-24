@@ -11,7 +11,7 @@ public static class ContractStateMachine
         { ContractStatus.Offered, new HashSet<ContractStatus> { ContractStatus.Active, ContractStatus.Cancelled } },
         { ContractStatus.Active, new HashSet<ContractStatus> { ContractStatus.Submitted, ContractStatus.Cancelled, ContractStatus.Disputed } },
         { ContractStatus.Submitted, new HashSet<ContractStatus> { ContractStatus.Completed, ContractStatus.Active, ContractStatus.Disputed } },
-        { ContractStatus.Disputed, new HashSet<ContractStatus> { ContractStatus.Completed, ContractStatus.Refunded, ContractStatus.Cancelled } },
+        { ContractStatus.Disputed, new HashSet<ContractStatus> { ContractStatus.Completed, ContractStatus.Refunded } },
         { ContractStatus.Completed, new HashSet<ContractStatus>() },
         { ContractStatus.Cancelled, new HashSet<ContractStatus>() },
         { ContractStatus.Refunded, new HashSet<ContractStatus>() }
@@ -20,12 +20,12 @@ public static class ContractStateMachine
     public static bool IsValidTransition(ContractStatus currentStatus, ContractStatus newStatus)
     {
         if (currentStatus == newStatus) return true;
-        
+
         if (ValidTransitions.TryGetValue(currentStatus, out var allowedStates))
         {
             return allowedStates.Contains(newStatus);
         }
-        
+
         return false;
     }
 }

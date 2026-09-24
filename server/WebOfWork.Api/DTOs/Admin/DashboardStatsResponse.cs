@@ -12,4 +12,8 @@ public class DashboardStatsResponse
     public int TotalProjects { get; set; }
     public int OpenProjects { get; set; }
     public int CompletedContracts { get; set; }
+    public decimal UsersMonthOverMonthChange { get; set; }
+    public decimal ProjectsMonthOverMonthChange { get; set; }
+    public decimal RevenueMonthOverMonthChange { get; set; }
+    public decimal CompletedContractsMonthOverMonthChange { get; set; }
 }

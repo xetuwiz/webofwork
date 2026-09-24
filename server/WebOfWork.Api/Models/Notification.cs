@@ -14,6 +14,8 @@ public class Notification : IAuditableEntity
     public NotificationType Type { get; set; }
     public string Message { get; set; } = string.Empty;
 
+    public string? TargetRole { get; set; }
+
     public string? RelatedEntityType { get; set; }
     public int? RelatedEntityId { get; set; }
 

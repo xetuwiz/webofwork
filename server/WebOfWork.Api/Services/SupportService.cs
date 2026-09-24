@@ -17,10 +17,10 @@ namespace WebOfWork.Api.Services;
 public interface ISupportService
 {
     Task<SupportTicketResponse> CreateTicketAsync(Guid userId, UserRole role, CreateSupportTicketRequest request, CancellationToken ct = default);
-    Task<SupportTicketListResponse> GetMyTicketsAsync(Guid userId, CancellationToken ct = default);
+    Task<SupportTicketListResponse> GetMyTicketsAsync(Guid userId, int page = 1, int pageSize = 20, CancellationToken ct = default);
     Task<SupportTicketResponse> CancelMyTicketAsync(Guid userId, int ticketId, CancellationToken ct = default);
 
-    Task<SupportTicketListResponse> GetAdminTicketsAsync(SupportTicketStatus? status = null, UserRole? senderRole = null, CancellationToken ct = default);
+    Task<SupportTicketListResponse> GetAdminTicketsAsync(SupportTicketStatus? status = null, UserRole? senderRole = null, int page = 1, int pageSize = 20, CancellationToken ct = default);
     Task<SupportTicketResponse> GetAdminTicketDetailAsync(int ticketId, CancellationToken ct = default);
     Task<SupportTicketResponse> AdminReplyAsync(int ticketId, Guid adminUserId, AdminReplyRequest request, CancellationToken ct = default);
 }
@@ -68,21 +68,26 @@ public class SupportService : ISupportService
         return ToResponse(ticket);
     }
 
-    public async Task<SupportTicketListResponse> GetMyTicketsAsync(Guid userId, CancellationToken ct)
+    public async Task<SupportTicketListResponse> GetMyTicketsAsync(Guid userId, int page, int pageSize, CancellationToken ct)
     {
         var query = _db.SupportTickets
             .Include(t => t.User)
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.CreatedAt);
 
-        var items = await query.Select(t => ToResponse(t)).ToListAsync(ct);
-        var openCount = items.FindAll(t => string.Equals(t.Status, SupportTicketStatus.Open.ToString(), StringComparison.OrdinalIgnoreCase)).Count;
+        var normalizedPage = Math.Max(page, 1);
+        var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
+        var totalCount = await query.CountAsync(ct);
+        var openCount = await query.CountAsync(t => t.Status == SupportTicketStatus.Open, ct);
+        var items = await query.Skip((normalizedPage - 1) * normalizedPageSize).Take(normalizedPageSize).Select(t => ToResponse(t)).ToListAsync(ct);
 
         return new SupportTicketListResponse
         {
             Items = items,
-            TotalCount = items.Count,
-            OpenCount = openCount
+            TotalCount = totalCount,
+            OpenCount = openCount,
+            Page = normalizedPage,
+            PageSize = normalizedPageSize
         };
     }
 
@@ -104,25 +109,31 @@ public class SupportService : ISupportService
         return ToResponse(ticket);
     }
 
-    public async Task<SupportTicketListResponse> GetAdminTicketsAsync(SupportTicketStatus? status, UserRole? senderRole, CancellationToken ct)
+    public async Task<SupportTicketListResponse> GetAdminTicketsAsync(SupportTicketStatus? status, UserRole? senderRole, int page, int pageSize, CancellationToken ct)
     {
         var query = _db.SupportTickets.Include(t => t.User).AsQueryable();
 
         if (status.HasValue) query = query.Where(t => t.Status == status.Value);
         if (senderRole.HasValue) query = query.Where(t => t.SenderRole == senderRole.Value);
 
+        var normalizedPage = Math.Max(page, 1);
+        var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
+        var totalCount = await query.CountAsync(ct);
+        var openCount = await query.CountAsync(t => t.Status == SupportTicketStatus.Open, ct);
         var items = await query
             .OrderByDescending(t => t.CreatedAt)
+            .Skip((normalizedPage - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
             .Select(t => ToResponse(t))
             .ToListAsync(ct);
-
-        var openCount = items.FindAll(t => string.Equals(t.Status, SupportTicketStatus.Open.ToString(), StringComparison.OrdinalIgnoreCase)).Count;
 
         return new SupportTicketListResponse
         {
             Items = items,
-            TotalCount = items.Count,
-            OpenCount = openCount
+            TotalCount = totalCount,
+            OpenCount = openCount,
+            Page = normalizedPage,
+            PageSize = normalizedPageSize
         };
     }
 

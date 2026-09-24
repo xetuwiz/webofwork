@@ -13,11 +13,13 @@ public interface IAuthService
     Task SendOtpAsync(string email);
     Task<User> VerifyOtpAndCreateUserAsync(string email, string otp, string password, string fullName, UserRole role);
     Task<User> LoginAsync(string email, string password);
+    Task<User?> GetUserByRefreshTokenAsync(string refreshToken);
     Task UpdateRefreshTokenAsync(Guid userId, string token, DateTime expiry);
     Task ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
     Task RequestDeleteOtpAsync(Guid userId);
     Task DeleteAccountAsync(Guid userId, string otp);
     Task<User> UpdateMeAsync(Guid userId, string? fullName, string? email);
+    Task<bool> VerifyEmailChangeAsync(Guid userId, string otp);
 }
 
 public class AuthService : IAuthService
@@ -58,7 +60,7 @@ public class AuthService : IAuthService
     public async Task<User> VerifyOtpAndCreateUserAsync(string email, string otp, string password, string fullName, UserRole role)
     {
         var stored = await _otp.GetOtpAsync($"reg:{email}");
-        if (stored != otp && otp != "123456") throw new UnauthorizedAccessException("Invalid or expired OTP.");
+        if (stored != otp) throw new UnauthorizedAccessException("Invalid or expired OTP.");
 
         var existing = await _db.Users.AnyAsync(u => u.Email == email);
         if (existing) throw new InvalidOperationException("Email already in use.");
@@ -69,6 +71,8 @@ public class AuthService : IAuthService
             FullName = fullName,
             PasswordHash = _hasher.HashPassword(password),
             Role = role,
+            CurrentRole = role,
+            IsFreelancer = role == UserRole.Freelancer,
             IsEmailVerified = true,
             Status = UserStatus.Active
         };
@@ -106,6 +110,16 @@ public class AuthService : IAuthService
             user.RefreshTokenExpiry = expiry;
             await _db.SaveChangesAsync();
         }
+    }
+
+    public Task<User?> GetUserByRefreshTokenAsync(string refreshToken)
+    {
+        return _db.Users.FirstOrDefaultAsync(user =>
+            user.RefreshToken == refreshToken &&
+            user.RefreshTokenExpiry.HasValue &&
+            user.RefreshTokenExpiry.Value > DateTime.UtcNow &&
+            !user.IsDeleted &&
+            user.Status == UserStatus.Active);
     }
 
     public async Task ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
@@ -152,15 +166,43 @@ public class AuthService : IAuthService
 
         if (!string.IsNullOrEmpty(fullName)) user.FullName = fullName;
 
-        if (!string.IsNullOrEmpty(email) && email != user.Email)
+        if (!string.IsNullOrEmpty(email) && !string.Equals(email, user.Email, StringComparison.OrdinalIgnoreCase))
         {
             var existing = await _db.Users.AnyAsync(u => u.Email == email && u.Id != userId);
             if (existing) throw new InvalidOperationException("Email already in use.");
-            user.Email = email;
-            user.IsEmailVerified = false; // Triggers re-verification in middleware/policies
+
+            var code = new Random().Next(100000, 999999).ToString();
+            await _otp.SetOtpAsync($"email:{userId}", code, TimeSpan.FromMinutes(10));
+            user.PendingEmail = email;
+            user.EmailOtp = code;
+            user.IsEmailVerified = false;
         }
 
         await _db.SaveChangesAsync();
+        if (user.PendingEmail != null)
+        {
+            if (_jobs is not null)
+                _jobs.Enqueue<SendOtpEmailJob>(job => job.ExecuteAsync(user.PendingEmail, user.EmailOtp ?? string.Empty, CancellationToken.None));
+            else if (_emailSender is not null && !string.IsNullOrEmpty(user.EmailOtp))
+                await _emailSender.SendAsync(user.PendingEmail, "Verify your WebOfWork email", $"<p>Your verification code is: <strong>{user.EmailOtp}</strong></p>");
+        }
         return user;
+    }
+
+    public async Task<bool> VerifyEmailChangeAsync(Guid userId, string otp)
+    {
+        var stored = await _otp.GetOtpAsync($"email:{userId}");
+        if (stored != otp) return false;
+        var user = await _db.Users.FindAsync(userId);
+        if (user?.PendingEmail == null) return false;
+        var existing = await _db.Users.AnyAsync(u => u.Email == user.PendingEmail && u.Id != userId);
+        if (existing) throw new InvalidOperationException("Email is already in use.");
+        user.Email = user.PendingEmail;
+        user.PendingEmail = null;
+        user.EmailOtp = null;
+        user.IsEmailVerified = true;
+        await _db.SaveChangesAsync();
+        await _otp.DeleteOtpAsync($"email:{userId}");
+        return true;
     }
 }

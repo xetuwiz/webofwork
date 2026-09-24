@@ -10,5 +10,6 @@ public record DeliverableResponse(
     string? FileUrl,
     string? LinkUrl,
     string? Notes,
+    string DeliverableType,
     DateTime SubmittedAt
 );

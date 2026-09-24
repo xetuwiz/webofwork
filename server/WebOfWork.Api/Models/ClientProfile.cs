@@ -22,4 +22,5 @@ public class ClientProfile
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Brief> Briefs { get; set; } = new List<Brief>();
+    public ICollection<ClientProfileCategory> CategoryLinks { get; set; } = new List<ClientProfileCategory>();
 }

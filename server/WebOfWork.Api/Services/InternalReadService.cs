@@ -215,9 +215,11 @@ public sealed class InternalReadService : IInternalReadService
     private async Task<IReadOnlyList<InternalFreelancerListDto>> BuildListDtosAsync(IReadOnlyList<FreelancerSummary> profiles, CancellationToken ct)
     {
         var userIds = profiles.Select(x => x.UserId).ToArray();
-        var skills = await _db.FreelancerSkills.AsNoTracking()
-            .Where(x => userIds.Contains(x.UserId))
-            .Select(x => new { x.UserId, x.SkillId, x.CustomName })
+        var skills = await (from fs in _db.FreelancerSkills.AsNoTracking()
+                            join skill in _db.Skills.AsNoTracking() on fs.SkillId equals skill.Id into skillJoin
+                            from skill in skillJoin.DefaultIfEmpty()
+                            where userIds.Contains(fs.UserId)
+                            select new { fs.UserId, fs.SkillId, fs.CustomName, SkillName = skill == null ? null : skill.Name })
             .ToListAsync(ct);
         var packages = await _db.FreelancerPackages.AsNoTracking()
             .Where(x => userIds.Contains(x.UserId))
@@ -234,7 +236,7 @@ public sealed class InternalReadService : IInternalReadService
             x.Availability,
             x.AverageRating,
             x.ReviewCount,
-            skills.Where(s => s.UserId == x.UserId).Select(s => string.IsNullOrWhiteSpace(s.CustomName) ? $"skill:{s.SkillId}" : s.CustomName).ToList(),
+            skills.Where(s => s.UserId == x.UserId).Select(s => !string.IsNullOrWhiteSpace(s.CustomName) ? s.CustomName : s.SkillName ?? $"skill:{s.SkillId}").ToList(),
             packages.Where(p => p.UserId == x.UserId).Select(p => p.Package).ToList())).ToList();
     }
 

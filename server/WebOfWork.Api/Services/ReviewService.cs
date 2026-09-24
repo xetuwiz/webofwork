@@ -15,11 +15,13 @@ public class ReviewService : IReviewService
 {
     private readonly WebOfWorkDbContext _db;
     private readonly ICurrentUser _currentUser;
+    private readonly INotificationPublisher? _notificationPublisher;
 
-    public ReviewService(WebOfWorkDbContext db, ICurrentUser currentUser)
+    public ReviewService(WebOfWorkDbContext db, ICurrentUser currentUser, INotificationPublisher? notificationPublisher = null)
     {
         _db = db;
         _currentUser = currentUser;
+        _notificationPublisher = notificationPublisher;
     }
 
     public async Task<ReviewResponse> CreateReviewAsync(CreateReviewRequest request, CancellationToken cancellationToken)
@@ -89,6 +91,17 @@ public class ReviewService : IReviewService
 
         // Step 11.28: Recalculate average rating inline (mirrors Python signal)
         await RecalculateRatingAsync(revieweeId, reviewType, cancellationToken);
+
+        if (_notificationPublisher != null)
+        {
+            await _notificationPublisher.PublishAsync(
+                revieweeId,
+                NotificationType.ReviewReceived,
+                $"You received a new review for contract #{request.ContractId}.",
+                "Review",
+                review.Id,
+                cancellationToken);
+        }
 
         return MapToResponse(review);
     }

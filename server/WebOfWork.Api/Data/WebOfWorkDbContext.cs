@@ -28,12 +28,12 @@ public class WebOfWorkDbContext : DbContext
     public DbSet<WebOfWork.Api.Models.Contract> Contracts { get; set; }
     public DbSet<WebOfWork.Api.Models.ContractDeliverable> ContractDeliverables { get; set; }
     public DbSet<WebOfWork.Api.Models.ContractRevision> ContractRevisions { get; set; }
-    public DbSet<WebOfWork.Api.Models.Milestone> Milestones { get; set; }
-    public DbSet<WebOfWork.Api.Models.MilestoneDeliverable> MilestoneDeliverables { get; set; }
     public DbSet<WebOfWork.Api.Models.Dispute> Disputes { get; set; }
     public DbSet<WebOfWork.Api.Models.DisputeFile> DisputeFiles { get; set; }
     public DbSet<WebOfWork.Api.Models.Review> Reviews { get; set; }
     public DbSet<WebOfWork.Api.Models.Payment> Payments { get; set; }
+    public DbSet<WebOfWork.Api.Models.PaymentRefund> PaymentRefunds { get; set; }
+
     public DbSet<WebOfWork.Api.Models.PlatformAnalytics> PlatformAnalytics { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerSkill> FreelancerSkills { get; set; }
     public DbSet<WebOfWork.Api.Models.FreelancerPackage> FreelancerPackages { get; set; }
@@ -43,8 +43,6 @@ public class WebOfWorkDbContext : DbContext
 
     // Phase 2A
     public DbSet<WebOfWork.Api.Models.PortfolioMedia> PortfolioMedia { get; set; }
-    public DbSet<WebOfWork.Api.Models.PortfolioTag> PortfolioTags { get; set; }
-    public DbSet<WebOfWork.Api.Models.SkillEndorsement> SkillEndorsements { get; set; }
 
     // Phase 2A
     public DbSet<WebOfWork.Api.Models.GlobalSettings> GlobalSettings { get; set; }

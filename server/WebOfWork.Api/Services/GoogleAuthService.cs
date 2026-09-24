@@ -19,6 +19,8 @@ public class GoogleAuthService : IGoogleAuthService {
                 Email = payload.Email,
                 FullName = payload.Name ?? "Google User",
                 Role = requestedRole,
+                CurrentRole = requestedRole,
+                IsFreelancer = requestedRole == UserRole.Freelancer,
                 IsGoogleAccount = true,
                 GoogleSub = payload.Subject,
                 IsEmailVerified = payload.EmailVerified

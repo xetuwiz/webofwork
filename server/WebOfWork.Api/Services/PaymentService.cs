@@ -18,7 +18,7 @@ public interface IPaymentService
 {
     Task<PaymentResponse> VerifyPaymentAsync(Guid userId, VerifyPaymentRequest request, CancellationToken ct);
     Task<decimal> GetClientSpendingSummaryAsync(Guid userId, CancellationToken ct);
-    Task<List<PaymentResponse>> GetFreelancerTransactionHistoryAsync(Guid userId, CancellationToken ct);
+    Task<List<PaymentResponse>> GetFreelancerTransactionHistoryAsync(Guid userId, string? range, CancellationToken ct);
     Task<List<PaymentResponse>> GetPlatformTransactionsAsync(CancellationToken ct);
 }
 
@@ -29,18 +29,24 @@ public class PaymentService : IPaymentService
     private readonly ICommissionCalculator _commissionCalculator;
     private readonly ISmsSender _smsSender;
     private readonly SmsStrategyFactory _smsFactory;
+    private readonly INotificationPublisher? _notificationPublisher;
+    private readonly IPayPalClient? _payPalClient;
 
     public PaymentService(
         WebOfWorkDbContext db,
         IPayPalOrderVerifier payPalVerifier,
         ICommissionCalculator commissionCalculator,
-        ISmsSender smsSender)
+        ISmsSender smsSender,
+        INotificationPublisher? notificationPublisher = null,
+        IPayPalClient? payPalClient = null)
     {
         _db = db;
         _payPalVerifier = payPalVerifier;
         _commissionCalculator = commissionCalculator;
         _smsSender = smsSender;
         _smsFactory = new SmsStrategyFactory();
+        _notificationPublisher = notificationPublisher;
+        _payPalClient = payPalClient;
     }
 
     public async Task<PaymentResponse> VerifyPaymentAsync(Guid userId, VerifyPaymentRequest request, CancellationToken ct)
@@ -59,28 +65,10 @@ public class PaymentService : IPaymentService
         var existingPayment = await _db.Payments.AnyAsync(p => p.PayPalOrderId == request.PayPalOrderId, ct);
         if (existingPayment) throw new ArgumentException("Payment order ID already processed.");
 
-        Milestone? milestone = null;
-        decimal expectedAmountUsd;
-
-        if (request.MilestoneId.HasValue)
-        {
-            milestone = await _db.Milestones
-                .FirstOrDefaultAsync(m => m.Id == request.MilestoneId.Value && m.ContractId == contract.Id, ct);
-            if (milestone == null) throw new ArgumentException("Milestone not found for this contract.");
-            if (milestone.Status != MilestoneStatus.Pending)
-                throw new ArgumentException("Milestone has already been funded.");
-            if (await _db.Payments.AnyAsync(p => p.MilestoneId == milestone.Id, ct))
-                throw new ArgumentException("Milestone payment already processed.");
-
-            expectedAmountUsd = milestone.Amount;
-        }
-        else
-        {
-            expectedAmountUsd = contract.TotalAmount;
-        }
+        var expectedAmountUsd = contract.TotalAmount;
 
         if (request.PayPalAmountUsd != expectedAmountUsd)
-            throw new ArgumentException("PayPal amount does not match the contract or milestone amount.");
+            throw new ArgumentException("PayPal amount does not match the contract amount.");
 
         var isValid = await _payPalVerifier.VerifyOrderAsync(request.PayPalOrderId, request.PayPalAmountUsd);
         if (!isValid) throw new ArgumentException("Invalid PayPal order. Amount or currency mismatch.");
@@ -89,39 +77,23 @@ public class PaymentService : IPaymentService
         try
         {
             var fee = await _commissionCalculator.CalculateFeeAsync(expectedAmountUsd);
-            
+            var orderDetails = _payPalClient == null ? null : await _payPalClient.GetOrderDetailsAsync(request.PayPalOrderId);
+
             var payment = new Payment
             {
                 ContractId = contract.Id,
-                MilestoneId = request.MilestoneId,
                 PayPalOrderId = request.PayPalOrderId,
                 Amount = expectedAmountUsd,
                 PlatformFee = fee,
+                FreelancerShare = expectedAmountUsd - fee,
+                PayPalCaptureId = orderDetails?.CaptureId ?? request.PayPalOrderId,
                 Status = PaymentStatus.Escrow,
                 ProcessedAt = DateTime.UtcNow
             };
-            
+
             _db.Payments.Add(payment);
 
-            if (milestone != null)
-            {
-                milestone.Status = MilestoneStatus.InProgress;
-                milestone.FundedAt = DateTime.UtcNow;
-                milestone.StartedAt = DateTime.UtcNow;
-            }
-
-            if (request.MilestoneId.HasValue)
-            {
-                var otherPendingMilestones = await _db.Milestones
-                    .CountAsync(m => m.ContractId == contract.Id
-                                  && m.Status == MilestoneStatus.Pending
-                                  && m.Id != milestone!.Id, ct);
-                contract.IsFunded = otherPendingMilestones == 0;
-            }
-            else
-            {
-                contract.IsFunded = true;
-            }
+            contract.IsFunded = true;
             if (contract.Status == ContractStatus.Offered)
             {
                 contract.Status = ContractStatus.Active;
@@ -131,21 +103,21 @@ public class PaymentService : IPaymentService
             var proposals = await _db.Proposals
                 .Where(p => p.ProjectId == contract.ProjectId && p.Status == ProposalStatus.Pending)
                 .ToListAsync(ct);
-            
-            foreach(var prop in proposals)
+
+            foreach (var prop in proposals)
             {
                 prop.Status = prop.FreelancerId == contract.FreelancerId ? ProposalStatus.Accepted : ProposalStatus.Rejected;
             }
 
-            // Update Platform Analytics
-            var analytics = await _db.PlatformAnalytics.FirstOrDefaultAsync(ct);
-            if (analytics == null)
-            {
-                analytics = new PlatformAnalytics();
-                _db.PlatformAnalytics.Add(analytics);
-            }
-            analytics.TotalVolumeUsd += expectedAmountUsd;
-            analytics.TotalProfitUsd += fee;
+            // Atomically increment platform analytics.
+            await _db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO platform_analytics (id, total_volume_usd, total_profit_usd, completed_contracts_count, updated_at)
+                VALUES (1, {expectedAmountUsd}, {fee}, 0, {DateTime.UtcNow})
+                ON CONFLICT (id) DO UPDATE SET
+                    total_volume_usd = platform_analytics.total_volume_usd + EXCLUDED.total_volume_usd,
+                    total_profit_usd = platform_analytics.total_profit_usd + EXCLUDED.total_profit_usd,
+                    updated_at = EXCLUDED.updated_at
+                """, ct);
 
             await _db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
@@ -157,11 +129,23 @@ public class PaymentService : IPaymentService
                 await _smsSender.SendSmsAsync(contract.Freelancer.Phone, msg);
             }
 
+            if (_notificationPublisher != null)
+            {
+                await _notificationPublisher.PublishAsync(
+                    contract.Freelancer.UserId,
+                    NotificationType.PaymentCredited,
+                    $"Payment for contract #{payment.ContractId} has been credited to escrow.",
+                    "Payment",
+                    payment.Id,
+                    ct,
+                    payment.Amount,
+                    payment.ContractId);
+            }
+
             return new PaymentResponse
             {
                 Id = payment.Id,
                 ContractId = payment.ContractId,
-                MilestoneId = payment.MilestoneId,
                 PayPalOrderId = payment.PayPalOrderId,
                 Amount = payment.Amount,
                 Status = payment.Status.ToString(),
@@ -186,24 +170,30 @@ public class PaymentService : IPaymentService
             .SumAsync(p => p.Amount, ct);
     }
 
-    public async Task<List<PaymentResponse>> GetFreelancerTransactionHistoryAsync(Guid userId, CancellationToken ct)
+    public async Task<List<PaymentResponse>> GetFreelancerTransactionHistoryAsync(Guid userId, string? range, CancellationToken ct)
     {
         var freelancerProfile = await _db.FreelancerProfiles.FirstOrDefaultAsync(f => f.UserId == userId, ct);
         if (freelancerProfile == null) return new List<PaymentResponse>();
 
-        var payments = await _db.Payments
-            .Include(p => p.Contract)
-            .Where(p => p.Contract.FreelancerId == freelancerProfile.Id && p.Status == PaymentStatus.Released)
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync(ct);
+        var from = range?.ToLowerInvariant() switch
+        {
+            "1m" => DateTime.UtcNow.AddMonths(-1),
+            "6m" => DateTime.UtcNow.AddMonths(-6),
+            "1y" => DateTime.UtcNow.AddYears(-1),
+            _ => DateTime.MinValue
+        };
+        var query = _db.Payments.Include(p => p.Contract).Where(p => p.Contract.FreelancerId == freelancerProfile.Id && p.Status == PaymentStatus.Released);
+        if (from != DateTime.MinValue) query = query.Where(p => p.CreatedAt >= from);
+        var payments = await query.OrderByDescending(p => p.CreatedAt).ToListAsync(ct);
 
         return payments.Select(p => new PaymentResponse
         {
             Id = p.Id,
             ContractId = p.ContractId,
-            MilestoneId = p.MilestoneId,
             PayPalOrderId = p.PayPalOrderId,
-            Amount = p.Amount - p.PlatformFee, // freelancer receives amount minus fee
+            PayPalCaptureId = p.PayPalCaptureId,
+            FreelancerShare = p.FreelancerShare == 0m ? p.Amount - p.PlatformFee : p.FreelancerShare,
+            Amount = p.Amount - p.PlatformFee,
             Status = p.Status.ToString(),
             CreatedAt = p.CreatedAt
         }).ToList();
@@ -219,8 +209,9 @@ public class PaymentService : IPaymentService
         {
             Id = p.Id,
             ContractId = p.ContractId,
-            MilestoneId = p.MilestoneId,
             PayPalOrderId = p.PayPalOrderId,
+            PayPalCaptureId = p.PayPalCaptureId,
+            FreelancerShare = p.FreelancerShare == 0m ? p.Amount - p.PlatformFee : p.FreelancerShare,
             Amount = p.Amount,
             Status = p.Status.ToString(),
             CreatedAt = p.CreatedAt

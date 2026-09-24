@@ -6,7 +6,7 @@ namespace WebOfWork.Api.Services;
 
 public interface ICategoryService
 {
-    Task<IEnumerable<CategoryResponse>> GetCategoriesAsync();
+    Task<IEnumerable<CategoryResponse>> GetCategoriesAsync(bool noPagination = false);
     Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request);
     Task<CategoryResponse> UpdateCategoryAsync(int id, CreateCategoryRequest request);
     Task DeleteCategoryAsync(int id);

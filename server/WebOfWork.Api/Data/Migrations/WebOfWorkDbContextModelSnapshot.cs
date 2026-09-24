@@ -361,6 +361,25 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("client_profiles", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.ClientProfileCategory", b =>
+                {
+                    b.Property<Guid>("ClientProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_profile_id");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_id");
+
+                    b.HasKey("ClientProfileId", "CategoryId")
+                        .HasName("pk_client_profile_categories");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_client_profile_categories_category_id");
+
+                    b.ToTable("client_profile_categories", (string)null);
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.CmsSection", b =>
                 {
                     b.Property<int>("Id")
@@ -473,17 +492,9 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_funded");
 
-                    b.Property<bool>("IsMilestoneBased")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_milestone_based");
-
                     b.Property<string>("LegalDocumentUrl")
                         .HasColumnType("text")
                         .HasColumnName("legal_document_url");
-
-                    b.Property<int>("MilestoneCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("milestone_count");
 
                     b.Property<Guid?>("PackageId")
                         .HasColumnType("uuid")
@@ -547,6 +558,15 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
 
+                    b.Property<int?>("ContractId1")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id1");
+
+                    b.Property<string>("DeliverableType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("deliverable_type");
+
                     b.Property<string>("FileUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
@@ -582,6 +602,9 @@ namespace WebOfWork.Api.Data.Migrations
                     b.HasIndex("ContractId")
                         .HasDatabaseName("ix_contract_deliverables_contract_id");
 
+                    b.HasIndex("ContractId1")
+                        .HasDatabaseName("ix_contract_deliverables_contract_id1");
+
                     b.HasIndex("FreelancerId")
                         .HasDatabaseName("ix_contract_deliverables_freelancer_id");
 
@@ -600,6 +623,10 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Property<int>("ContractId")
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
+
+                    b.Property<int?>("ContractId1")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id1");
 
                     b.Property<string>("Reason")
                         .IsRequired()
@@ -634,6 +661,9 @@ namespace WebOfWork.Api.Data.Migrations
                     b.HasIndex("ContractId")
                         .HasDatabaseName("ix_contract_revisions_contract_id");
 
+                    b.HasIndex("ContractId1")
+                        .HasDatabaseName("ix_contract_revisions_contract_id1");
+
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_contract_revisions_user_id");
 
@@ -657,6 +687,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
 
+                    b.Property<int?>("ContractId1")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id1");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -665,6 +699,14 @@ namespace WebOfWork.Api.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description");
+
+                    b.Property<Guid?>("OpenedByClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opened_by_client_id");
+
+                    b.Property<Guid?>("OpenedByFreelancerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opened_by_freelancer_id");
 
                     b.Property<Guid>("OpenerId")
                         .HasColumnType("uuid")
@@ -691,6 +733,16 @@ namespace WebOfWork.Api.Data.Migrations
 
                     b.HasIndex("ContractId")
                         .HasDatabaseName("ix_disputes_contract_id");
+
+                    b.HasIndex("ContractId1")
+                        .IsUnique()
+                        .HasDatabaseName("ix_disputes_contract_id1");
+
+                    b.HasIndex("OpenedByClientId")
+                        .HasDatabaseName("ix_disputes_opened_by_client_id");
+
+                    b.HasIndex("OpenedByFreelancerId")
+                        .HasDatabaseName("ix_disputes_opened_by_freelancer_id");
 
                     b.HasIndex("OpenerId")
                         .HasDatabaseName("ix_disputes_opener_id");
@@ -1250,103 +1302,6 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
-            modelBuilder.Entity("WebOfWork.Api.Models.Milestone", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("completed_at");
-
-                    b.Property<int>("ContractId")
-                        .HasColumnType("integer")
-                        .HasColumnName("contract_id");
-
-                    b.Property<int>("ExpectedDays")
-                        .HasColumnType("integer")
-                        .HasColumnName("expected_days");
-
-                    b.Property<DateTime?>("FundedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("funded_at");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer")
-                        .HasColumnName("order");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("started_at");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("title");
-
-                    b.HasKey("Id")
-                        .HasName("pk_milestones");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("ix_milestones_status");
-
-                    b.HasIndex("ContractId", "Order")
-                        .IsUnique()
-                        .HasDatabaseName("ix_milestones_contract_id_order");
-
-                    b.ToTable("milestones", (string)null);
-                });
-
-            modelBuilder.Entity("WebOfWork.Api.Models.MilestoneDeliverable", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("FileUrl")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("file_url");
-
-                    b.Property<int>("MilestoneId")
-                        .HasColumnType("integer")
-                        .HasColumnName("milestone_id");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("notes");
-
-                    b.Property<DateTime>("SubmittedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("submitted_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_milestone_deliverables");
-
-                    b.HasIndex("MilestoneId")
-                        .HasDatabaseName("ix_milestone_deliverables_milestone_id");
-
-                    b.ToTable("milestone_deliverables", (string)null);
-                });
-
             modelBuilder.Entity("WebOfWork.Api.Models.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -1382,6 +1337,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("related_entity_type");
+
+                    b.Property<string>("TargetRole")
+                        .HasColumnType("text")
+                        .HasColumnName("target_role");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -1427,9 +1386,13 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<int?>("MilestoneId")
-                        .HasColumnType("integer")
-                        .HasColumnName("milestone_id");
+                    b.Property<decimal>("FreelancerShare")
+                        .HasColumnType("numeric")
+                        .HasColumnName("freelancer_share");
+
+                    b.Property<string>("PayPalCaptureId")
+                        .HasColumnType("text")
+                        .HasColumnName("pay_pal_capture_id");
 
                     b.Property<string>("PayPalOrderId")
                         .IsRequired()
@@ -1445,6 +1408,12 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processed_at");
 
+                    b.Property<decimal>("RefundedAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("refunded_amount");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
@@ -1453,16 +1422,49 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasName("pk_payments");
 
                     b.HasIndex("ContractId")
+                        .IsUnique()
                         .HasDatabaseName("ix_payments_contract_id");
-
-                    b.HasIndex("MilestoneId")
-                        .HasDatabaseName("ix_payments_milestone_id");
 
                     b.HasIndex("PayPalOrderId")
                         .IsUnique()
                         .HasDatabaseName("ix_payments_pay_pal_order_id");
 
                     b.ToTable("payments", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.PaymentRefund", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("PaymentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_refunds");
+
+                    b.HasIndex("PaymentId")
+                        .HasDatabaseName("ix_payment_refunds_payment_id");
+
+                    b.ToTable("payment_refunds", (string)null);
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.PlatformAnalytics", b =>
@@ -1556,33 +1558,6 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasDatabaseName("ix_portfolio_media_portfolio_item_id");
 
                     b.ToTable("portfolio_media", (string)null);
-                });
-
-            modelBuilder.Entity("WebOfWork.Api.Models.PortfolioTag", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("PortfolioItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("portfolio_item_id");
-
-                    b.Property<Guid>("SkillId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("skill_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_portfolio_tags");
-
-                    b.HasIndex("PortfolioItemId")
-                        .HasDatabaseName("ix_portfolio_tags_portfolio_item_id");
-
-                    b.HasIndex("SkillId")
-                        .HasDatabaseName("ix_portfolio_tags_skill_id");
-
-                    b.ToTable("portfolio_tags", (string)null);
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>
@@ -1856,6 +1831,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
 
+                    b.Property<int?>("ContractId1")
+                        .HasColumnType("integer")
+                        .HasColumnName("contract_id1");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1885,6 +1864,9 @@ namespace WebOfWork.Api.Data.Migrations
 
                     b.HasIndex("ContractId")
                         .HasDatabaseName("ix_reviews_contract_id");
+
+                    b.HasIndex("ContractId1")
+                        .HasDatabaseName("ix_reviews_contract_id1");
 
                     b.HasIndex("RevieweeId")
                         .HasDatabaseName("ix_reviews_reviewee_id");
@@ -1933,47 +1915,6 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasDatabaseName("ix_skills_name_category_id");
 
                     b.ToTable("skills", (string)null);
-                });
-
-            modelBuilder.Entity("WebOfWork.Api.Models.SkillEndorsement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("comment");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid>("EndorserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("endorser_id");
-
-                    b.Property<Guid>("SkillId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("skill_id");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_skill_endorsements");
-
-                    b.HasIndex("EndorserId")
-                        .HasDatabaseName("ix_skill_endorsements_endorser_id");
-
-                    b.HasIndex("SkillId")
-                        .HasDatabaseName("ix_skill_endorsements_skill_id");
-
-                    b.ToTable("skill_endorsements", (string)null);
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.SupportTicket", b =>
@@ -2115,6 +2056,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<int>("CurrentRole")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_role");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
@@ -2124,6 +2069,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("email");
+
+                    b.Property<string>("EmailOtp")
+                        .HasColumnType("text")
+                        .HasColumnName("email_otp");
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -2145,6 +2094,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_email_verified");
 
+                    b.Property<bool>("IsFreelancer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_freelancer");
+
                     b.Property<bool>("IsGoogleAccount")
                         .HasColumnType("boolean")
                         .HasColumnName("is_google_account");
@@ -2153,9 +2106,17 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
 
+                    b.Property<string>("PendingEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("pending_email");
+
                     b.Property<string>("Phone")
                         .HasColumnType("text")
                         .HasColumnName("phone");
+
+                    b.Property<string>("ProfilePhoto")
+                        .HasColumnType("text")
+                        .HasColumnName("profile_photo");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("text")
@@ -2476,6 +2437,27 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.ClientProfileCategory", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_profile_categories_categories_category_id");
+
+                    b.HasOne("WebOfWork.Api.Models.ClientProfile", "ClientProfile")
+                        .WithMany("CategoryLinks")
+                        .HasForeignKey("ClientProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_profile_categories_client_profiles_client_profile_id");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("ClientProfile");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Contract", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.ClientProfile", "Client")
@@ -2523,6 +2505,11 @@ namespace WebOfWork.Api.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_contract_deliverables_contracts_contract_id");
 
+                    b.HasOne("WebOfWork.Api.Models.Contract", null)
+                        .WithMany("Deliverables")
+                        .HasForeignKey("ContractId1")
+                        .HasConstraintName("fk_contract_deliverables_contracts_contract_id1");
+
                     b.HasOne("WebOfWork.Api.Models.FreelancerProfile", "Freelancer")
                         .WithMany()
                         .HasForeignKey("FreelancerId")
@@ -2543,6 +2530,11 @@ namespace WebOfWork.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_contract_revisions_contracts_contract_id");
+
+                    b.HasOne("WebOfWork.Api.Models.Contract", null)
+                        .WithMany("Revisions")
+                        .HasForeignKey("ContractId1")
+                        .HasConstraintName("fk_contract_revisions_contracts_contract_id1");
 
                     b.HasOne("WebOfWork.Api.Models.User", "User")
                         .WithMany()
@@ -2565,6 +2557,23 @@ namespace WebOfWork.Api.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_disputes_contracts_contract_id");
 
+                    b.HasOne("WebOfWork.Api.Models.Contract", null)
+                        .WithOne("Dispute")
+                        .HasForeignKey("WebOfWork.Api.Models.Dispute", "ContractId1")
+                        .HasConstraintName("fk_disputes_contracts_contract_id1");
+
+                    b.HasOne("WebOfWork.Api.Models.ClientProfile", "OpenedByClient")
+                        .WithMany()
+                        .HasForeignKey("OpenedByClientId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_disputes_client_profiles_opened_by_client_id");
+
+                    b.HasOne("WebOfWork.Api.Models.FreelancerProfile", "OpenedByFreelancer")
+                        .WithMany()
+                        .HasForeignKey("OpenedByFreelancerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_disputes_freelancer_profiles_opened_by_freelancer_id");
+
                     b.HasOne("WebOfWork.Api.Models.User", "Opener")
                         .WithMany()
                         .HasForeignKey("OpenerId")
@@ -2573,6 +2582,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasConstraintName("fk_disputes_users_opener_id");
 
                     b.Navigation("Contract");
+
+                    b.Navigation("OpenedByClient");
+
+                    b.Navigation("OpenedByFreelancer");
 
                     b.Navigation("Opener");
                 });
@@ -2733,30 +2746,6 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Sender");
                 });
 
-            modelBuilder.Entity("WebOfWork.Api.Models.Milestone", b =>
-                {
-                    b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
-                        .WithMany()
-                        .HasForeignKey("ContractId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_milestones_contracts_contract_id");
-
-                    b.Navigation("Contract");
-                });
-
-            modelBuilder.Entity("WebOfWork.Api.Models.MilestoneDeliverable", b =>
-                {
-                    b.HasOne("WebOfWork.Api.Models.Milestone", "Milestone")
-                        .WithMany("Deliverables")
-                        .HasForeignKey("MilestoneId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_milestone_deliverables_milestones_milestone_id");
-
-                    b.Navigation("Milestone");
-                });
-
             modelBuilder.Entity("WebOfWork.Api.Models.Notification", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.User", "Recipient")
@@ -2772,21 +2761,25 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.Payment", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
-                        .WithMany()
-                        .HasForeignKey("ContractId")
+                        .WithOne("Payment")
+                        .HasForeignKey("WebOfWork.Api.Models.Payment", "ContractId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_payments_contracts_contract_id");
 
-                    b.HasOne("WebOfWork.Api.Models.Milestone", "Milestone")
-                        .WithMany()
-                        .HasForeignKey("MilestoneId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_payments_milestones_milestone_id");
-
                     b.Navigation("Contract");
+                });
 
-                    b.Navigation("Milestone");
+            modelBuilder.Entity("WebOfWork.Api.Models.PaymentRefund", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Payment", "Payment")
+                        .WithMany("Refunds")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_refunds_payments_payment_id");
+
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.PortfolioMedia", b =>
@@ -2799,27 +2792,6 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasConstraintName("fk_portfolio_media_freelancer_portfolios_portfolio_item_id");
 
                     b.Navigation("PortfolioItem");
-                });
-
-            modelBuilder.Entity("WebOfWork.Api.Models.PortfolioTag", b =>
-                {
-                    b.HasOne("WebOfWork.Api.Models.FreelancerPortfolio", "PortfolioItem")
-                        .WithMany("Tags")
-                        .HasForeignKey("PortfolioItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_portfolio_tags_freelancer_portfolios_portfolio_item_id");
-
-                    b.HasOne("WebOfWork.Api.Models.FreelancerSkill", "Skill")
-                        .WithMany("PortfolioTags")
-                        .HasForeignKey("SkillId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_portfolio_tags_freelancer_skills_skill_id");
-
-                    b.Navigation("PortfolioItem");
-
-                    b.Navigation("Skill");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>
@@ -2913,6 +2885,11 @@ namespace WebOfWork.Api.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_reviews_contracts_contract_id");
 
+                    b.HasOne("WebOfWork.Api.Models.Contract", null)
+                        .WithMany("Reviews")
+                        .HasForeignKey("ContractId1")
+                        .HasConstraintName("fk_reviews_contracts_contract_id1");
+
                     b.HasOne("WebOfWork.Api.Models.User", "Reviewee")
                         .WithMany()
                         .HasForeignKey("RevieweeId")
@@ -2943,27 +2920,6 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasConstraintName("fk_skills_categories_category_id");
 
                     b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("WebOfWork.Api.Models.SkillEndorsement", b =>
-                {
-                    b.HasOne("WebOfWork.Api.Models.User", "Endorser")
-                        .WithMany()
-                        .HasForeignKey("EndorserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_skill_endorsements_users_endorser_id");
-
-                    b.HasOne("WebOfWork.Api.Models.FreelancerSkill", "Skill")
-                        .WithMany("Endorsements")
-                        .HasForeignKey("SkillId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_skill_endorsements_freelancer_skills_skill_id");
-
-                    b.Navigation("Endorser");
-
-                    b.Navigation("Skill");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.SupportTicket", b =>
@@ -3072,6 +3028,21 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.ClientProfile", b =>
                 {
                     b.Navigation("Briefs");
+
+                    b.Navigation("CategoryLinks");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.Contract", b =>
+                {
+                    b.Navigation("Deliverables");
+
+                    b.Navigation("Dispute");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("Reviews");
+
+                    b.Navigation("Revisions");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Dispute", b =>
@@ -3082,20 +3053,11 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.FreelancerPortfolio", b =>
                 {
                     b.Navigation("Media");
-
-                    b.Navigation("Tags");
                 });
 
-            modelBuilder.Entity("WebOfWork.Api.Models.FreelancerSkill", b =>
+            modelBuilder.Entity("WebOfWork.Api.Models.Payment", b =>
                 {
-                    b.Navigation("Endorsements");
-
-                    b.Navigation("PortfolioTags");
-                });
-
-            modelBuilder.Entity("WebOfWork.Api.Models.Milestone", b =>
-                {
-                    b.Navigation("Deliverables");
+                    b.Navigation("Refunds");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Project", b =>

@@ -24,6 +24,16 @@ public class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
         builder.Property(d => d.Status).IsRequired();
         builder.Property(d => d.Reason).IsRequired();
 
+        builder.HasOne(d => d.OpenedByClient)
+            .WithMany()
+            .HasForeignKey(d => d.OpenedByClientId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(d => d.OpenedByFreelancer)
+            .WithMany()
+            .HasForeignKey(d => d.OpenedByFreelancerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(d => d.Evidence)
             .WithOne(f => f.Dispute)
             .HasForeignKey(f => f.DisputeId)

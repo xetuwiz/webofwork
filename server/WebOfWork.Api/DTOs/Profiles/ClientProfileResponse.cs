@@ -12,5 +12,7 @@ public record ClientProfileResponse(
     DateTime JoinedAt,
     bool IsGoogleAccount,
     int ReviewCount,
-    decimal AverageRating
+    decimal AverageRating,
+    IReadOnlyList<int> CategoryIds,
+    string? ProfilePhoto = null
 );

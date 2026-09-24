@@ -1,5 +1,6 @@
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using WebOfWork.Api.Integrations.Email;
 
 namespace WebOfWork.Api.Jobs;
@@ -8,11 +9,13 @@ public class SendOtpEmailJob
 {
     private readonly IEmailSender _emailSender;
     private readonly ILogger<SendOtpEmailJob> _logger;
+    private readonly IEmailTemplateRenderer _templates;
 
-    public SendOtpEmailJob(IEmailSender emailSender, ILogger<SendOtpEmailJob> logger)
+    public SendOtpEmailJob(IEmailSender emailSender, ILogger<SendOtpEmailJob> logger, IEmailTemplateRenderer templates)
     {
         _emailSender = emailSender;
         _logger = logger;
+        _templates = templates;
     }
 
     public async Task ExecuteAsync(string email, string otp, CancellationToken ct = default)
@@ -23,9 +26,7 @@ public class SendOtpEmailJob
             return;
         }
 
-        var html = $@"<h2>Welcome to WebOfWork!</h2>
-<p>Your verification code is: <strong>{otp}</strong></p>
-<p>This code expires in 10 minutes.</p>";
+        var html = await _templates.RenderAsync("OtpEmail.cshtml", new Dictionary<string, string> { ["Otp"] = otp }, ct);
 
         await _emailSender.SendAsync(email, "Your WebOfWork OTP", html, ct);
     }
