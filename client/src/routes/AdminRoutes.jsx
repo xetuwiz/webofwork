@@ -4,6 +4,13 @@ import NotFound from "../components/NotFound.jsx";
 import AdminOverview from "../features/admin/dashboard/components/AdminOverview.jsx";
 import CategoriesAndSkills from "../features/admin/categorymanagement/CategoriesAndSkills.jsx";
 import AdminUserList from "../features/admin/usermanagement/AdminUserList.jsx";
+import SupportTicketList from "../features/admin/support/SupportTicketList.jsx";
+import SupportTicketDetail from "../features/admin/support/SupportTicketDetials.jsx";
+import FAQManagement from "../features/admin/faq/FAQManagement.jsx";
+import TermAndConditions from "../features/admin/termsandconditionsmanagement/TermAndConditions.jsx";
+import PrivacyPolicy from "../features/admin/privacypolicymanagement/PrivacyPolicy.jsx";
+import AdminSettings from "../features/admin/settings/AdminSettings.jsx";
+import AdminDashboard from "../features/admin/dashboard/AdminDashboard.jsx";
 import PaymentRelease from "../features/admin/payoutmanagement/PaymentRelease.jsx";
 import AdminTransactions from "../features/admin/transactions/AdminTransactions.jsx";
 import DisputeList from "../features/admin/disputemanagement/DisputeList.jsx";
@@ -33,6 +40,13 @@ export default function AdminRoutes() {
       <Route path="disputes" element={<DisputeList />} />
       <Route path="disputes/:id" element={<DisputeDetail />} />
       <Route path="reviews" element={<ReviewList />} />
+      <Route path="support" element={<SupportTicketList />} />
+      <Route path="support/:id" element={<SupportTicketDetail />} />
+      <Route path="faq-management" element={<FAQManagement />} />
+      <Route path="terms-and-conditions" element={<TermAndConditions />} />
+      <Route path="privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="settings" element={<AdminSettings />} />
+      <Route path="dashboard" element={<AdminDashboard />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

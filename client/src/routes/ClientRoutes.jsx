@@ -25,6 +25,7 @@ import ProfileOverview from "../features/client/profile/ProfileOverview.jsx";
 import EditProfile from "../features/client/profile/EditProfile.jsx";
 import Interests from "../features/client/profile/Interests.jsx";
 import SpendingSummary from "../features/client/profile/SpendingSummary.jsx";
+import SupportPage from "../components/common/SupportPage.jsx";
 import OnboardingManager from "../features/client/onboarding/OnboardingManager.jsx";
 import FreelancerProfile from "../features/client/freelancerprofile/FreelancerProfile.jsx";
 import AllFreelancerReviews from "../features/client/freelancerprofile/AllFreelancerReviews.jsx";
@@ -66,7 +67,7 @@ export default function ClientRoutes() {
             <Route path="profile/spending" element={<SpendingSummary />} />
           </Route>
         </Route>
-        <Route path="support" element={page("Support", "Get help with your WebOfWork account.")} />
+        <Route path="support" element={<SupportPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
