@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
 using WebOfWork.Api.DTOs.Invitations;
+using WebOfWork.Api.Helpers;
 using WebOfWork.Api.Models.Enums;
 using WebOfWork.Api.Services;
 
@@ -25,6 +26,7 @@ public class InvitationsController : ControllerBase
     }
 
     [HttpPost]
+    [HttpPost("~/api/projects/invitations")]
     [Authorize(Policy = "RequireClient")]
     public async Task<IActionResult> CreateInvitation(
         [FromBody] CreateInvitationRequest request,
@@ -44,22 +46,46 @@ public class InvitationsController : ControllerBase
     }
 
     [HttpGet("sent")]
+    [HttpGet("~/api/projects/invitations/sent")]
     [Authorize(Policy = "RequireClient")]
     public async Task<IActionResult> GetSentInvitations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        InvitationStatus? statusFilter = Enum.TryParse<InvitationStatus>(status, true, out var parsed) ? parsed : null;
-        return Ok(await _invitationService.GetPagedSentInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, pageSize));
+        InvitationStatus? statusFilter = EnumQueryParser.TryParse<InvitationStatus>(status, out var parsed) ? parsed : null;
+        var result = await _invitationService.GetPagedSentInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, pageSize);
+        PaginationLinks.Apply(Request, result.Page, result.PageSize, result.Count, v => result.Next = v, v => result.Previous = v);
+        return Ok(result);
     }
 
     [HttpGet("received")]
+    [HttpGet("~/api/projects/invitations/received")]
     [Authorize(Policy = "RequireFreelancer")]
-    public async Task<IActionResult> GetReceivedInvitations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetReceivedInvitations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? page_size = null)
     {
-        InvitationStatus? statusFilter = Enum.TryParse<InvitationStatus>(status, true, out var parsed) ? parsed : null;
-        return Ok(await _invitationService.GetPagedReceivedInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, pageSize));
+        // "closed" is a UI grouping over two real statuses (declined + cancelled).
+        // The enum has no such member, so it is flagged here and expanded in the
+        // service, which owns the query.
+        //
+        // Before this, the client sent `status=hired`, which matched no enum
+        // member, so `TryParse` returned false and the filter became null -- the
+        // endpoint then returned EVERY invitation under a "hired" tab label. An
+        // unrecognised value silently meaning "no filter" is a trap worth naming.
+        var closedOnly = string.Equals(status?.Trim(), "closed", StringComparison.OrdinalIgnoreCase);
+        InvitationStatus? statusFilter = null;
+        if (!closedOnly && EnumQueryParser.TryParse<InvitationStatus>(status, out var parsed))
+        {
+            statusFilter = parsed;
+        }
+
+        // This API spells the page size both ways; accepting only one means the
+        // other is silently dropped and the caller gets 20 rows with no hint why.
+        var size = Math.Clamp(page_size ?? pageSize, 1, 100);
+        var result = await _invitationService.GetPagedReceivedInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, size, closedOnly);
+        PaginationLinks.Apply(Request, result.Page, result.PageSize, result.Count, v => result.Next = v, v => result.Previous = v);
+        return Ok(result);
     }
 
     [HttpPatch("{id}/status")]
+    [HttpPatch("~/api/projects/invitations/{id}/update-status")]
     [Authorize(Policy = "RequireFreelancer")]
     public async Task<IActionResult> UpdateInvitationStatus(int id, [FromBody] UpdateInvitationStatusRequest request)
     {
@@ -69,7 +95,7 @@ public class InvitationsController : ControllerBase
 
         try
         {
-            var success = await _invitationService.UpdateInvitationStatusAsync(_currentUser.Id!.Value, id, request);
+        var success = await _invitationService.UpdateInvitationStatusAsync(_currentUser.Id!.Value, id, request);
             if (!success) return NotFound();
             return NoContent();
         }
@@ -78,6 +104,7 @@ public class InvitationsController : ControllerBase
     }
 
     [HttpPatch("{id}/cancel")]
+    [HttpPatch("~/api/projects/invitations/{id}/cancel")]
     [Authorize(Policy = "RequireClient")]
     public async Task<IActionResult> CancelInvitation(int id)
     {
@@ -92,6 +119,7 @@ public class InvitationsController : ControllerBase
     }
 
     [HttpGet("eligible-projects")]
+    [HttpGet("~/api/projects/invitations/my-eligible-projects")]
     [Authorize(Policy = "RequireClient")]
     public async Task<IActionResult> GetEligibleProjects()
     {
