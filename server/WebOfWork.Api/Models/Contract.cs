@@ -40,6 +40,10 @@ public class Contract
     public string? LegalDocumentUrl { get; set; }
     public DateTime? CompletedAt { get; set; }
 
+    /// <summary>When the offer/contract record was created. The mobile client
+    /// shows this as the offer's "received date".</summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public ContractStatus Status { get; set; } = ContractStatus.Offered;
     public ICollection<ContractDeliverable> Deliverables { get; set; } = new List<ContractDeliverable>();
     public ICollection<ContractRevision> Revisions { get; set; } = new List<ContractRevision>();
