@@ -31,10 +31,28 @@ public class DisputeService : IDisputeService
     {
         var userId = _currentUser.Id!.Value;
 
+        // The `contractId` parameter is the source of truth. The request also
+        // carries `Contract` and `ContractId` (two fields for one value, kept for
+        // older clients), and this used to read only those -- ignoring the
+        // parameter entirely.
+        //
+        // The failure that caused: a caller supplying the id in the route, as the
+        // route requires, and leaving the body fields at their default 0, got a
+        // lookup for contract 0 and a "Contract not found" that pointed at the
+        // wrong thing entirely. The id was present in the request -- as the
+        // argument.
+        var effectiveContractId = contractId != 0
+            ? contractId
+            : request.Contract != 0 ? request.Contract : request.ContractId;
+
+        if (effectiveContractId == 0)
+            throw new ArgumentException(
+                "A contract id is required, either as the argument or on the request.",
+                nameof(contractId));
         var contract = await _db.Contracts
             .Include(c => c.Client)
             .Include(c => c.Freelancer)
-            .FirstOrDefaultAsync(c => c.Id == contractId, cancellationToken)
+            .FirstOrDefaultAsync(c => c.Id == effectiveContractId, cancellationToken)
             ?? throw new KeyNotFoundException("Contract not found.");
 
         // Step 11.5: Only a contract participant can open a dispute
@@ -100,7 +118,57 @@ public class DisputeService : IDisputeService
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return disputes.Select(d => MapToResponse(d, d.Evidence.Select(e => e.FileUrl).ToList())).ToList();
+        // DisputeList.jsx renders a client name and a freelancer name on every row,
+        // but DisputeResponse carried neither, so both cells rendered blank -- an
+        // admin triaging disputes could not tell whose case they were looking at.
+        //
+        // Resolved in three flat lookups rather than one long join. The chain
+        // Dispute -> Contract -> Client/Freelancer -> User has soft-delete filters
+        // on two of the levels, and a single multi-join would either drag
+        // soft-deleted rows in alongside the live ones or need a left join per
+        // level. Query-syntax LINQ also cannot use `?.`, so the null-guarding has
+        // to happen in the projection either way.
+        var contractIds = disputes.Select(d => d.ContractId).Distinct().ToList();
+
+        var participants = await _db.Contracts
+            .AsNoTracking()
+            .Where(c => contractIds.Contains(c.Id))
+            .Select(c => new
+            {
+                c.Id,
+                ClientUserId = c.Client != null ? c.Client.UserId : (Guid?)null,
+                FreelancerUserId = c.Freelancer != null ? c.Freelancer.UserId : (Guid?)null,
+            })
+            .ToListAsync(cancellationToken);
+
+        var userIds = participants
+            .SelectMany(x => new[] { x.ClientUserId, x.FreelancerUserId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var userNames = await _db.Users
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.FullName, cancellationToken);
+
+        var names = participants.ToDictionary(
+            p => p.Id,
+            p => (
+                ClientName: p.ClientUserId.HasValue && userNames.TryGetValue(p.ClientUserId.Value, out var cn) ? cn : null,
+                FreelancerName: p.FreelancerUserId.HasValue && userNames.TryGetValue(p.FreelancerUserId.Value, out var fn) ? fn : null));
+
+        return disputes.Select(d =>
+        {
+            var response = MapToResponse(d, d.Evidence.Select(e => e.FileUrl).ToList());
+            if (names.TryGetValue(d.ContractId, out var pair))
+            {
+                response.ClientName = pair.ClientName;
+                response.FreelancerName = pair.FreelancerName;
+            }
+            return response;
+        }).ToList();
     }
 
     public async Task<DisputeResponse> GetAdminDisputeDetailAsync(int id, CancellationToken cancellationToken)
@@ -238,6 +306,7 @@ public class DisputeService : IDisputeService
         ContractId = d.ContractId,
         PaymentId = d.Contract?.Payment?.Id,
             OpenerId = d.OpenerId,
+            RaisedById = d.OpenerId,
             OpenerRole = d.OpenedByClientId.HasValue ? "Client" : d.OpenedByFreelancerId.HasValue ? "Freelancer" : null,
         Reason = d.Reason,
         Description = d.Description,
@@ -249,3 +318,5 @@ public class DisputeService : IDisputeService
         EvidenceUrls = evidenceUrls
     };
 }
+
+

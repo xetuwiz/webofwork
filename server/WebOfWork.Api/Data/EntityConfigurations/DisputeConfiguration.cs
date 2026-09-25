@@ -11,8 +11,8 @@ public class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
         builder.HasKey(d => d.Id);
 
         builder.HasOne(d => d.Contract)
-            .WithMany()
-            .HasForeignKey(d => d.ContractId)
+            .WithOne(c => c.Dispute)
+            .HasForeignKey<Dispute>(d => d.ContractId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(d => d.Opener)
