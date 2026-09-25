@@ -15,7 +15,7 @@ public class ContractRevisionConfiguration : IEntityTypeConfiguration<ContractRe
         builder.Property(r => r.RejectionMessage).HasMaxLength(1000);
 
         builder.HasOne(r => r.Contract)
-            .WithMany()
+            .WithMany(c => c.Revisions)
             .HasForeignKey(r => r.ContractId)
             .OnDelete(DeleteBehavior.Cascade);
 
