@@ -4,6 +4,8 @@ using System.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebOfWork.Api.DTOs.Payments;
+using WebOfWork.Api.Helpers;
+using WebOfWork.Api.Models.Enums;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using WebOfWork.Api.Integrations.PayPal;
@@ -41,20 +43,64 @@ public class PaymentsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("client/spending")]
+    [HttpPost("verify-payment")]
+    [Authorize(Roles = "Client")]
+    public async Task<IActionResult> VerifyPaymentAndCreateContract([FromBody] VerifyPaymentRequest request, CancellationToken ct)
+    {
+        try { return StatusCode(201, await _paymentService.VerifyPaymentAndCreateContractAsync(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), request, ct)); }
+        catch (ArgumentException e) { return BadRequest(new { error = e.Message }); }
+        catch (KeyNotFoundException e) { return NotFound(new { error = e.Message }); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
+
+    /// <summary>
+    /// Was unroutable (no HttpGet attribute) and returned only { total_spending_usd }.
+    /// SpendingSummary.jsx expects total_spent / projects_completed / ongoing_projects /
+    /// avg_per_project / recent_projects, so this now returns the full the reference shape.
+    /// </summary>
+    // The controller route is "api/payments", so "client/spending-summary" and the absolute
+    // "~/api/payments/client/spending-summary" resolve identically — a single attribute avoids
+    // the "request matched multiple endpoints" 500.
+    [HttpGet("client/spending-summary")]
     [Authorize(Roles = "Client")]
     public async Task<IActionResult> GetClientSpending(CancellationToken cancellationToken)
     {
-        var total = await _paymentService.GetClientSpendingSummaryAsync(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), cancellationToken);
-        return Ok(new { TotalSpendingUsd = total });
+        var summary = await _paymentService.GetClientSpendingDetailsAsync(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), cancellationToken);
+        return Ok(summary);
     }
 
     [HttpGet("freelancer/history")]
+    [HttpGet("~/api/payments/freelancer/transaction-history")]
     [Authorize(Roles = "Freelancer")]
-    public async Task<IActionResult> GetFreelancerHistory([FromQuery] string? range, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetFreelancerHistory(
+        [FromQuery] string? status,
+        [FromQuery] string? range,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
-        var history = await _paymentService.GetFreelancerTransactionHistoryAsync(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), range, cancellationToken);
-        return Ok(history);
+        // The reference shape: paged envelope whose `results` is an object holding
+        // total_earning / total_projects / contracts. The flat PaymentResponse
+        // list remains available on the original freelancer/history route.
+        var earnings = await _paymentService.GetFreelancerEarningsAsync(
+            Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!),
+            status, range, page, pageSize, cancellationToken);
+        return Ok(earnings);
+    }
+
+    [HttpGet("~/api/payments/freelancer/earnings")]
+    [Authorize(Roles = "Freelancer")]
+    public async Task<IActionResult> GetFreelancerEarnings(
+        [FromQuery] string? status,
+        [FromQuery] string? range,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var earnings = await _paymentService.GetFreelancerEarningsAsync(
+            Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!),
+            status, range, page, pageSize, cancellationToken);
+        return Ok(earnings);
     }
 
     [HttpGet("admin/transactions")]
@@ -63,6 +109,24 @@ public class PaymentsController : ControllerBase
     {
         var transactions = await _paymentService.GetPlatformTransactionsAsync(cancellationToken);
         return Ok(transactions);
+    }
+
+    // /payments/platform-transactions/ needs the admin projection
+    // (payment_id, client_name, freelancer_name, amount_total, date) plus DRF paging.
+    [HttpGet("~/api/payments/platform-transactions")]
+    [Authorize(Policy = "RequireAdmin")]
+    public async Task<IActionResult> GetPagedAdminTransactions([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? page_size = null, CancellationToken cancellationToken = default)
+    {
+        PaymentStatus? statusFilter = null;
+        if (!string.IsNullOrWhiteSpace(status) && EnumQueryParser.TryParse<PaymentStatus>(status, out var parsed)) statusFilter = parsed;
+        // This API spells the page size both ways: CategoriesController and
+        // ProjectsController take `page_size`, the rest take `pageSize`.
+        // Accepting only one means the other spelling is silently dropped and the
+        // caller gets 20 rows with no indication why.
+        var size = Math.Clamp(page_size ?? pageSize, 1, 100);
+        var result = await _paymentService.GetPagedAdminTransactionsAsync(statusFilter, page, size, cancellationToken);
+        PaginationLinks.Apply(Request, result.Page, result.PageSize, result.Count, v => result.Next = v, v => result.Previous = v);
+        return Ok(result);
     }
 
     [HttpPost("webhook")]
