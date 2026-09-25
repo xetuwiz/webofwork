@@ -11,7 +11,7 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.HasKey(r => r.Id);
 
         builder.HasOne(r => r.Contract)
-            .WithMany()
+            .WithMany(c => c.Reviews)
             .HasForeignKey(r => r.ContractId)
             .OnDelete(DeleteBehavior.Restrict);
 
