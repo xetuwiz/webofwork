@@ -17,7 +17,7 @@ public class ContractDeliverableConfiguration : IEntityTypeConfiguration<Contrac
         builder.Property(d => d.Notes).HasMaxLength(2000);
 
         builder.HasOne(d => d.Contract)
-            .WithMany()
+            .WithMany(c => c.Deliverables)
             .HasForeignKey(d => d.ContractId)
             .OnDelete(DeleteBehavior.Cascade);
 
