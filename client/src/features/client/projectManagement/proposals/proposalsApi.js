@@ -1,7 +1,21 @@
-import axiosInstance from "../../../../api/axiosInstance.js";
+import axiosInstance from "../../../../api/axiosInstance";
 
-const normalizePage = (data) => Array.isArray(data) ? { results: data, count: data.length, page: 1, pageSize: data.length, totalPages: 1 } : data;
+export const getSentInvitations = async (projectId) => {
+  const params = projectId ? { project_id: projectId } : {};
+  const { data } = await axiosInstance.get('/projects/invitations/sent/', { params });
+  return data;
+};
 
-export const getSentInvitations = async (projectId) => normalizePage((await axiosInstance.get("/invitations/sent", { params: { projectId } })).data);
-export const getProposals = async (projectId, params = {}) => normalizePage((await axiosInstance.get(`/proposals/project/${projectId}`, { params })).data);
-export const rejectProposal = async (proposalId) => (await axiosInstance.patch(`/proposals/${proposalId}/reject`)).data;
+export const getProposals = async (projectId, { page = 1, page_size = 20, status = '' } = {}) => {
+  const { data } = await axiosInstance.get(`/projects/${projectId}/proposals/`, {
+    // `page_size` to match the rest of the API; ProposalsController accepts both
+    // this and `pageSize`.
+    params: { page, page_size, status }
+  });
+  return data;
+};
+
+export const rejectProposal = async (proposalId) => {
+  const res = await axiosInstance.patch(`/projects/proposals/${proposalId}/reject/`);
+  return res.data;
+};
