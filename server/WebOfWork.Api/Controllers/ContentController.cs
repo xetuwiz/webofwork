@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using WebOfWork.Api.Helpers;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,21 +31,13 @@ public class ContentController : ControllerBase
         _cmsValidator = cmsValidator;
     }
 
-    [HttpGet("~/api/common/platform-percentage")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetPlatformPercentage(CancellationToken ct)
-    {
-        var settings = await _content.GetGlobalSettingsAsync(ct);
-        return Ok(new { CommissionPercentage = settings.CommissionPercentage, Currency = "USD" });
-    }
-
     [HttpGet("faq")]
     [AllowAnonymous]
     public async Task<IActionResult> GetPublicFaq([FromQuery] string? category, CancellationToken ct)
     {
         FaqCategory? c = null;
         if (!string.IsNullOrEmpty(category) &&
-            System.Enum.TryParse<FaqCategory>(category, true, out var parsed)) c = parsed;
+            EnumQueryParser.TryParse<FaqCategory>(category, out var parsed)) c = parsed;
         var items = await _content.GetPublicFaqsAsync(c, ct);
         return Ok(new { Items = items, TotalCount = items.Count });
     }
@@ -69,17 +62,29 @@ public class ContentController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetPublicCmsByRoute(string category, CancellationToken ct)
     {
-        if (System.Enum.TryParse<CmsSectionCategory>(category, true, out var c))
+        if (EnumQueryParser.TryParse<CmsSectionCategory>(category, out var c))
             return Ok(new { Category = c.ToString(), Items = await _content.GetPublicCmsByCategoryAsync(c, ct) });
         return BadRequest(new { Error = "Invalid CMS category. Use 'terms' or 'privacy'." });
     }
 
+    /// <remarks>
+    /// Was returning <c>{ Items, TotalCount }</c> -- PascalCase, and unpaged.
+    /// <c>FAQManagement.jsx</c> reads <c>data?.results</c> and <c>data?.count</c>,
+    /// which are both undefined on that shape, so the admin FAQ list rendered
+    /// <em>nothing at all</em> and the page showed its "no FAQs" empty state to
+    /// every admin regardless of how many entries existed. It also ignored
+    /// <c>?page=</c>, so its paginator could not have worked either.
+    /// <para>
+    /// Now returns the same envelope as every other list endpoint, with real
+    /// paging and links.
+    /// </para>
+    /// </remarks>
     [HttpGet("admin/faq")]
     [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
-    public async Task<IActionResult> AdminListFaq(CancellationToken ct)
+    public async Task<IActionResult> AdminListFaq([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? page_size = null, CancellationToken ct = default)
     {
-        var items = await _content.GetAdminFaqsAsync(ct);
-        return Ok(new { Items = items, TotalCount = items.Count });
+        var all = await _content.GetAdminFaqsAsync(ct);
+        return Ok(Page(all, page, all.Count, page_size ?? pageSize));
     }
 
     [HttpPost("admin/faq")]
@@ -110,12 +115,18 @@ public class ContentController : ControllerBase
         return Ok(new { Success = true });
     }
 
+    /// <remarks>
+    /// Same defect as <c>admin/faq</c>: returned <c>{ Items, TotalCount }</c>
+    /// while <c>PrivacyPolicy.jsx</c> and <c>TermAndConditions.jsx</c> read
+    /// <c>data?.results</c> / <c>data?.count</c>, so both admin section lists
+    /// rendered nothing and displayed their empty state unconditionally.
+    /// </remarks>
     [HttpGet("admin/cms")]
     [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
-    public async Task<IActionResult> AdminListCms(CancellationToken ct)
+    public async Task<IActionResult> AdminListCms([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? page_size = null, CancellationToken ct = default)
     {
-        var items = await _content.GetAdminCmsSectionsAsync(ct);
-        return Ok(new { Items = items, TotalCount = items.Count });
+        var all = await _content.GetAdminCmsSectionsAsync(ct);
+        return Ok(Page(all, page, all.Count, page_size ?? pageSize));
     }
 
     [HttpPost("admin/cms")]
@@ -144,5 +155,25 @@ public class ContentController : ControllerBase
         var ok = await _content.DeleteCmsSectionAsync(id, ct);
         if (!ok) return NotFound($"CMS Section #{id} not found.");
         return Ok(new { Success = true });
+    }
+
+    /// <summary>
+    /// DRF-shaped page over an already-materialised list, with real next/previous
+    /// links. <c>CommonController</c> has an equivalent private helper; this one
+    /// exists because these two admin actions are in a different controller.
+    /// </summary>
+    private PagedListResponse<T> Page<T>(IReadOnlyList<T> items, int page, int count, int pageSize)
+    {
+        var p = Math.Max(page, 1);
+        var size = Math.Clamp(pageSize, 1, 100);
+        var result = new PagedListResponse<T>
+        {
+            Count = count,
+            Page = p,
+            PageSize = size,
+            Results = items.Skip((p - 1) * size).Take(size).ToList(),
+        };
+        PaginationLinks.Apply(Request, result.Page, result.PageSize, result.Count, v => result.Next = v, v => result.Previous = v);
+        return result;
     }
 }

@@ -39,18 +39,35 @@ public class ContentService : IContentService
         _dbContext = dbContext;
     }
 
+    /// <summary>
+    /// The singleton settings row (id 1). Read-only.
+    /// </summary>
+    /// <remarks>
+    /// This used to insert the row when it was missing. That made a <c>GET</c> a
+    /// writer, and <c>GET /api/common/platform-percentage</c> is
+    /// <c>[AllowAnonymous]</c>, so two concurrent first-hits could both observe
+    /// null, both insert id 1, and one would fail with a primary-key violation --
+    /// a 500 on a public endpoint caused by nothing more than two people loading
+    /// the page at once.
+    ///
+    /// The row is seeded by migration <c>Phase2A_PlatformSettings</c>, so on any
+    /// correctly-migrated database this branch was unreachable anyway. It only
+    /// fired where migrations had not been applied, which is a broken deployment
+    /// rather than a normal state.
+    ///
+    /// A missing row now returns a detached default instead of writing. That is
+    /// safe for readers because nothing is persisted, and
+    /// <see cref="UpdateGlobalSettingsAsync"/> upserts, so an admin edit against
+    /// a database missing the row still works rather than silently doing nothing.
+    /// </remarks>
     public async Task<GlobalSettings> GetGlobalSettingsAsync(CancellationToken cancellationToken = default)
     {
-        var settings = await _dbContext.Set<GlobalSettings>().FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
+        var settings = await _dbContext.Set<GlobalSettings>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
 
-        if (settings == null)
-        {
-            settings = new GlobalSettings { Id = 1 };
-            _dbContext.Add(settings);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        return settings;
+        // Detached, never added. See the remarks above.
+        return settings ?? new GlobalSettings { Id = 1 };
     }
 
     public async Task<GlobalSettings> UpdateGlobalSettingsAsync(UpdateGlobalSettingsRequest request, CancellationToken cancellationToken = default)
@@ -60,7 +77,24 @@ public class ContentService : IContentService
             throw new ArgumentException("DefaultCurrency cannot be changed from USD.", nameof(request.DefaultCurrency));
         }
 
-        var settings = await GetGlobalSettingsAsync(cancellationToken);
+        // Loads its own *tracked* entity rather than reusing the getter.
+        //
+        // The getter is `AsNoTracking` (see its remarks), so it cannot tell a
+        // caller whether the row exists -- both cases hand back a detached
+        // instance. Reusing it here meant every admin edit took the "missing"
+        // branch and issued an INSERT for id 1, which is a duplicate-key 500 on
+        // any correctly-seeded database. Caught by
+        // `RoleAuthorizationTests.GlobalSettingsUpdate_RequiresAdminRole`.
+        var settings = await _dbContext.Set<GlobalSettings>()
+            .FirstOrDefaultAsync(x => x.Id == 1, cancellationToken);
+
+        if (settings is null)
+        {
+            // Only reachable where migrations were not applied. Insert rather than
+            // silently discarding the admin's change.
+            settings = new GlobalSettings { Id = 1 };
+            _dbContext.Add(settings);
+        }
 
         if (request.SupportEmail != null) settings.SupportEmail = request.SupportEmail;
         if (request.CommissionPercentage.HasValue) settings.CommissionPercentage = request.CommissionPercentage.Value;

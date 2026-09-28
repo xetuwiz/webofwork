@@ -1,4 +1,5 @@
 using System;
+using WebOfWork.Api.Helpers;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -86,13 +87,20 @@ public class SupportController : ControllerBase
 
     [HttpGet("admin/tickets")]
     [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
-    public async Task<IActionResult> AdminListTickets([FromQuery] string? status, [FromQuery] string? senderRole, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    /// <param name="page_size">
+    /// Alias for <paramref name="pageSize"/>. This API spells the page size both
+    /// ways: CategoriesController and ProjectsController take <c>page_size</c>,
+    /// the rest take <c>pageSize</c>. Accepting only one means the other spelling
+    /// is silently dropped and the caller gets 20 rows with no indication why.
+    /// </param>
+    public async Task<IActionResult> AdminListTickets([FromQuery] string? status, [FromQuery] string? senderRole, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? page_size = null, CancellationToken ct = default)
     {
         SupportTicketStatus? s = null;
         if (!string.IsNullOrEmpty(status) && Enum.TryParse<SupportTicketStatus>(status, true, out var parsedStatus)) s = parsedStatus;
         UserRole? r = null;
         if (!string.IsNullOrEmpty(senderRole) && Enum.TryParse<UserRole>(senderRole, true, out var parsedRole)) r = parsedRole;
-        return Ok(await _support.GetAdminTicketsAsync(s, r, page, pageSize, ct));
+        var size = Math.Clamp(page_size ?? pageSize, 1, 100);
+        return Ok(await _support.GetAdminTicketsAsync(s, r, page, size, ct));
     }
 
     [HttpGet("admin/tickets/{id:int}")]
