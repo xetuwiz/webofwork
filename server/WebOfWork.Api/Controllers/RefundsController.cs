@@ -23,6 +23,7 @@ public class RefundsController : ControllerBase
     }
 
     [HttpPost]
+    [HttpPost("~/api/payments/refund-payment")]
     public async Task<IActionResult> RefundPayment([FromBody] RefundPaymentRequest request, CancellationToken cancellationToken)
     {
         var validation = await _validator.ValidateAsync(request, cancellationToken);
