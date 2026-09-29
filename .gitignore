@@ -23,6 +23,13 @@ appsettings.Production.json
 **/.vite/
 **/.cache/
 
+## Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
 ## OS
 Thumbs.db
 .DS_Store
@@ -38,5 +45,48 @@ desktop.ini
 ref/
 scratch/
 google-test-key.json
-docs/
-Tests/
+client_backup_premerge/
+backups/
+
+# Deliverables: `Tests/`, `docs/` and `scripts/` are tracked.
+#
+# All three were previously listed here, unanchored. An unanchored pattern
+# matches at ANY depth, so `Tests/` excluded the .NET test project (333 tests)
+# AND `ai/tests/` (431 tests); `scripts/` excluded the database seed and the
+# skill-catalogue generator. Nothing reported this -- CI simply ran fewer tests
+# and passed, which reads as success.
+#
+# The lines are deleted rather than anchored. Writing `/Tests/` would still
+# match the real top-level `Tests/` directory and still exclude it; anchoring
+# only stops a pattern from over-matching nested directories, and the fix here
+# is to not exclude the deliverable at all.
+
+# scripts/ is tracked, EXCEPT the files below.
+#
+# Excluded individually rather than by ignoring `scripts/` and negating the
+# exceptions: git does not descend into an excluded directory, so a `!` pattern
+# underneath it never gets a chance to match. Excluding the six files directly
+# is the only form that actually works.
+#
+# These six embed a development database or Redis password as a default, and a
+# committed secret cannot be un-committed -- removing the file later leaves the
+# blob in history. Each reads the real value from the environment; the fallback
+# only exists so the script runs against a local box. Rotate the credentials and
+# these can be tracked like everything else.
+scripts/reset_dev_data.py
+scripts/seed_fixtures.py
+scripts/test_data_report.py
+scripts/test_deep_workflows.py
+scripts/test_workflows.py
+scripts/get_otp.py
+
+## Secrets — never commit these
+# A Firebase service account grants full programmatic access to the project
+# (FCM, Auth, Firestore, Storage). It is referenced by *path* from
+# server/WebOfWork.Api/appsettings.Development.json and is expected to live
+# OUTSIDE the repository, e.g. C:\devkeys\.
+*serviceaccount*.json
+*service-account*.json
+*firebase-adminsdk*.json
+# mobile/android/app/google-services.json is deliberately NOT matched here: it is
+# a public API key + app id, and the Android Gradle plugin requires it to exist.

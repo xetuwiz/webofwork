@@ -1,2 +1,6 @@
-import axiosInstance from "../../../api/axiosInstance.js";
-export const fetchPrivacyPolicy = async () => (await axiosInstance.get("/content/privacy")).data;
+import axiosInstance from "../../../api/axiosInstance";
+
+export const fetchPrivacyPolicies = async () =>{
+    const {data} = await axiosInstance.get('/common/public/privacy-policy/');
+    return data;
+}

@@ -2,11 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/ico" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebOfWork</title>
+    <!--
+      Applies the stored theme before first paint.
+
+      Without this the document renders light, React mounts, and the ThemeProvider
+      effect then adds `.dark` -- a full-page white flash on every cold load in
+      dark mode. This has to be a blocking inline script in <head>; deferring it
+      or moving it into the bundle reintroduces the flash. It deliberately
+      duplicates the tiny bit of logic from ThemeProvider (read the key, else ask
+      matchMedia) rather than importing, because a module import cannot run
+      before the body paints.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("wow-theme");
+          if (stored !== "light" && stored !== "dark" && stored !== "system") {
+            stored = "system";
+          }
+          var dark =
+            stored === "dark" ||
+            (stored === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+          document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {
+          /* blocked storage -- the provider will resolve this after mount */
+        }
+      })();
+    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mr+Dafoe&family=Sacramento&display=swap" rel="stylesheet">
+    <meta name="referrer" content="no-referrer" />
   </head>
   <body>
     <div id="root"></div>
+    <div id="modal-root"></div>
+    
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+ 

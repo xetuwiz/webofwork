@@ -1,98 +1,146 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, ClipboardCheck } from "lucide-react";
-import { stepFiveSchema } from "./stepFiveSchema.js";
+import React from 'react';
+import { useOnBoarding } from '../OnBoardingContext';
+import OnboardingLayout from '../../../../layouts/OnBoardingLayout';
+import { useSelector } from 'react-redux';
 
-export default function StepFive({ values, onNext, onBack }) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(stepFiveSchema),
-    defaultValues: { confirmed: false },
-  });
+function StepFive() {
+  const { formData, nextStep } = useOnBoarding();
+  const user = useSelector(state => state.auth.user);
 
-  const packages = Array.isArray(values.packages) ? values.packages : [];
-  const portfolio = Array.isArray(values.portfolio) ? values.portfolio : [];
-
-  const onSubmit = (data) => {
-    if (data.confirmed) {
-      onNext({ confirmed: true });
-    }
+  const handleFinalSubmit = (e) => {
+    e.preventDefault();
+    nextStep();
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-3xl space-y-6">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Step 5</p>
-        <h2 className="text-3xl font-bold text-slate-900">Review your profile setup</h2>
-      </div>
-
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-          <ClipboardCheck className="h-5 w-5 text-blue-600" />
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Professional overview</p>
-            <p className="text-xs text-slate-500">{values.tagline || "No tagline set"}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Skills</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {Array.isArray(values.skills) && values.skills.length > 0 ? (
-                values.skills.map((skill, index) => (
-                  <span key={`${skill.skillId || skill.id || "custom"}-${index}`} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
-                    {skill.customName || skill.name || skill.skillId}
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs text-slate-400">No skills selected yet.</span>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Packages</p>
-            <div className="mt-3 space-y-1 text-sm text-slate-700">
-              {packages.length > 0 ? (
-                packages.map((pkg, index) => (
-                  <div key={`${pkg.packageType}-${index}`} className="flex items-center justify-between gap-3">
-                    <span>{pkg.packageType}</span>
-                    <span className="font-medium">${pkg.price}</span>
+    <OnboardingLayout
+      title="Review Your Profile"
+      subtitle="This is how clients will see you. Take a moment to review."
+    >
+      <form id="onboarding-form" onSubmit={handleFinalSubmit}>
+        <div className="space-y-6 md:space-y-8">
+          
+          <div className="relative p-5 md:p-8 border border-line-soft rounded-2xl md:rounded-3xl bg-surface shadow-sm overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 md:h-2 bg-brand/10" />
+            <div className="flex flex-col sm:flex-row gap-5 md:gap-8 items-center sm:items-start text-center sm:text-left">
+              <div className="relative shrink-0">
+                {user?.profile_photo ? (
+                  <img className="w-20 h-20 md:w-24 md:h-24 rounded-xl md:rounded-2xl object-cover ring-4 ring-gray-50 shadow-sm" src={user.profile_photo} alt="Profile" />
+                ) : (
+                  <div className="w-20 h-20 md:w-24 md:h-24 bg-linear-to-br from-primary/20 to-primary/5 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl font-black text-brand border border-primary/10">
+                    {formData.tagline?.charAt(0) || "U"}
                   </div>
-                ))
-              ) : (
-                <span className="text-xs text-slate-400">No packages added yet.</span>
-              )}
+                )}
+                <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-success-soft w-4 h-4 md:w-5 md:h-5 rounded-full border-2 md:border-4 border-white" />
+              </div>
+
+              <div className="flex-1 space-y-3 w-full min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <h2 className="text-xl md:text-2xl font-black text-fg tracking-tight truncate">
+                    {user?.full_name} <span className="text-fg-subtle font-medium">[Freelancer]</span>
+                  </h2>
+                  <span className="inline-block self-center sm:self-auto px-3 py-1 bg-brand/10 text-brand text-[10px] font-bold uppercase tracking-widest rounded-full whitespace-nowrap">
+                    {formData.experienceLevel}
+                  </span>
+                </div>
+                <div className="w-full">
+                  <p className="text-base md:text-lg font-bold text-brand leading-tight truncate">
+                    {formData.tagline || "No tagline added"}
+                  </p>
+                </div>
+                <p className="text-sm text-fg-subtle leading-relaxed max-w-2xl line-clamp-3">
+                  {formData.bio || "No bio added"}
+                </p>
+                <div className="flex items-center justify-center sm:justify-start gap-4 pt-1">
+                  <div className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold text-fg-subtle uppercase">
+                    <span className="w-2 h-2 bg-surface-inset rounded-full" />
+                    {formData.phone || "No phone provided"}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="lg:col-span-1">
+               <div className="p-5 md:p-6 border border-line-soft rounded-[20px] bg-surface-2/50 h-full">
+                  <h3 className="text-[10px] md:text-xs font-black text-fg-subtle uppercase tracking-widest mb-4">Core Expertise</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills?.map((skill) => (
+                      <span key={skill} className="px-3 md:px-4 py-1.5 md:py-2 bg-surface border border-line rounded-lg md:rounded-xl text-[11px] md:text-xs font-bold text-fg-muted shadow-xs">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+               </div>
+            </div>
+
+            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {['starter', 'pro'].map((tier) => (
+                <div key={tier} className="relative p-5 md:p-6 bg-surface border border-line-soft rounded-[20px] shadow-xs group hover:border-primary/30 transition-all">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-[10px] font-black uppercase tracking-widest text-fg-subtle mb-1">{tier} Plan</h3>
+                      <p className="text-lg md:text-xl font-black text-fg">${formData.packages[tier].price}</p>
+                    </div>
+                    <div className="p-2 bg-surface-2 rounded-lg group-hover:bg-brand-hover/5 transition-colors">
+                       <svg className="w-4 h-4 md:w-5 md:h-5 text-fg-subtle group-hover:text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-fg-subtle leading-relaxed mb-6 h-12 line-clamp-3">
+                    {formData.packages[tier].description}
+                  </p>
+                  <div className="flex items-center justify-between pt-4 border-t border-line-soft">
+                    <span className="text-[10px] md:text-[11px] font-bold text-fg italic">
+                      {formData.packages[tier].deliveryTime} Days Delivery
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-lg md:text-xl font-black text-fg tracking-tight whitespace-nowrap">Portfolio Gallery</h3>
+              <div className="h-px flex-1 bg-surface-3" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+              {formData.portfolios?.map((item, index) => (
+                <div key={index} className="group cursor-pointer">
+                  <div className="relative aspect-square mb-3 overflow-hidden rounded-[20px] border border-line-soft shadow-xs bg-surface-2">
+                    {item.image_url ? (
+                      <img 
+                        src={item.image_url} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-slower" 
+                        alt={item.title} 
+                      />
+                    ) : item.files?.[0] ? (
+                      <img 
+                        src={URL.createObjectURL(item.files[0])} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-slower" 
+                        alt={item.title} 
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-fg-subtle">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      </div>
+                    )}
+                  </div>
+                  <h4 className="text-sm font-bold text-fg truncate group-hover:text-brand transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-[11px] text-fg-subtle font-medium mt-0.5 line-clamp-1">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Portfolio samples</p>
-          <p className="mt-2 text-sm text-slate-700">{portfolio.length} items ready to publish</p>
-        </div>
-
-        <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <input type="checkbox" {...register("confirmed")} className="mt-1 h-4 w-4 accent-blue-600" />
-          <span>
-            I confirm this profile summary is ready to publish and my contact details are accurate.
-          </span>
-        </label>
-        {errors.confirmed && <p className="text-xs text-red-500">{errors.confirmed.message}</p>}
-      </div>
-
-      <div className="flex items-center justify-between pt-2">
-        <button type="button" onClick={onBack} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
-          Back
-        </button>
-        <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
-          <CheckCircle2 className="h-4 w-4" /> Continue
-        </button>
-      </div>
-    </form>
+      </form>
+    </OnboardingLayout>
   );
 }
+
+export default StepFive;

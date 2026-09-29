@@ -1,10 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import {
-  fetchUser,
-  loginThunk,
-  logoutThunk,
-  refreshSession,
-} from "./authThunks.js";
+import { loginThunk, fetchUser, logoutThunk, refreshSession, deleteAccount } from "./authThunks";
 
 const initialState = {
   user: null,
@@ -18,33 +13,38 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      state.user = action.payload.user ?? state.user;
-      state.accessToken = action.payload.accessToken ?? state.accessToken;
-      state.initialized = true;
+      const { user, accessToken } = action.payload;
+      if (user) {
+        state.user = user;
+      }
+      if (accessToken) {
+        state.accessToken = accessToken;
+      }
       state.loading = false;
     },
-    logout: () => ({ ...initialState, initialized: true }),
+    logout: (state) => {
+      state.user = null;
+      state.accessToken = null;
+    },
     finishLoading: (state) => {
       state.loading = false;
-      state.initialized = true;
     },
     setUser: (state, action) => {
       state.user = action.payload;
-    },
+    }
   },
   extraReducers: (builder) => {
     builder
-      .addCase(loginThunk.pending, (state) => {
-        state.loading = true;
-      })
       .addCase(loginThunk.fulfilled, (state, action) => {
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
+        const { user, access } = action.payload;
+        state.user = user;
+        state.accessToken = access;
         state.loading = false;
         state.initialized = true;
       })
-      .addCase(loginThunk.rejected, (state) => {
-        state.loading = false;
+      .addCase(deleteAccount.fulfilled, (state) => {
+        state.user = null;
+        state.accessToken = null;
         state.initialized = true;
       })
       .addCase(fetchUser.pending, (state) => {
@@ -59,14 +59,35 @@ const authSlice = createSlice({
         state.loading = false;
         state.initialized = true;
       })
-      .addCase(logoutThunk.fulfilled, () => ({ ...initialState, initialized: true }))
-      .addCase(refreshSession.fulfilled, (state, action) => {
-        state.accessToken = action.payload.accessToken;
+      .addCase(refreshSession.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutThunk.fulfilled, (state) => {
+        state.user = null;
+        state.accessToken = null;
+        state.loading = false;
         state.initialized = true;
       })
-      .addCase(refreshSession.rejected, () => ({ ...initialState, initialized: true }));
+      // `action.payload` is `{ access, user }`. The user is stored alongside the
+      // token because a boot-time refresh rehydrates the whole session: a bare
+      // token with `user` still null would leave every protected route rendering
+      // the "not signed in" branch.
+      .addCase(refreshSession.fulfilled, (state, action) => {
+        state.accessToken = action.payload.access;
+        state.user = action.payload.user;
+        state.loading = false;
+        state.initialized = true;
+      })
+      .addCase(refreshSession.rejected, (state) => {
+        state.user = null;
+        state.accessToken = null;
+        state.initialized = true;
+      })
+      .addCase("persist/REHYDRATE", (state) => {
+        state.initialized = true;
+      });
   },
 });
 
-export const { finishLoading, logout, setCredentials, setUser } = authSlice.actions;
+export const { logout, setCredentials, finishLoading, setUser } = authSlice.actions;
 export default authSlice.reducer;

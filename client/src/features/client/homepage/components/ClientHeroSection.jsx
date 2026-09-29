@@ -1,5 +1,29 @@
-import { Link } from "react-router-dom";
+import { Search } from "lucide-react";
 
 export default function ClientHeroSection() {
-  return <section className="client-home-hero"><div><span className="app-shell__eyebrow">Your work, in focus</span><h1>Find the people who make the next step possible.</h1><p>Post a brief, compare the right experience, and move from conversation to delivery with less friction.</p><Link className="button button--accent" to="/create-project">Create a project</Link></div><div className="client-home-hero__panel"><span>Active workspace</span><strong>Brief → Match → Deliver</strong><small>One shared path for every project.</small></div></section>;
+  return (
+    <div className="w-full px-4 md:px-8 mt-8">
+      <section className="relative mx-auto w-full max-w-page-3xl overflow-hidden rounded-[40px] md:rounded-[100px]">
+        <img
+          src="hero-banner.jpg"
+          alt="Hero background"
+          className="h-[500px] w-full object-cover md:h-[722px]"
+        />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <div className="flex max-w-[850px] flex-col items-center gap-6 px-6 text-center">
+            <h1 className="text-3xl font-bold leading-tight tracking-[-1.2px] text-white md:text-5xl md:leading-12">
+              Find the Right Freelancer for Your Project
+            </h1>
+            <p className="text-base leading-[24px] text-fg-subtle md:text-lg md:leading-[27px]">
+              Browse thousands of skilled professionals across hundreds of categories.
+            </p>
+            <button className="flex h-12 md:h-14 items-center justify-center gap-2 rounded-[13px] border border-brand bg-brand px-5 md:px-7 transition-colors hover:bg-brand">
+              <Search className="h-5 w-5 md:h-6 md:w-6 text-white" />
+              <span className="text-lg md:text-2xl font-bold leading-5 text-white">Find Talents</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }

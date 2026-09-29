@@ -1,0 +1,191 @@
+name: backend
+
+# The CI workflow SE3090 §13 asks for by name: "restores, builds and runs the
+# automated backend tests on every push and pull request to the main branch".
+#
+# ## Docker is not optional here
+#
+# 92 of the tests are Testcontainers tests that start a real PostgreSQL and a
+# real Redis and exercise constraints, transactions and cascade behaviour
+# against them. GitHub's ubuntu-latest runners have Docker preinstalled, so
+# these run unchanged. On a machine without Docker they fail with
+# `System.ArgumentException : Docker is either not running or misconfigured` --
+# which reads like a code regression and is not one. If you ever see that
+# message locally, start Docker before you start debugging.
+#
+# ## Why one job and not a matrix
+#
+# The integration tests share containers and a migration history. Splitting them
+# across parallel jobs would mean four Postgres instances and four migration
+# runs for one suite, and the failure mode of that arrangement -- two jobs
+# disagreeing about schema -- costs more than the wall-clock it saves. The suite
+# takes minutes, not hours.
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "server/**"
+      - "Tests/**"
+      - "WebOfWork.sln"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "Tests/**"
+      - "WebOfWork.sln"
+      - ".github/workflows/backend.yml"
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: build and test (net8.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── sanity check before anything expensive ──────────────────────────
+      #
+      # This step exists because `.gitignore` contains a bare `Tests/` rule,
+      # which git matches at any depth. If that is ever left unanchored it also
+      # matches `ai/tests/`, and the checkout arrives with no test project at
+      # all -- at which point `dotnet test` reports "no test is available"
+      # and passes. A green run that tested nothing is worse than a red one,
+      # so the absence of the project is treated as a hard failure with an
+      # explanation rather than as an empty success.
+      - name: Verify the test project was actually checked out
+        run: |
+          if [ ! -f Tests/WebOfWork.Api.Tests/WebOfWork.Api.Tests.csproj ]; then
+            echo "::error::Tests/WebOfWork.Api.Tests is not in the repository."
+            echo "::error::The .gitignore rule 'Tests/' is unanchored, so git excludes"
+            echo "::error::every directory called Tests -- including this one and ai/tests."
+            echo "::error::Anchor it to '/Tests/' before trusting any CI result."
+            exit 1
+          fi
+          echo "  test project present"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # ── Python, for the end-to-end test ──────────────────────────────────
+      #
+      # `CrossPlatformWorkflowTests` starts the Agentic AI service as a real
+      # process and lets it call back into the API over HTTP, which is the only
+      # way to test the five-layer chain the specification asks for. Without a
+      # Python interpreter that test fails -- deliberately, because a skipped
+      # end-to-end test is a green run that proved nothing.
+      #
+      # So the runner needs Python, and this step is what stops CI from being
+      # red for a reason that has nothing to do with the code.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai/requirements.txt
+
+      - name: Install the AI service's dependencies
+        working-directory: ai
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # The end-to-end test drives the AI service on recorded fixtures, so a
+      # provider key is neither needed nor wanted here -- a key in CI is a key
+      # that can leak from a log.
+      - name: Report the AI service mode used by the end-to-end test
+        run: |
+          echo "  the end-to-end test runs the AI service with LLM_PROVIDER_CHAIN=fixture"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # ── restore, build, test: the three the spec names ──────────────────
+      - name: Restore
+        run: dotnet restore WebOfWork.sln
+
+      - name: Build
+        run: dotnet build WebOfWork.sln --configuration Release --no-restore
+
+      # The API's own configuration is committed and points at a developer
+      # machine: `Firebase:ServiceAccountPath` is `C:\devkeys\...`. The sender
+      # already self-disables when the file is missing, so this would not fail
+      # -- but blanking it keeps CI independent of a path that means nothing on
+      # a Linux runner, and stops the log filling with a service-account error
+      # on every run.
+      - name: Test
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          Firebase__ProjectId: ""
+          Firebase__ServiceAccountPath: ""
+        run: |
+          dotnet test WebOfWork.sln \
+            --configuration Release \
+            --no-build \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults \
+            --logger "trx;LogFileName=backend.trx"
+
+      # The end-to-end test starts two child processes on loopback ports. Running
+      # it separately, with full output, is deliberate: inside the suite its
+      # diagnostics are interleaved with 300 other tests, and it is the one test
+      # whose failure is hardest to diagnose from a summary line.
+      - name: End-to-end test, with its output
+        if: always()
+        run: |
+          dotnet test WebOfWork.sln \
+            --configuration Release \
+            --no-build \
+            --filter "FullyQualifiedName~CrossPlatformWorkflowTests" \
+            --logger "console;verbosity=detailed"
+
+      # The Testcontainers tests need a real database. If Docker is unavailable
+      # they fail with a message that looks like a product bug, so the runner's
+      # Docker is confirmed explicitly and the failure is named here.
+      - name: Report Docker availability
+        if: always()
+        run: |
+          if docker info > /dev/null 2>&1; then
+            echo "  docker available"
+          else
+            echo "::error::Docker is unavailable. The 92 Testcontainers tests"
+            echo "::error::cannot run, and will fail with 'Docker is either not"
+            echo "::error::running or misconfigured'."
+            exit 1
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: TestResults/
+          if-no-files-found: error
+          retention-days: 14
+
+      # ── no key material ─────────────────────────────────────────────────
+      #
+      # §18.2 forbids committing credentials. `appsettings.Development.json`
+      # currently carries JWT signing secrets and a Firebase project id, which
+      # are development values -- but "it is only development" is how a
+      # production key ends up in a file, so the check is mechanical rather
+      # than a matter of trust.
+      - name: No key material in the repository
+        if: always()
+        run: |
+          if git grep -nEI '(BEGIN (RSA |EC )?PRIVATE KEY|AIza[0-9A-Za-z_-]{35}|sk-[A-Za-z0-9]{32,})' \
+               -- ':!*.md' ':!.github/workflows/*'; then
+            echo "::error::key-shaped material found in a tracked file. Revoke it."
+            exit 1
+          fi
+          echo "  no key-shaped strings in tracked files"

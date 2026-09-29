@@ -1,15 +1,49 @@
 import { createContext, useContext, useState } from "react";
+import { Outlet } from "react-router-dom";
 
-const OnboardingContext = createContext(null);
+const OnBoardingContext = createContext();
 
-export function OnboardingProvider({ children, initialValue = {} }) {
-  const [values, setValues] = useState(initialValue);
-  const updateValues = (next) => setValues((current) => ({ ...current, ...next }));
-  return <OnboardingContext.Provider value={{ values, updateValues, setValues }}>{children}</OnboardingContext.Provider>;
+export const OnBoardingProvider = ({children}) => {
+    const [formData, setFormData] = useState({
+        tagline:'',
+        bio:'',
+        phone:'',
+        agreedToTerms:false,
+        primaryCategory:'',
+        skills:[],
+        experienceLevel:'',
+        packages:{
+            starter:{price:'',deliveryTime:'',description:''},
+            pro:{price:'',deliveryTime:'',description:''}
+        },
+        portfolios:[],
+        paymentDetails: {
+            paypalEmail: '',
+            isConfirmed: false
+        }
+    })
+    const [currentStep, setCurrentStep] = useState(1);
+    const totalSteps = 6;
+
+    const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    const prevStep = () => setCurrentStep(prev => Math.max(prev-1,1))
+
+    const updateFormData = (newData) => {
+        setFormData((prev)=>({...prev,...newData}))
+    }
+
+    return (
+        <OnBoardingContext.Provider value={{
+            formData,
+            updateFormData,
+            currentStep,
+            totalSteps,
+            nextStep,
+            prevStep
+        }}>
+            {children || <Outlet/>}
+        </OnBoardingContext.Provider>
+    )
 }
 
-export const useOnboarding = () => {
-  const context = useContext(OnboardingContext);
-  if (!context) throw new Error("useOnboarding must be used inside OnboardingProvider");
-  return context;
-};
+export const useOnBoarding = () => useContext(OnBoardingContext)

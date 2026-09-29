@@ -1,0 +1,197 @@
+name: ai
+
+# The AI service gate.
+#
+# ## Why this runs the suite twice
+#
+# Once offline on fixtures, once with no provider keys at all. The second run is
+# what catches a change that has quietly started depending on a live model: a
+# test that passes on a recorded response and fails against Groq is a test that
+# was measuring the fixture, not the code.
+#
+# Neither run touches the network. That is the property worth protecting -- a
+# suite that can be made to pass by a provider having a good minute is a suite
+# that reports on the provider.
+#
+# ## Why there is no dotnet build here
+#
+# The .NET suite is a separate workflow on a five-to-nine minute clock. Splitting
+# them means a failure here is unambiguously in the Python service, which is
+# worth more than the few minutes saved by sharing a job.
+
+on:
+  push:
+    paths:
+      - "ai/**"
+      - ".github/workflows/ai.yml"
+  pull_request:
+    paths:
+      - "ai/**"
+      - ".github/workflows/ai.yml"
+
+concurrency:
+  group: ai-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ai-service:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ai/requirements.txt
+
+      - name: Install
+        working-directory: ai
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # pytest-cov is a measurement tool, not a runtime one, so it is not in
+          # requirements.txt where it would ship to the container.
+          pip install pytest-cov
+
+      # ── 1. offline, on fixtures ────────────────────────────────────────
+      #
+      # `LLM_ALLOW_FIXTURE_FALLBACK=false` is load-bearing. With it true, a
+      # missing fixture falls through to *generating* an answer, and the suite
+      # passes against output nobody wrote. That is the single most dangerous
+      # setting in this file.
+      - name: Test (offline, recorded fixtures)
+        working-directory: ai
+        env:
+          INTERNAL_API_KEY: ci-not-a-real-key
+          APP_ENV: development
+          LLM_PROVIDER_CHAIN: fixture
+          LLM_ALLOW_FIXTURE_FALLBACK: "false"
+        run: python -m pytest -q
+
+      # ── 2. no keys at all ──────────────────────────────────────────────
+      #
+      # With the chain set to a provider that has no key, `build_providers`
+      # returns nothing and every model call fails. Any test that silently
+      # depends on a live model fails here instead of intermittently on a
+      # maintainer's machine.
+      - name: Test (no provider configured)
+        working-directory: ai
+        env:
+          INTERNAL_API_KEY: ci-not-a-real-key
+          APP_ENV: development
+          LLM_PROVIDER_CHAIN: groq
+          LLM_GROQ_API_KEYS: ""
+          LLM_ALLOW_FIXTURE_FALLBACK: "false"
+        run: python -m pytest -q
+
+      # ── 3. coverage, with a floor ──────────────────────────────────────
+      #
+      # The 80% figure is the plan's target and the measured value. The floor is
+      # set one point below so an ordinary change does not break the build, and
+      # so a real drop does -- which is the only time anyone reads this.
+      - name: Coverage
+        working-directory: ai
+        env:
+          INTERNAL_API_KEY: ci-not-a-real-key
+          APP_ENV: development
+          LLM_PROVIDER_CHAIN: fixture
+          LLM_ALLOW_FIXTURE_FALLBACK: "false"
+        run: |
+          python -m pytest -q \
+            --cov=ai.agents --cov=ai.tools --cov=ai.llm --cov=ai.policies \
+            --cov-report=term-missing --cov-report=xml \
+            --cov-fail-under=79
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-coverage
+          path: ai/coverage.xml
+          if-no-files-found: error
+
+      # ── 4. the image builds ────────────────────────────────────────────
+      #
+      # Cheap, and it is the only way to know a Dockerfile that has not been run
+      # in a week still works. A broken build step in a Dockerfile is
+      # discovered by whoever deploys, which is the worst possible time.
+      - name: Build the image
+        run: docker build -t webofwork-ai:ci ai
+
+      # ── 5. the container answers ───────────────────────────────────────
+      #
+      # Not a unit test. It starts the real image and asks it to describe itself,
+      # which catches a bad WORKDIR, a missing module copied in, and an
+      # entrypoint that exits -- none of which anything above would notice.
+      - name: Smoke test the container
+        run: |
+          docker run -d --name ai-smoke \
+            -e INTERNAL_API_KEY=ci-not-a-real-key \
+            -e DOTNET_BASE_URL=http://host.docker.internal:9 \
+            -p 8001:8001 webofwork-ai:ci
+
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:8001/health > /tmp/health.json; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS http://localhost:8001/health | tee /tmp/health.json
+          echo
+          # The service must be running on fixtures with no keys, and must say
+          # so rather than pretending to be live.
+          grep -q '"status":"ok"' /tmp/health.json
+          docker logs ai-smoke
+          docker rm -f ai-smoke
+
+      # ── 6. no key material ─────────────────────────────────────────────
+      #
+      # The cheapest check here and the one most likely to catch a mistake.
+      # `ai/.env` is gitignored, but gitignored is not the same as absent from a
+      # commit somebody makes with `--no-verify`.
+      - name: No key material in the repository
+        run: |
+          if git grep -nEI '(AQ\.Ab8RN6|gsk_|csk-|nvapi-|mstrl_|sk-or-v1-|cohere_)' \
+               -- ':!*.example' ':!ai/docs/*' ':!.github/workflows/*'; then
+            echo "::error::key-shaped material found in a tracked file. Revoke it."
+            exit 1
+          fi
+          echo "  no key-shaped strings in tracked files"
+
+      - name: ai/.env is ignored
+        run: |
+          if [ -f ai/.env ]; then
+            git check-ignore -q ai/.env \
+              || { echo "::error::ai/.env exists but is not ignored"; exit 1; }
+            echo "  ai/.env exists and is ignored (expected locally)"
+          fi
+          git check-ignore -q ai/.env.example || {
+            echo "::error::ai/.env.example is ignored, so nobody can bootstrap"; exit 1; }
+          echo "  ai/.env.example is tracked"
+
+  # ── the guards, on their own ──────────────────────────────────────────
+  #
+  # A separate job so they are unmistakable in the checks list. They take two
+  # seconds and they are the only things standing between "no raw model I/O is
+  # persisted" and "we decided not to persist raw model I/O", which are very
+  # different sentences.
+  architecture-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - working-directory: ai
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - working-directory: ai
+        env:
+          INTERNAL_API_KEY: ci-not-a-real-key
+          LLM_PROVIDER_CHAIN: fixture
+          LLM_ALLOW_FIXTURE_FALLBACK: "false"
+        run: python -m pytest tests/test_architecture_guards.py tests/test_ordering.py -v

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Release-appropriate network policy. This file is what a release build ships.
+
+  It is deliberately strict, and it is the *only* one of the three that is:
+
+    src/main/res/xml/    this file          - secure; used by `flutter build apk -release`
+    src/debug/res/xml/   permissive copy    - used by `flutter run` (debug)
+    src/profile/res/xml/ permissive copy    - used by `flutter run -profile`
+
+  Android's resource merger gives `src/debug` and `src/profile` priority over
+  `src/main` for a resource of the same name, so each build variant gets exactly
+  one `network_security_config.xml` without the manifest needing to vary. The
+  manifest references `@xml/network_security_config` unconditionally, which is
+  correct - the resource it resolves to is variant-specific.
+
+  This previously lived only in `src/main`, with cleartext permitted and user
+  CAs trusted, and a comment claiming it was "debug-scope only". That claim was
+  false: with a single copy in `src/main`, a release APK permitted cleartext
+  HTTP and trusted user-installed CAs, so a proxy on a hostile network was
+  trusted by the app in production. A comment claiming a scoping that the build
+  system did not implement is worse than no comment, because a reviewer reads
+  it and stops looking.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Public CAs only. A user-installed or MDM-installed root is not
+                 trusted, so a corporate or attacker-supplied certificate cannot
+                 intercept traffic. -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

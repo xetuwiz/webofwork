@@ -1,130 +1,118 @@
-import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import OnboardingLayout from '../../../../layouts/OnBoardingLayout';
+import { useOnBoarding } from '../OnBoardingContext';
+import { stepThreeSchema } from "./stepThreeSchema";
+import { Field } from "../../../../components/common/Field";
 
-const emptyPackage = {
-  packageType: "Starter",
-  price: 149,
-  deliveryDays: 3,
-  description: "",
-};
+function StepThree() {
+  const { formData, updateFormData, nextStep } = useOnBoarding();
 
-export default function StepThree({ values, onNext, onBack }) {
-  const [packages, setPackages] = useState(
-    Array.isArray(values.packages) && values.packages.length > 0
-      ? values.packages
-      : [
-          { ...emptyPackage },
-          { ...emptyPackage, packageType: "Pro", price: 349, deliveryDays: 7 },
-        ],
-  );
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(stepThreeSchema),
+    defaultValues: formData,
+  });
 
-  const packageLabels = useMemo(() => ["Starter", "Pro"], []);
-
-  const updatePackage = (index, field, value) => {
-    setPackages((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)));
+  const onSubmit = (data) => {
+    updateFormData(data);
+    nextStep();
   };
 
-  const addPackage = () => {
-    setPackages((current) => [...current, { ...emptyPackage, packageType: `Custom ${current.length + 1}` }]);
-  };
-
-  const removePackage = (index) => {
-    setPackages((current) => (current.length > 1 ? current.filter((_, itemIndex) => itemIndex !== index) : current));
-  };
-
-  const onSubmit = () => {
-    if (packages.length === 0) return;
-    onNext({ packages });
-  };
+  const getError = (tier, field) => errors.packages?.[tier]?.[field]?.message;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Step 3</p>
-        <h2 className="text-3xl font-bold text-slate-900">Set your service packages</h2>
-        <p className="text-sm text-slate-600">Create clear deliverables and transparent pricing for clients.</p>
-      </div>
+    <OnboardingLayout 
+      title="Set Up Your Service Packages" 
+      subtitle="Create clear pricing for your clients."
+    >
+      <style>{`
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
 
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        {packages.map((pkg, index) => (
-          <div key={`${pkg.packageType}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <select
-                value={pkg.packageType}
-                onChange={(event) => updatePackage(index, "packageType", event.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-                {packageLabels.map((label) => (
-                  <option key={label} value={label}>{label}</option>
-                ))}
-              </select>
+      <form id="onboarding-form" onSubmit={handleSubmit(onSubmit)}>
+        <div className="mb-10 flex items-start gap-3 p-4 border border-warning/30 bg-warning-soft rounded-xl">
+          <div className="flex-shrink-0 text-warning">⚠️</div>
+          <p className="text-xs text-warning-soft-fg leading-relaxed">
+            <strong>Feature List:</strong> Please enter each feature on a new line. Each line will automatically appear as a bullet point on your public profile.
+          </p>
+        </div>
 
-              {packages.length > 1 && (
-                <button type="button" onClick={() => removePackage(index)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
-                  <Trash2 className="h-4 w-4" /> Remove
-                </button>
-              )}
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Price</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={pkg.price}
-                  onChange={(event) => updatePackage(index, "price", Number(event.target.value))}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {['starter', 'pro'].map((tier) => (
+            <div key={tier} className={`border rounded-2xl p-8 bg-surface shadow-sm transition-all ${getError(tier, 'price') || getError(tier, 'deliveryTime') ? 'border-danger/30 ring-1 ring-red-50' : 'border-line-soft'}`}>
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-fg capitalize">{tier}</h2>
+                <p className="text-xs text-fg-subtle mt-1">
+                  {tier === 'starter' ? 'Perfect for small project tasks' : 'For comprehensive, end-to-end projects'}
+                </p>
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Delivery days</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={pkg.deliveryDays}
-                  onChange={(event) => updatePackage(index, "deliveryDays", Number(event.target.value))}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
+              <div className="space-y-6">
+                {/* This whole block is inside a .map() over the pricing tiers,
+                    so these three labels were nine unlabelled inputs at
+                    runtime, not three. The id from <Field> is spread onto the
+                    <input> rather than the wrapper <div> -- the div only exists
+                    to position the "$" and "days" affixes, and an id there
+                    would associate the label with nothing. */}
+                <Field label="Price" error={getError(tier, "price")}>
+                  {(f) => (
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-subtle font-medium text-lg" aria-hidden="true">$</span>
+                      <input
+                        type="number"
+                        {...register(`packages.${tier}.price`, { valueAsNumber: true })}
+                        placeholder="0"
+                        {...f}
+                        className="w-full h-[54px] pl-10 pr-4 rounded-xl border border-line focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all outline-none"
+                      />
+                    </div>
+                  )}
+                </Field>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Title</label>
-                <input
-                  value={pkg.packageType}
-                  onChange={(event) => updatePackage(index, "packageType", event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+                <Field label="Delivery Time" error={getError(tier, "deliveryTime")}>
+                  {(f) => (
+                    <div className="relative">
+                      <input
+                        type="number"
+                        {...register(`packages.${tier}.deliveryTime`, { valueAsNumber: true })}
+                        placeholder="e.g. 5"
+                        {...f}
+                        className="w-full h-[54px] px-4 rounded-xl border border-line focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all outline-none"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-fg-subtle font-bold" aria-hidden="true">days</span>
+                    </div>
+                  )}
+                </Field>
+
+                <Field label="Package Features (One per line)" error={getError(tier, "description")}>
+                  {(f) => (
+                    <textarea
+                      {...register(`packages.${tier}.description`)}
+                      placeholder="Example:&#10;Custom Logo Design&#10;3 Revisions&#10;Source Files Included"
+                      {...f}
+                      className="w-full min-h-[140px] p-5 rounded-xl border border-line focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all outline-none resize-none text-sm leading-relaxed"
+                    />
+                  )}
+                </Field>
               </div>
             </div>
-
-            <div className="mt-4">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Package description</label>
-              <textarea
-                rows={3}
-                value={pkg.description}
-                onChange={(event) => updatePackage(index, "description", event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                placeholder="What is included in this package?"
-              />
-            </div>
-          </div>
-        ))}
-
-        <button type="button" onClick={addPackage} className="inline-flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-          <Plus className="h-4 w-4" /> Add package
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between pt-2">
-        <button type="button" onClick={onBack} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
-          Back
-        </button>
-        <button type="button" onClick={onSubmit} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
-          Continue
-        </button>
-      </div>
-    </div>
+          ))}
+        </div>
+      </form>
+    </OnboardingLayout>
   );
 }
+
+export default StepThree;

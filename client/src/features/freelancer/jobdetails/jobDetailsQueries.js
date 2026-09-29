@@ -1,11 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchJobDetails } from "./jobDetailsApi.js";
+import { useQuery } from "@tanstack/react-query"
+import { fetchJobDetails } from "./jobDetailsApi"
 
-export const useProjectDetails = (projectId) =>
-  useQuery({
-    queryKey: ["project", projectId],
-    queryFn: () => fetchJobDetails(projectId),
-    enabled: Boolean(projectId),
-  });
-
-export const useJobDetails = (projectId) => useProjectDetails(projectId);
+export const useProjectDetails = (projectId) => {
+    return useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => fetchJobDetails(projectId),
+        enabled: !!projectId,
+        staleTime: 1000 * 60 * 5
+    });
+};

@@ -1,94 +1,193 @@
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { useProjectDetails } from "./projectQueries.js";
-import { useAiWorkflowStatus } from "../../aiworkflow/aiWorkflowQueries.js";
-import { useDeleteProject } from "./projectMutations.js";
-import DeleteProjectModal from "./components/DeleteProjectModal.jsx";
-import { useState } from "react";
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useProjectDetails } from './projectQueries';
+import FindTalentButton from '../../aiworkflow/FindTalentButton';
+import { Edit, Users, Clock, Box, DollarSign, FileText, ChevronLeft } from 'lucide-react';
 
-export default function ProjectDetails() {
+export default function ClientJobDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useProjectDetails(id);
-  const { data: workflow } = useAiWorkflowStatus(data?.workflowRunId ?? data?.aiWorkflowRunId);
-  const mutation = useDeleteProject();
-  const [confirming, setConfirming] = useState(false);
+  const { data, isLoading, isError, error } = useProjectDetails(id);
 
-  if (isLoading) return <div className="p-8 text-center text-slate-500">Loading project…</div>;
-  if (isError || !data) return <div className="p-8 text-center text-red-600">Project not found.</div>;
+  const isProjectInProgress = data?.status === "in_progress" || data?.status === "in-progress" || data?.status === 'completed';
 
-  const budget = data.fixedPrice ?? data.minPrice ?? data.maxPrice ?? 0;
-  const skills = data.skills || [];
+  if (isLoading) return <div className="flex justify-center items-center h-screen text-fg-muted font-medium">Loading Project details...</div>;
+  if (isError) return <div className="flex justify-center items-center h-screen text-danger-soft-fg font-medium">Error: {error.message}</div>;
+
+  const formatList = (text) => {
+    if (!text) return [];
+    return text.split('\n').filter(item => item.trim() !== "");
+  };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-600">Project</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900">{data.title}</h1>
-        </div>
-        <div className="flex gap-3">
-          <Link to={`/my-projects/${id}/edit`} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Edit</Link>
-          <Link to={`/my-projects/${id}/proposals`} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">View proposals</Link>
-          <button type="button" onClick={() => setConfirming(true)} className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100">Archive</button>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Overview</h2>
-            <p className="mt-3 text-slate-700">{data.description}</p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs uppercase tracking-wide text-slate-500">Budget</p><p className="mt-2 text-lg font-bold text-slate-900">${Number(budget || 0).toLocaleString()}</p></div>
-            <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs uppercase tracking-wide text-slate-500">Delivery</p><p className="mt-2 text-lg font-bold text-slate-900">{data.expectedDays || 0} days</p></div>
-            <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs uppercase tracking-wide text-slate-500">Status</p><p className="mt-2 text-lg font-bold text-slate-900">{data.status || "Open"}</p></div>
-           {workflow && <div className="rounded-xl bg-blue-50 p-4"><p className="text-xs uppercase tracking-wide text-blue-600">AI workflow</p><p className="mt-2 text-lg font-bold text-blue-900">{workflow.status}</p></div>}
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">Requirements</h3>
-            <p className="mt-2 whitespace-pre-line text-slate-700">{data.requirements || "No requirements specified."}</p>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">Deliverables</h3>
-            <p className="mt-2 whitespace-pre-line text-slate-700">{data.expectedDeliverables || "No deliverables specified."}</p>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">Skills</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {skills.length > 0 ? skills.map((skill) => (
-                <span key={skill.skillId ?? skill.id ?? skill.name ?? skill.Name} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700">
-                  {skill.name ?? skill.Name ?? skill.skillName}
+    <div className="min-h-screen bg-surface-2/30">
+      <div className="bg-surface border-b border-line-soft mb-6 md:mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+          <button 
+            onClick={() => navigate('/my-projects')}
+            className="flex items-center gap-2 text-fg-subtle hover:text-brand transition-colors text-sm font-bold mb-4"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Projects
+          </button>
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-wider ${
+                  isProjectInProgress ? 'bg-brand-soft text-brand' : 'bg-success-soft text-success'
+                }`}>
+                  {data.status === 'in_progress' ? 'In Progress' : data.status}
                 </span>
-              )) : <span className="text-sm text-slate-500">No skills selected.</span>}
+                <span className="text-xs text-fg-subtle font-bold uppercase tracking-widest">{data.category_name || 'General'}</span>
+              </div>
+              <h1 className="text-2xl md:text-4xl font-black text-fg leading-tight">
+                {data.title}
+              </h1>
             </div>
           </div>
         </div>
-
-        <aside className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Quick actions</h2>
-            <div className="mt-4 space-y-3">
-              <button type="button" onClick={() => navigate(`/my-projects/${id}/proposals`)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Review proposals</button>
-              <button type="button" onClick={() => navigate("/find-talents")} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Find talent</button>
-            </div>
-          </div>
-        </aside>
       </div>
 
-      <DeleteProjectModal
-        project={data}
-        pending={mutation.isPending}
-        onClose={() => setConfirming(false)}
-        isOpen={confirming}
-        onConfirm={() => {
-          mutation.mutate({ id: Number(id) }, { onSuccess: () => { setConfirming(false); navigate("/my-projects"); } });
-        }}
-      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          <div className="w-full lg:w-2/3 space-y-8 md:space-y-10">
+            <section className="bg-surface p-6 md:p-8 rounded-2xl border border-line-soft shadow-sm">
+              <h2 className="text-lg md:text-xl font-black text-fg mb-4 flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-brand rounded-full" />
+                Project Description
+              </h2>
+              <p className="text-sm md:text-base wrap-break-word text-fg-muted leading-relaxed whitespace-pre-wrap">
+                {data.description}
+              </p>
+            </section>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              <section className="bg-surface p-6 md:p-8 rounded-2xl border border-line-soft shadow-sm">
+                <h2 className="text-lg md:text-xl font-black text-fg mb-5">Deliverables</h2>
+                <ul className="space-y-4">
+                  {formatList(data.expected_deliverables).map((item, index) => (
+                    <li key={index} className="flex items-start gap-3 text-sm md:text-base text-fg-muted group">
+                      <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-soft shrink-0 group-hover:scale-125 transition-transform" />
+                      <span className='wrap-anywhere'>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="bg-surface p-6 md:p-8 rounded-2xl border border-line-soft shadow-sm">
+                <h2 className="text-lg md:text-xl font-black text-fg mb-5">Requirements</h2>
+                <ul className="space-y-4">
+                  {formatList(data.requirements).map((item, index) => (
+                    <li key={index} className="flex items-start gap-3 text-sm md:text-base text-fg-muted group">
+                      <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-soft shrink-0 group-hover:scale-125 transition-transform" />
+                      <span className='wrap-anywhere'>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+
+            <section className="bg-surface p-6 md:p-8 rounded-2xl border border-line-soft shadow-sm">
+              <h2 className="text-lg md:text-xl font-black text-fg mb-4">Required Skills</h2>
+              <div className="flex flex-wrap gap-2 md:gap-3">
+                {data.skills?.map((skill, index) => (
+                  <span key={index} className="bg-surface-2 border border-line-soft text-fg-muted px-4 py-1.5 rounded-xl text-xs md:text-sm font-bold transition-all hover:bg-surface hover:border-brand-line hover:text-brand">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <div className="w-full lg:w-1/3 space-y-6">
+            <div className="bg-surface border border-line-soft rounded-2xl p-6 md:p-8 shadow-sm sticky top-8">
+              <h3 className="text-lg font-black text-fg mb-6 uppercase tracking-wider text-[10px]">Project Overview</h3>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-success-soft rounded-xl text-success group-hover:bg-success group-hover:text-success-fg transition-all">
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-fg-subtle uppercase tracking-widest">Budget</p>
+                      <p className="font-bold text-fg md:text-lg">
+                        {data.pricing_type === 'fixed' ? `$${data.fixed_price}` : `$${data.min_budget} - $${data.max_budget}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-brand-soft rounded-xl text-brand group-hover:bg-brand-hover group-hover:text-brand-fg transition-all">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-fg-subtle uppercase tracking-widest">Timeline</p>
+                      <p className="font-bold text-fg md:text-lg">{data.delivery_days} Days</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-warning-soft rounded-xl text-warning-soft-fg group-hover:bg-warning group-hover:text-warning-fg transition-all">
+                      <Box className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-fg-subtle uppercase tracking-widest">Pricing Type</p>
+                      <p className="font-bold text-fg md:text-lg capitalize">{data.pricing_type || 'Fixed'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-line-soft flex flex-col gap-3">
+                  {isProjectInProgress ? (
+                    <button 
+                      onClick={() => navigate(`/contracts/${data.contract_id}`)}
+                      className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand-hover text-brand-fg font-black py-4 rounded-xl transition-all shadow-xl shadow-blue-100 active:scale-[0.98]"
+                    >
+                      <FileText className="w-5 h-5" />
+                      View Contract
+                    </button>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => navigate(`/my-projects/${id}/proposals`)}
+                        className="w-full flex items-center justify-center gap-3 bg-brand hover:bg-brand-hover text-brand-fg font-black py-4 rounded-xl transition-all shadow-xl shadow-blue-100 active:scale-[0.98]"
+                      >
+                        <Users className="w-5 h-5" />
+                        View Proposals
+                      </button>
+                      
+                      <button 
+                        onClick={() => navigate(`/my-projects/${id}/edit`)}
+                        className="w-full flex items-center justify-center gap-3 bg-surface border border-line hover:bg-surface-2 text-fg-muted font-bold py-4 rounded-xl transition-all active:scale-[0.98]"
+                      >
+                        <Edit className="w-5 h-5" />
+                        Edit Details
+                      </button>
+
+                      {/* Only while the project is still open. Once it is in
+                          progress the freelancer set is settled -- a contract
+                          exists -- and re-running matching would produce a
+                          shortlist for a decision that has already been made. */}
+                      {data.status === 'open' && (
+                        <div className="pt-1">
+                          <FindTalentButton projectId={id} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,50 @@
-export default function ClientWhyUs() {
-  return <section className="content-section feature-band"><div className="section-heading section-heading--split"><div><span className="app-shell__eyebrow">A steadier workflow</span><h2>Keep the important parts close.</h2></div><p>Requirements, proposals, delivery, and decisions should not live in four disconnected places.</p></div><div className="feature-grid"><article><span className="feature-grid__line" /><h3>Relevant experience</h3><p>Start with the skills and context your project actually needs.</p></article><article><span className="feature-grid__line" /><h3>Visible delivery</h3><p>Keep progress legible to everyone involved.</p></article><article><span className="feature-grid__line" /><h3>Protected decisions</h3><p>Keep approvals and payment tied to the agreed work.</p></article></div></section>;
+import { CheckCircle2, Headphones, Shield } from 'lucide-react'
+import React from 'react'
+
+function ClientWhyUs() {
+  return (
+    <section className="py-12 sm:py-16 lg:py-20 bg-surface">
+        <div className="max-w-page-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20 xl:gap-[217px] justify-items-center">
+            <div className="text-center max-w-[379px]">
+              <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <Shield className="w-8 h-8 text-brand" />
+              </div>
+              <h3 className="text-fg font-inter text-xl sm:text-2xl lg:text-[30px] font-bold leading-7 mb-4">
+                Secure Payments
+              </h3>
+              <p className="text-fg-subtle font-inter text-sm leading-[22px]">
+                Your money is held safely until you approve the work. No surprises.
+              </p>
+            </div>
+
+            <div className="text-center max-w-[379px]">
+              <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <CheckCircle2 className="w-8 h-8 text-brand" />
+              </div>
+              <h3 className="text-fg font-inter text-xl sm:text-2xl lg:text-[30px] font-bold leading-7 mb-4">
+                Quality Guarantee
+              </h3>
+              <p className="text-fg-subtle font-inter text-sm leading-[22px]">
+                Satisfaction guaranteed or your money back. We stand by our talent.
+              </p>
+            </div>
+
+            <div className="text-center max-w-[379px]">
+              <div className="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <Headphones className="w-8 h-8 text-brand" />
+              </div>
+              <h3 className="text-fg font-inter text-xl sm:text-2xl lg:text-[30px] font-bold leading-7 mb-4">
+                24/7 Support
+              </h3>
+              <p className="text-fg-subtle font-inter text-sm leading-[22px]">
+                Our dedicated support team is here to help you anytime, anywhere.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+  )
 }
+
+export default ClientWhyUs

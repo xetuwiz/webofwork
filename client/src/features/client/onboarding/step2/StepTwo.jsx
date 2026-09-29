@@ -1,133 +1,240 @@
-import { useMemo, useState } from "react";
-import { Check, Search, Sparkles } from "lucide-react";
-import { useCategories, useSkills } from "../../projectManagement/projectQueries.js";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAllSkillls } from "../../projectManagement/projectQueries";
+import { useOnBoarding } from "../OnBoardingContext";
+import OnboardingLayout from "../../../../layouts/OnBoardingLayout";
+import { stepTwoSchema } from "./stepTwoSchema";
+import { Field } from "../../../../components/common/Field";
+import { useAllCategories } from "../../../admin/categorymanagement/categoryQueries";
 
-export default function StepTwo({ values, onNext, onBack }) {
-  const { data: categoriesData } = useCategories();
-  const categories = useMemo(() => {
-    if (Array.isArray(categoriesData?.results)) return categoriesData.results;
-    if (Array.isArray(categoriesData)) return categoriesData;
-    return [];
-  }, [categoriesData]);
+function StepTwo() {
+  const { formData, updateFormData, nextStep } = useOnBoarding();
+  const { data: categories } = useAllCategories();
+  const { data: allSkills } = useAllSkillls();
+  const [customInput, setCustomInput] = useState("");
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState(values.primaryCategory ?? values.categoryId ?? categories[0]?.id ?? "");
-  const [search, setSearch] = useState("");
-  const [selectedSkills, setSelectedSkills] = useState(Array.isArray(values.skills) ? values.skills : []);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(stepTwoSchema),
+    defaultValues: {
+      primaryCategory: formData.primaryCategory || "",
+      skills: formData.skills || [],
+      experienceLevel: formData.experienceLevel || "",
+    },
+  });
 
-  const { data: skillsData } = useSkills(selectedCategoryId ? { categoryId: selectedCategoryId } : {});
-  const skills = useMemo(() => {
-    if (Array.isArray(skillsData?.results)) return skillsData.results;
-    if (Array.isArray(skillsData)) return skillsData;
-    return [];
-  }, [skillsData]);
+  const [inputError, setInputError] = useState("");
+  const selectedSkills = watch("skills");
+  const selectedLevel = watch("experienceLevel");
+  const selectedCategoryId = watch("primaryCategory");
 
-  const filteredSkills = useMemo(
-    () => skills.filter((skill) => (skill.name ?? skill.customName ?? "").toLowerCase().includes(search.toLowerCase())),
-    [skills, search],
-  );
+  const filteredSkills = React.useMemo(() => {
+    if (!selectedCategoryId || !allSkills) return [];
+    return allSkills.filter(
+      (skill) => String(skill.category) === String(selectedCategoryId)
+    );
+  }, [selectedCategoryId, allSkills]);
 
-  const toggleSkill = (skill) => {
-    const skillId = skill.id ?? skill.skillId ?? skill.customName ?? null;
-    const skillEntry = { skillId, customName: skill.name ?? skill.customName ?? "" };
-    setSelectedSkills((current) => {
-      const exists = current.some((entry) => Number(entry.skillId ?? entry.id ?? 0) === Number(skillId ?? 0));
-      return exists ? current.filter((entry) => Number(entry.skillId ?? entry.id ?? 0) !== Number(skillId ?? 0)) : [...current, skillEntry];
-    });
+  const onSubmit = (data) => {
+    updateFormData(data);
+    nextStep();
   };
 
-  const onSubmit = () => {
-    if (!selectedCategoryId || selectedSkills.length === 0) return;
-    onNext({
-      primaryCategory: Number(selectedCategoryId),
-      categoryId: Number(selectedCategoryId),
-      skills: selectedSkills,
-    });
+  const handleToggleSkill = (skillName) => {
+    const isSelected = selectedSkills.includes(skillName);
+    const newSkills = isSelected
+      ? selectedSkills.filter((s) => s !== skillName)
+      : [...selectedSkills, skillName];
+
+    setValue("skills", newSkills, { shouldValidate: true });
+  };
+
+  const handleAddCustom = () => {
+    const trimmed = customInput.trim();
+    if (trimmed.length < 2) {
+      setInputError("Skill is too short");
+      return;
+    }
+    if (/^\d+$/.test(trimmed)) {
+      setInputError("Skill cannot be only numbers");
+      return;
+    }
+    if (selectedSkills.includes(trimmed)) {
+      setInputError("Skill already added");
+      return;
+    }
+    setValue("skills", [...selectedSkills, trimmed], { shouldValidate: true });
+    setCustomInput("");
+    setInputError("");
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Step 2</p>
-        <h2 className="text-3xl font-bold text-slate-900">Choose your services</h2>
-        <p className="text-sm text-slate-600">Select a category and the skills you want clients to discover.</p>
-      </div>
+    <OnboardingLayout
+      title="Add Your Skills & Expertise"
+      subtitle="Help us match you with the right projects."
+    >
+      <form id="onboarding-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 md:space-y-10">
+        <div className="space-y-2">
+          <Field label="Primary Category" error={errors.primaryCategory?.message}>
+            {(f) => (
+              <div className="relative">
+                <select
+                  {...register("primaryCategory")}
+                  {...f}
+                  className={`w-full h-[50px] md:h-[54px] px-4 md:px-5 rounded-xl border bg-surface text-sm md:text-base focus-visible:ring-2 focus-visible:ring-primary/20 outline-none appearance-none ${
+                    errors.primaryCategory ? "border-red-500" : "border-line-strong"
+                  }`}
+                >
+                  <option value="">Select a category</option>
+                  {categories?.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-fg-subtle" aria-hidden="true">
+                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </div>
+              </div>
+            )}
+          </Field>
+        </div>
 
-      <div className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Category</h3>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+        <div className="space-y-3">
+          {/* The first genuine fieldset in this codebase, and the clearest case
+              for one: the label heads a set of selected-skill chips, so a
+              <label> could not name it -- a label names one control, and this
+              is a collection. The static audit could not classify this one
+              either, because the chips come from a .map() and it saw a single
+              button in the source. */}
+          <fieldset>
+            <legend className="text-sm font-bold text-fg block mb-2">
+              Skills ({selectedSkills.length})
+            </legend>
+            <div className="flex flex-wrap gap-2 p-3 md:p-5 bg-surface-2 rounded-2xl border border-line-soft min-h-[60px]">
+              {selectedSkills.length === 0 && <p className="text-fg-subtle text-xs md:text-sm">No skills selected yet...</p>}
+              {selectedSkills.map((skill) => (
+                <div key={skill} className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-brand text-brand-fg rounded-full text-[10px] md:text-xs font-bold">
+                  {skill}
+                  {/* The only text in this button was the multiplication sign,
+                      so it was announced as "times" with no indication of what
+                      it removed. */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSkill(skill)}
+                    aria-label={`Remove ${skill}`}
+                    className="hover:text-fg text-sm"
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+            {errors.skills && <p className="text-danger-soft-fg text-xs font-medium">{errors.skills.message}</p>}
+          </fieldset>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-[10px] md:text-xs font-bold text-fg-subtle uppercase tracking-wider px-1">
+            {selectedCategoryId ? "Suggested for your category" : "Please select a category to see suggestions"}
+          </p>
+          <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto md:max-h-none md:overflow-visible pr-1">
+            {filteredSkills.map((skill) => (
               <button
-                key={category.id}
+                key={skill.id}
                 type="button"
-                onClick={() => setSelectedCategoryId(category.id)}
-                className={`rounded-full border px-4 py-2 text-sm font-medium ${
-                  Number(selectedCategoryId) === Number(category.id)
-                    ? "border-blue-600 bg-blue-600 text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                onClick={() => handleToggleSkill(skill.name)}
+                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-[10px] md:text-xs font-bold border transition-all ${
+                  selectedSkills.includes(skill.name)
+                    ? "bg-brand/10 border-primary text-brand"
+                    : "bg-surface border-line text-fg-muted hover:border-primary hover:text-brand"
                 }`}
               >
-                {category.name}
+                {selectedSkills.includes(skill.name) ? "✓ " : "+ "} {skill.name}
               </button>
             ))}
           </div>
-        </div>
 
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Skills</h3>
-            <span className="text-xs text-slate-500">{selectedSkills.length} selected</span>
-          </div>
-
-          <div className="relative mb-4">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search skills..."
-              className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {filteredSkills.length > 0 ? (
-              filteredSkills.map((skill) => {
-                const skillId = skill.id ?? skill.skillId ?? skill.customName ?? "";
-                const isSelected = selectedSkills.some((entry) => Number(entry.skillId ?? entry.id ?? 0) === Number(skillId ?? 0));
-                return (
-                  <button
-                    key={skillId}
-                    type="button"
-                    onClick={() => toggleSkill(skill)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm ${
-                      isSelected ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    {isSelected ? <Check className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                    {skill.name ?? skill.customName}
-                  </button>
-                );
-              })
-            ) : (
-              <p className="text-sm text-slate-500">No skills available for the selected category yet.</p>
-            )}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <div className="flex-1 flex flex-col gap-1">
+              {/* No label element at all here, so the static audit could not
+                  see it -- a scan for unassociated <label>s has nothing to
+                  find. The placeholder vanishes on first keystroke. */}
+              <label htmlFor="custom-skill" className="sr-only">
+                Add a custom skill
+              </label>
+              <input
+                id="custom-skill"
+                type="text"
+                value={customInput}
+                onChange={(e) => {
+                  setCustomInput(e.target.value);
+                  if (inputError) setInputError("");
+                }}
+                placeholder="Add custom skill..."
+                className={`min-h-[48px] md:h-[50px] px-4 md:px-5 rounded-xl border text-sm md:text-base transition-all flex-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                  inputError ? "border-red-500" : "border-line-strong focus-visible:border-primary"
+                }`}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustom())}
+              />
+              {inputError && <p className="text-danger-soft-fg text-[10px] ml-2 font-medium">{inputError}</p>}
+            </div>
+            <button
+              type="button"
+              onClick={handleAddCustom}
+              className="min-h-11 md:h-[50px] w-full sm:w-auto px-8 rounded-xl bg-black text-white text-sm font-bold hover:bg-inverse transition-colors"
+            >
+              Add
+            </button>
           </div>
         </div>
-      </div>
 
-      <div className="flex items-center justify-between pt-2">
-        <button type="button" onClick={onBack} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
-          Back
-        </button>
-        <button
-          type="button"
-          disabled={!selectedCategoryId || selectedSkills.length === 0}
-          onClick={onSubmit}
-          className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
+        <div className="space-y-4 pt-6 border-t border-line-soft">
+          {/* Second fieldset, and the case where grouping alone is not enough.
+              These are three mutually exclusive options, but they are built
+              from <button> rather than radio inputs, so the selected state was
+              conveyed by border colour alone and a screen reader had no way to
+              tell which level was chosen. `aria-pressed` exposes it, and
+              `role="radiogroup"` tells assistive tech these are one choice
+              rather than three independent toggles. Converting them to real
+              radios would additionally restore arrow-key navigation, at the
+              cost of restyling the cards -- worth doing, not worth smuggling
+              into a label fix. */}
+          <fieldset role="radiogroup">
+            <legend className="text-sm font-bold text-fg block mb-3">Experience Level</legend>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              {[
+                { id: 'beginner', label: 'Beginner', desc: 'Entry level' },
+                { id: 'intermediate', label: 'Intermediate', desc: 'Professional' },
+                { id: 'expert', label: 'Expert', desc: 'Specialist' }
+              ].map((level) => (
+                <button
+                  key={level.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedLevel === level.id}
+                  onClick={() => setValue("experienceLevel", level.id, { shouldValidate: true })}
+                  className={`p-4 md:p-6 rounded-2xl border-2 text-left transition-all ${
+                    selectedLevel === level.id
+                      ? "border-primary bg-brand/5 ring-1 ring-primary"
+                      : "border-line-soft bg-surface hover:border-line-strong"
+                  }`}
+                >
+                  <h3 className="text-sm md:text-base font-bold text-fg mb-1">{level.label}</h3>
+                  <p className="text-[10px] md:text-xs text-fg-subtle">{level.desc}</p>
+                </button>
+              ))}
+            </div>
+            {errors.experienceLevel && <p className="text-danger-soft-fg text-xs font-medium">{errors.experienceLevel.message}</p>}
+          </fieldset>
+        </div>
+      </form>
+    </OnboardingLayout>
   );
 }
+
+export default StepTwo;

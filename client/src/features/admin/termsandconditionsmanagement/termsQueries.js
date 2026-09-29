@@ -1,3 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchTermsSections } from "./termsApi.js";
-export const useTermsSections = (params = {}) => useQuery({ queryKey: ["admin-terms", params], queryFn: () => fetchTermsSections(params) });
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { fetchTermsSections } from "./termsApi";
+
+export const useTermsSections = ({ page = 1, page_size = 20 } = {}) => {
+  return useQuery({
+    queryKey: ["termsSections", { page, page_size }],
+    queryFn: () => fetchTermsSections({ page, page_size }),
+    // `keepPreviousData: true` was the react-query v4 spelling and was removed in
+    // v5, so it was silently ignored. The v5 equivalent keeps the current rows on
+    // screen while the next page loads instead of blanking the list.
+    placeholderData: keepPreviousData,
+  });
+};

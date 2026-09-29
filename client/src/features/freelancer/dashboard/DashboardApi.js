@@ -1,7 +1,32 @@
-import axiosInstance from "../../../api/axiosInstance.js";
+import axiosInstance from "../../../api/axiosInstance"
 
-export const fetchRecommendedProjects = async () => (await axiosInstance.get("/freelancers/recommended-projects")).data;
-export const fetchTodos = async () => (await axiosInstance.get("/todos")).data;
-export const createTodo = async (payload) => (await axiosInstance.post("/todos", JSON.stringify(typeof payload === "string" ? payload : payload.task), { headers: { "Content-Type": "application/json" } })).data;
-export const deleteTodo = async (id) => (await axiosInstance.delete(`/todos/${id}`)).data;
-export const completeTodo = async (id) => (await axiosInstance.patch(`/todos/${id}/toggle`)).data;
+export const fetchRecommendedProjects = async()=>{
+    const {data} = await axiosInstance.get('/profile/freelancer/recommended-projects/');
+    return data;
+}
+
+export const fetchTodos = async () => {
+    const {data} = await axiosInstance.get('/profile/todos/');
+    return data;
+}
+
+
+export const createTodo = async (todoData) => {
+    // TodosController.AddTodo takes [FromBody] string task, not an object.
+    // The form supplies { todo: "..." }, so unwrap it -- posting the object
+    // returned 400 "The JSON value could not be converted to System.String".
+    const task = typeof todoData === "string" ? todoData : todoData?.todo;
+    const { data } = await axiosInstance.post('/profile/todos/', JSON.stringify(task),
+        { headers: { 'Content-Type': 'application/json' } });
+    return data;
+};
+
+export const deleteTodo = async (id) => {
+    const { data } = await axiosInstance.delete(`/profile/todos/${id}/`);
+    return data;
+};
+
+export const completeTodo = async (id) => {
+    const { data } = await axiosInstance.post(`/profile/todos/${id}/mark-complete/`);
+    return data;
+};

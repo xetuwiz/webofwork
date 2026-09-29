@@ -1,10 +1,21 @@
-import ClientHeroSection from "./components/ClientHeroSection.jsx";
-import ClientWhyUs from "./components/ClientWhyUs.jsx";
-import TopFreelancers from "./components/TopFreelancers.jsx";
-import JoinNow from "./components/JoinNow.jsx";
-import ClientHeader from "./components/ClientHeader.jsx";
-import ClientFooter from "./components/ClientFooter.jsx";
+import React from 'react'
+import ClientHeroSection from './components/ClientHeroSection'
+import ClientWhyUs from './components/ClientWhyUs'
+import TopFreelancers from './components/TopFreelancers'
+import JoinNow from './components/JoinNow'
+import { useSelector } from 'react-redux'
 
-export default function ClientHomepage() {
-  return <><ClientHeader /><main className="public-page"><ClientHeroSection /><ClientWhyUs /><TopFreelancers /><JoinNow /></main><ClientFooter /></>;
+function ClientHomepage() {
+  const user = useSelector(state=>state.auth.user)
+  
+  return (
+    <>
+        <ClientHeroSection/>
+        <ClientWhyUs/>
+        <TopFreelancers/>
+        <JoinNow/>
+    </>
+  )
 }
+
+export default ClientHomepage

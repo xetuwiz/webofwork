@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Profile-only network policy. Overrides src/main/res/xml/network_security_config.xml
+  for `flutter run -profile` and `flutter build apk -profile` builds.
+
+  Profile builds are a development tool: they run against the dev API over plain
+  HTTP on the LAN with a self-signed certificate, and they exist to measure
+  performance rather than to ship. So this matches the debug policy.
+
+  It is kept as a separate copy rather than relying on `debug` because the
+  resource merger only merges `debug` into debug builds - a profile build would
+  otherwise fall through to the strict policy in `src/main` and fail to connect to
+  the dev API, which is a confusing failure rather than an obvious one.
+
+  `flutter build apk -release` uses neither of these and gets the strict policy
+  in src/main.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

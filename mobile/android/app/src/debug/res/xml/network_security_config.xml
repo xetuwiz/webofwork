@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only network policy. Overrides src/main/res/xml/network_security_config.xml
+  for `flutter run` builds. Never packaged into a release APK.
+
+  Two things the development API needs and production must not have:
+
+    1. cleartext HTTP - the dev Kestrel host is reached over plain HTTP on the LAN.
+    2. user-installed CAs - the `dotnet dev-certs` certificate is self-signed, so
+       it lives in the user store rather than the system store.
+
+  Without (1) every request fails at the socket layer with no Dart-side error,
+  which reads as "the app is broken" rather than "TLS is blocked". Without (2) the
+  connection fails the same way for a less obvious reason.
+
+  Set the host with:
+    flutter run -dart-define=API_BASE=http://<lan-ip>:5000
+
+  Note the bearer token is sent over this unverified channel in development.
+  That is acceptable against a self-signed cert on the developer's own LAN and is
+  exactly why the release policy in src/main permits neither.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

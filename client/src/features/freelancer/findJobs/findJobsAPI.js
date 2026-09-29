@@ -1,5 +1,8 @@
-import axiosInstance from "../../../api/axiosInstance.js";
+import axiosInstance from "../../../api/axiosInstance";
 
-const normalizePage = (data) => Array.isArray(data) ? { results: data, count: data.length, page: 1, pageSize: data.length, totalPages: 1 } : data;
-
-export const fetchFreelancerProjects = async (params = {}) => normalizePage((await axiosInstance.get("/projects", { params })).data);
+export const fetchFreelancerProjects = async (params) => {
+  const { data } = await axiosInstance.get(
+    "/projects/freelancer/project-list/", {params}
+  );
+  return data;
+};

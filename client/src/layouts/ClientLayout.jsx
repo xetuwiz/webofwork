@@ -1,14 +1,19 @@
 import { Outlet } from "react-router-dom";
-import InfrastructureShell from "../components/InfrastructureShell.jsx";
-
-const navigation = [
-  { href: "/", label: "Home" },
-  { href: "/find-talents", label: "Find talent" },
-  { href: "/my-projects", label: "My projects" },
-  { href: "/contracts", label: "Contracts" },
-  { href: "/profile", label: "Profile" },
-];
+import ClientHeader from "../features/client/homepage/components/ClientHeader";
+import ClientFooter from "../features/client/homepage/components/ClientFooter";
 
 export default function ClientLayout() {
-  return <InfrastructureShell eyebrow="Marketplace" title="Client workspace" navigation={navigation}><Outlet /></InfrastructureShell>;
+  return (
+    <div className="min-h-screen flex flex-col w-full overflow-x-hidden bg-surface-2">
+      <ClientHeader />
+
+      <main id="main-content" tabIndex={-1} className="flex-1 mt-19 bg-surface-2 w-full">
+        <div className="w-full max-w-page-4xl mx-auto">
+          <Outlet />
+        </div>
+      </main>
+
+      <ClientFooter />
+    </div>
+  );
 }

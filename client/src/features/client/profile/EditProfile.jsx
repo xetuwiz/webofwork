@@ -3,21 +3,22 @@ import { Camera, MapPin, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSelector } from "react-redux";
+import { profileSchema } from "./profileSchema";
+import { uploadToCloudinary } from "../../../utils/cloudinaryHelper";
+import { useUpdateProfile } from "./profileMutations";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
-import { uploadToCloudinary } from "../../../utils/cloudinaryHelper.js";
-import { useProfile } from "./profileQueries.js";
-import { useUpdateProfile } from "./profileMutations.js";
-import { profileSchema } from "./profileSchema.js";
+import { useProfile } from "./profileQueries";
+import { toastSuccess } from "../../../utils/toast";
+import Button from "../../../components/common/Button";
+import { Field } from "../../../components/common/Field";
 
-export default function EditProfile() {
+export default function ProfileEdit() {
   const { user } = useSelector((state) => state.auth);
-  const { data: profile, isLoading } = useProfile();
+  const {data:profile,isLoading} = useProfile()
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const [selectedImagePreview, setSelectedImagePreview] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(user?.profile_photo || null);
   const [isUploading, setIsUploading] = useState(false);
-  const previewUrl = selectedImagePreview ?? profile?.profile_photo ?? user?.profile_photo ?? null;
 
   const { mutateAsync: updateProfile } = useUpdateProfile();
 
@@ -28,21 +29,21 @@ export default function EditProfile() {
     formState: { errors, isDirty },
   } = useForm({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
+    values: {
       fullName: profile?.full_name || "",
       companyName: profile?.company_name || "",
       location: profile?.location || "",
     },
   });
 
-  const handleImageChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setValue("profileImage", file, { shouldDirty: true });
 
     const reader = new FileReader();
-    reader.onloadend = () => setSelectedImagePreview(reader.result);
+    reader.onloadend = () => setPreviewUrl(reader.result);
     reader.readAsDataURL(file);
   };
 
@@ -50,7 +51,7 @@ export default function EditProfile() {
     try {
       setIsUploading(true);
 
-      let profilePhotoUrl = user?.profile_photo || profile?.profile_photo || null;
+      let profilePhotoUrl = user?.profile_photo;
 
       if (data.profileImage) {
         const uploadRes = await uploadToCloudinary(data.profileImage);
@@ -63,31 +64,37 @@ export default function EditProfile() {
         location: data.location,
         profile_photo: profilePhotoUrl,
       });
-
-      toast.success("Profile updated");
-      navigate("/profile");
+      navigate("/profile")
+      toastSuccess("profile updated")
     } finally {
       setIsUploading(false);
     }
   };
-
-  if (isLoading) return <Loader2 className="animate-spin" />;
-
+if (isLoading) return <Loader2 className="animate-spin" />;
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-surface-2 py-8 px-4 sm:px-6 lg:px-8">
       <form onSubmit={handleSubmit(onSubmit)} className="max-w-3xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
+        <h1 className="text-2xl font-bold text-fg">Edit Profile</h1>
 
-        <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Profile Photo</h2>
+        <section className="bg-surface p-6 rounded-xl border border-line shadow-sm">
+          <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-4">
+            Profile Photo
+          </h2>
 
           <div className="flex items-center gap-6">
-            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden border-4 border-white shadow-md">
+            <div
+              className="relative group cursor-pointer"
+              onClick={() => fileInputRef.current.click()}
+            >
+              <div className="w-24 h-24 rounded-full bg-brand flex items-center justify-center text-brand-fg text-2xl font-bold overflow-hidden border-4 border-white shadow-md">
                 {previewUrl ? (
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  user?.full_name?.[0]?.toUpperCase() || "UN"
+                  user?.full_name?.[0].toUpperCase() || "UN"
                 )}
               </div>
 
@@ -95,53 +102,94 @@ export default function EditProfile() {
                 <Camera className="text-white w-6 h-6" />
               </div>
 
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
             </div>
 
             <div>
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current.click()}
+                className="px-4 py-2 border border-line-strong rounded-lg text-sm font-medium hover:bg-surface-2"
+              >
                 Change Photo
               </button>
-              <p className="text-xs text-gray-500 mt-2">JPG, PNG or WEBP. Max 5MB.</p>
+              <p className="text-xs text-fg-subtle mt-2">
+                JPG, PNG or WEBP. Max 5MB.
+              </p>
             </div>
           </div>
         </section>
 
-        <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Basic Information</h2>
+        <section className="bg-surface p-6 rounded-xl border border-line shadow-sm space-y-4">
+          <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider">
+            Basic Information
+          </h2>
 
           <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-              <input
-                {...register("fullName")}
-                className={`w-full p-2.5 border rounded-lg outline-none focus:ring-2 ${errors.fullName ? "border-red-500 focus:ring-red-200" : "border-gray-300 focus:ring-blue-500"}`}
-              />
-              {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
-            </div>
+            <Field label="Full Name" required error={errors.fullName?.message}>
+              {(f) => (
+                <input
+                  {...register("fullName")}
+                  {...f}
+                  className={`w-full p-2.5 border rounded-lg outline-none focus-visible:ring-2 ${errors.fullName
+                      ? "border-red-500 focus-visible:ring-danger/20"
+                      : "border-line-strong focus-visible:ring-brand"
+                    }`}
+                />
+              )}
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company Name <span className="text-gray-400">(Optional)</span></label>
-              <input {...register("companyName")} className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+            {/* "(Optional)" was baked into the label text, so it was read as
+                part of the field's name. It is now a `hint`, which is what it
+                is -- supplementary information rather than the name. */}
+            <Field label="Company Name" hint="Optional">
+              {(f) => (
+                <input
+                  {...register("companyName")}
+                  {...f}
+                  className="w-full p-2.5 border border-line-strong rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                />
+              )}
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location <span className="text-gray-400">(Optional)</span></label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input {...register("location")} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
+            <Field label="Location" hint="Optional">
+              {(f) => (
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle w-4 h-4" aria-hidden="true" />
+                  <input
+                    {...register("location")}
+                    {...f}
+                    className="w-full pl-10 pr-4 py-2.5 border border-line-strong rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  />
+                </div>
+              )}
+            </Field>
           </div>
         </section>
 
         <div className="flex items-center gap-4 pt-4">
-          <button type="submit" disabled={isUploading || !isDirty} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
-            {isUploading && <Loader2 className="w-4 h-4 animate-spin" />}
+          <Button
+            type="submit"
+            variant="primary"
+            size="none"
+            loading={isUploading}
+            disabled={isUploading || !isDirty}
+            className="px-6 py-2.5 font-medium disabled:bg-brand"
+          >
             Save Changes
-          </button>
+          </Button>
 
-          <button type="button" onClick={() => navigate("/profile")} className="px-6 py-2.5 border border-gray-300 rounded-lg font-medium hover:bg-gray-50">
+          <button
+            type="button"
+            onClick={() => navigate("/profile")}
+            className="px-6 py-2.5 border border-line-strong rounded-lg font-medium hover:bg-surface-2"
+          >
             Cancel
           </button>
         </div>

@@ -1,0 +1,1 @@
+      const wsUrl =`${import.meta.env.VITE_WS_URL}/chat/${roomId}/?token=${token}`;

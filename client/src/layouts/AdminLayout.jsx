@@ -1,9 +1,22 @@
 import { Outlet } from "react-router-dom";
-import InfrastructureShell from "../components/InfrastructureShell.jsx";
-import AdminSidebar from "../features/admin/dashboard/components/AdminSidebar.jsx";
-import AdminFooter from "../features/admin/dashboard/components/AdminFooter.jsx";
-import AdminHeader from "../features/admin/dashboard/components/AdminHeader.jsx";
+import AdminSidebar from "../features/admin/dashboard/components/AdminSidebar";
+import AdminHeader from "../features/admin/dashboard/components/AdminHeader";
+import AdminFooter from "../features/admin/dashboard/components/AdminFooter";
 
 export default function AdminLayout() {
-  return <div className="admin-shell"><AdminSidebar /><main className="admin-shell__main"><AdminHeader /><Outlet /></main><AdminFooter /></div>;
+  return (
+    <div className="min-h-screen bg-surface-2">
+      <AdminSidebar />
+
+      <div className="ml-64 flex flex-col min-h-screen">
+        <AdminHeader />
+
+        <main id="main-content" tabIndex={-1} className="flex-1">
+          <Outlet />
+        </main>
+
+        <AdminFooter />
+      </div>
+    </div>
+  );
 }
