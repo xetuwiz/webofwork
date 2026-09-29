@@ -14,6 +14,20 @@ namespace WebOfWork.Api.Integrations.PayPal;
 public interface IPayPalPayoutClient
 {
     Task<bool> SendPayoutAsync(string recipientEmail, decimal amount, string note);
+
+    /// <summary>
+    /// Pay the freelancer and the platform in a single PayPal batch.
+    /// The reference (ref/the reference-main/server/payments/views.py) sends one batch with
+    /// two items, paying the platform fee to GlobalSettings.PayPalEmail. The
+    /// single-recipient overload above silently dropped that fee: it was
+    /// calculated and stored but never transferred, so GlobalSettings.PayPalEmail
+    /// -- the "Master PayPal Account" an admin edits on /admin/settings -- had
+    /// no effect on anything.
+    /// </summary>
+    Task<(bool Ok, string? BatchId, string? Error)> SendPayoutBatchAsync(
+        IReadOnlyList<(string Email, decimal Amount, string Note)> items,
+        string emailSubject,
+        string emailMessage);
 }
 
 // Internal shapes
@@ -87,6 +101,82 @@ public class PayPalPayoutClient : IPayPalPayoutClient
         {
             _logger.LogError(ex, "Error sending PayPal payout to {Email}", recipientEmail);
             return false;
+        }
+    }
+
+    public async Task<(bool Ok, string? BatchId, string? Error)> SendPayoutBatchAsync(
+        IReadOnlyList<(string Email, decimal Amount, string Note)> items,
+        string emailSubject,
+        string emailMessage)
+    {
+        if (items.Count == 0)
+            return (false, null, "No payout items to send.");
+
+        // PayPal rejects a batch containing a non-positive item, which would
+        // otherwise fail the whole batch and lose the freelancer's payout too.
+        var payable = items.Where(i => !string.IsNullOrWhiteSpace(i.Email) && i.Amount > 0m).ToList();
+        if (payable.Count == 0)
+            return (false, null, "No payable items in the payout batch.");
+
+        var batchId = $"BATCH-{Guid.NewGuid():N}".ToUpperInvariant();
+        try
+        {
+            var token = await GetAccessTokenAsync();
+            var payload = new
+            {
+                sender_batch_header = new
+                {
+                    sender_batch_id = batchId,
+                    email_subject = emailSubject,
+                    email_message = emailMessage
+                },
+                items = payable.Select((item, i) => new
+                {
+                    recipient_type = "EMAIL",
+                    amount = new
+                    {
+                        value = Math.Round(item.Amount, 2).ToString("0.00"),
+                        currency = _opts.Currency
+                    },
+                    note = item.Note,
+                    receiver = item.Email,
+                    sender_item_id = $"item_{i}_{Guid.NewGuid():N}"[..16]
+                }).ToArray()
+            };
+
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/v1/payments/payouts");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            var response = await _http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("PayPal payout batch failed: {StatusCode} {Error}",
+                    response.StatusCode, body);
+                return (false, null, $"PayPal rejected the payout batch: {body}");
+            }
+
+            string? paypalBatchId = null;
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("batch_header", out var header)
+                    && header.TryGetProperty("payout_batch_id", out var pid))
+                {
+                    paypalBatchId = pid.GetString();
+                }
+            }
+            catch (JsonException) { /* batch id is informational only */ }
+
+            _logger.LogInformation("PayPal payout batch {SenderBatch} accepted as {Batch} for {Count} item(s)",
+                batchId, paypalBatchId, payable.Count);
+            return (true, paypalBatchId ?? batchId, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending PayPal payout batch {BatchId}", batchId);
+            return (false, null, ex.Message);
         }
     }
 }
