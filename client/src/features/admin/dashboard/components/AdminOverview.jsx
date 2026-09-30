@@ -1,31 +1,94 @@
-import { useState } from "react";
-import { useDashboardStats, useProposalsChart, useRevenueChart } from "../dashboardQueries.js";
-import { usePendingPayouts } from "../../payoutmanagement/payoutQueries.js";
-import PayoutReleaseModal from "../../payoutmanagement/PayoutReleaseModal.jsx";
-import AdminStatsCard from "./AdminStatsCard.jsx";
-
-const usd = (value) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value ?? 0));
-
-function ChartRows({ rows, kind, loading }) {
-  if (loading) return <div className="admin-loading">Loading chart data...</div>;
-  if (!rows.length) return <div className="admin-empty">No chart data is available yet.</div>;
-  return <div className="admin-chart-list">{rows.slice(-7).map((row) => <div key={row.date}><span>{new Date(row.date).toLocaleDateString()}</span><strong>{kind === "revenue" ? usd(row.revenueUsd) : `${row.submitted} submitted`}</strong><small>{kind === "revenue" ? `${row.totalTransactions} transactions` : `${row.accepted} accepted · ${row.rejected} rejected`}</small></div>)}</div>;
-}
+import { Users, Briefcase, FileText, File, AlertCircle, DollarSign, Wallet } from "lucide-react";
+import AdminStatsCard from "./AdminStatsCard";
+import AdminRevenueChart from "./AdminRevenueChart";
+import AdminProposalsChart from "./AdminProposalsChart";
+import { useDashboardStats } from "../dashboardQueries";
 
 export default function AdminOverview() {
-  const [selectedPayout, setSelectedPayout] = useState(null);
-  const statsQuery = useDashboardStats();
-  const payoutQuery = usePendingPayouts();
-  const revenueQuery = useRevenueChart({ days: 30 });
-  const proposalsQuery = useProposalsChart({ days: 30 });
+  const {data:dashboardStats} = useDashboardStats()
+  
+  return (
+    <div className="space-y-8 px-10 py-10">
+      <div>
+        <h2 className="text-xl font-bold text-fg mb-1">Dashboard Overview</h2>
+        <p className="text-sm text-fg-subtle">Welcome back, here's what's happening at WebOfWork today.</p>
+      </div>
 
-  if (statsQuery.isLoading) return <section className="admin-page"><div className="admin-loading">Loading platform overview...</div></section>;
-  if (statsQuery.isError) return <section className="admin-page"><div className="admin-form-error">Unable to load dashboard metrics.</div></section>;
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <AdminStatsCard
+          title="Total Users"
+          value={dashboardStats?.total_users}
+          change={`${dashboardStats?.users_change}%`}
+          changeType={dashboardStats?.users_change >= 0 ? "positive" : "negative"}
+          icon={Users}
+          iconBgColor="bg-brand-soft"
+          iconColor="text-brand"
+        />
+        <AdminStatsCard
+          title="Total Projects"
+          value={dashboardStats?.total_projects}
+          change={`${dashboardStats?.projects_change}%`}
+          changeType={dashboardStats?.projects_change >= 0 ? "positive" : "negative"}
+          icon={Briefcase}
+          iconBgColor="bg-surface"
+          iconColor="text-fg"
+        />
+        <AdminStatsCard
+          title="Active Contracts"
+          value={dashboardStats?.active_contracts}
+          change={`${dashboardStats?.contracts_change}%`}
+          changeType={dashboardStats?.contracts_change >= 0 ? "positive" : "negative"}
+          icon={FileText}
+          iconBgColor="bg-success-soft"
+          iconColor="text-fg"
+        />
+        <AdminStatsCard
+          title="Total Proposals"
+          value={dashboardStats?.total_proposals}
+          change={`${dashboardStats?.proposals_change}%`}
+          changeType={dashboardStats?.proposals_change >= 0 ? "positive" : "negative"}
+          icon={File}
+          iconBgColor="bg-surface"
+          iconColor="text-fg"
+        />
+      </div>
 
-  const stats = statsQuery.data ?? {};
-  const payouts = Array.isArray(payoutQuery.data) ? payoutQuery.data : payoutQuery.data?.items ?? payoutQuery.data?.results ?? [];
-  const revenue = Array.isArray(revenueQuery.data) ? revenueQuery.data : revenueQuery.data?.items ?? [];
-  const proposals = Array.isArray(proposalsQuery.data) ? proposalsQuery.data : proposalsQuery.data?.items ?? [];
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <AdminStatsCard
+          title="Open Disputes"
+          value={dashboardStats?.total_disputes}
+          change={`${dashboardStats?.dispute_change}%`}
+          changeType={dashboardStats?.dispute_change >= 0 ? "positive" : "negative"}
+          icon={AlertCircle}
+          iconBgColor="bg-danger-soft"
+          iconColor="text-danger"
+        />
+        <AdminStatsCard
+          title="Platform Revenue"
+          value={`$${dashboardStats?.platform_revenue}`}
+          change={`${dashboardStats?.revenue_change}%`}
+          changeType={dashboardStats?.revenue_change >= 0 ? "positive" : "negative"}
+          icon={DollarSign}
+          iconBgColor="bg-surface"
+          iconColor="text-fg"
+        />
+        <AdminStatsCard
+          title="Pending Withdrawals"
+          value={`$${dashboardStats?.pending_withdrawals}`}
+          change={`${dashboardStats?.pending_withdrawals_count} pending`}
+          changeType={dashboardStats?.pending_withdrawals_count  >= 0 ? "positive" : "negative"}
+          icon={Wallet}
+          iconBgColor="bg-surface"
+          iconColor="text-fg"
+        />
+      </div>
 
-  return <section className="admin-page"><div className="admin-page__heading"><div><span className="app-shell__eyebrow">Operations</span><h1>Platform overview</h1><p>Keep a clear view of activity, revenue, and obligations.</p></div></div><div className="admin-stats-grid"><AdminStatsCard label="Revenue" value={usd(stats.totalRevenueUsd)} detail={`${stats.totalTransactions ?? 0} transactions`} /><AdminStatsCard label="Platform fees" value={usd(stats.totalPlatformFeesUsd)} /><AdminStatsCard label="Pending payouts" value={usd(stats.totalPendingPayoutsUsd)} detail={`${stats.pendingPayoutCount ?? 0} awaiting release`} /><AdminStatsCard label="Active users" value={stats.activeUsers ?? 0} detail={`${stats.totalUsers ?? 0} total accounts`} /><AdminStatsCard label="Open projects" value={stats.openProjects ?? 0} detail={`${stats.totalProjects ?? 0} total projects`} /><AdminStatsCard label="Completed contracts" value={stats.completedContracts ?? 0} /></div><div className="admin-data-grid"><section className="admin-subsection"><div className="admin-subsection__heading"><div><span className="app-shell__eyebrow">Revenue trend</span><h2>Last 30 days</h2></div></div><ChartRows rows={revenue} kind="revenue" loading={revenueQuery.isLoading} /></section><section className="admin-subsection"><div className="admin-subsection__heading"><div><span className="app-shell__eyebrow">Proposal activity</span><h2>Last 30 days</h2></div></div><ChartRows rows={proposals} kind="proposals" loading={proposalsQuery.isLoading} /></section></div><section className="admin-subsection"><div className="admin-subsection__heading"><div><span className="app-shell__eyebrow">Money movement</span><h2>Pending payouts</h2></div><span>{payouts.length} awaiting review</span></div>{payoutQuery.isLoading && <div className="admin-loading">Loading pending payouts...</div>}{payoutQuery.isError && <div className="admin-form-error">Unable to load pending payouts.</div>}{!payoutQuery.isLoading && !payoutQuery.isError && payouts.length === 0 && <div className="admin-empty">No payouts are currently waiting for release.</div>}{payouts.length > 0 && <div className="admin-payout-list">{payouts.map((payout) => <div className="admin-payout-row" key={payout.id}><div><strong>Payment #{payout.id}</strong><small>{payout.status} · {new Date(payout.createdAt).toLocaleDateString()}</small></div><strong>{usd(payout.amount)}</strong><button className="button button--quiet" type="button" onClick={() => setSelectedPayout(payout)}>Review</button></div>)}</div>}</section><PayoutReleaseModal payment={selectedPayout} onClose={() => setSelectedPayout(null)} /></section>;
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AdminRevenueChart />
+        <AdminProposalsChart />
+      </div>
+
+      
+    </div>
+  );
 }
