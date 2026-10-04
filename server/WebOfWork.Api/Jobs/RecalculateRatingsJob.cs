@@ -41,12 +41,14 @@ public class RecalculateRatingsJob
             })
             .ToListAsync(cancellationToken);
 
+        var freelancerIds = freelancerStats.Select(s => s.RevieweeId).ToList();
+        var freelancerProfiles = await _db.FreelancerProfiles
+            .Where(p => freelancerIds.Contains(p.UserId))
+            .ToDictionaryAsync(p => p.UserId, cancellationToken);
+
         foreach (var stat in freelancerStats)
         {
-            var profile = await _db.FreelancerProfiles
-                .FirstOrDefaultAsync(p => p.UserId == stat.RevieweeId, cancellationToken);
-
-            if (profile != null)
+            if (freelancerProfiles.TryGetValue(stat.RevieweeId, out var profile))
             {
                 profile.AverageRating = Math.Round((decimal)stat.Avg, 2);
                 profile.ReviewCount = stat.Count;
@@ -65,12 +67,14 @@ public class RecalculateRatingsJob
             })
             .ToListAsync(cancellationToken);
 
+        var clientIds = clientStats.Select(s => s.RevieweeId).ToList();
+        var clientProfiles = await _db.ClientProfiles
+            .Where(p => clientIds.Contains(p.UserId))
+            .ToDictionaryAsync(p => p.UserId, cancellationToken);
+
         foreach (var stat in clientStats)
         {
-            var profile = await _db.ClientProfiles
-                .FirstOrDefaultAsync(p => p.UserId == stat.RevieweeId, cancellationToken);
-
-            if (profile != null)
+            if (clientProfiles.TryGetValue(stat.RevieweeId, out var profile))
             {
                 profile.AverageRating = Math.Round((decimal)stat.Avg, 2);
                 profile.ReviewCount = stat.Count;

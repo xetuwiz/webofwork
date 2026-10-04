@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 using WebOfWork.Api.Data;
 
 #nullable disable
@@ -468,6 +469,10 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
                     b.Property<Guid>("FreelancerId")
                         .HasColumnType("uuid")
                         .HasColumnName("freelancer_id");
@@ -558,10 +563,6 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
 
-                    b.Property<int?>("ContractId1")
-                        .HasColumnType("integer")
-                        .HasColumnName("contract_id1");
-
                     b.Property<string>("DeliverableType")
                         .IsRequired()
                         .HasColumnType("text")
@@ -602,9 +603,6 @@ namespace WebOfWork.Api.Data.Migrations
                     b.HasIndex("ContractId")
                         .HasDatabaseName("ix_contract_deliverables_contract_id");
 
-                    b.HasIndex("ContractId1")
-                        .HasDatabaseName("ix_contract_deliverables_contract_id1");
-
                     b.HasIndex("FreelancerId")
                         .HasDatabaseName("ix_contract_deliverables_freelancer_id");
 
@@ -623,10 +621,6 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Property<int>("ContractId")
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
-
-                    b.Property<int?>("ContractId1")
-                        .HasColumnType("integer")
-                        .HasColumnName("contract_id1");
 
                     b.Property<string>("Reason")
                         .IsRequired()
@@ -661,13 +655,59 @@ namespace WebOfWork.Api.Data.Migrations
                     b.HasIndex("ContractId")
                         .HasDatabaseName("ix_contract_revisions_contract_id");
 
-                    b.HasIndex("ContractId1")
-                        .HasDatabaseName("ix_contract_revisions_contract_id1");
-
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_contract_revisions_user_id");
 
                     b.ToTable("contract_revisions", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.DeviceRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("device_name");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("platform");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("token");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_device_registrations");
+
+                    b.HasIndex("Token")
+                        .IsUnique()
+                        .HasDatabaseName("ix_device_registrations_token");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_device_registrations_user_id");
+
+                    b.ToTable("device_registrations", (string)null);
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Dispute", b =>
@@ -686,10 +726,6 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Property<int>("ContractId")
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
-
-                    b.Property<int?>("ContractId1")
-                        .HasColumnType("integer")
-                        .HasColumnName("contract_id1");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -732,11 +768,8 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasName("pk_disputes");
 
                     b.HasIndex("ContractId")
-                        .HasDatabaseName("ix_disputes_contract_id");
-
-                    b.HasIndex("ContractId1")
                         .IsUnique()
-                        .HasDatabaseName("ix_disputes_contract_id1");
+                        .HasDatabaseName("ix_disputes_contract_id");
 
                     b.HasIndex("OpenedByClientId")
                         .HasDatabaseName("ix_disputes_opened_by_client_id");
@@ -1233,6 +1266,74 @@ namespace WebOfWork.Api.Data.Migrations
                     b.ToTable("invitations", (string)null);
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.MarketPriceReference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("category_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Deliverable")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("deliverable");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("level");
+
+                    b.Property<decimal>("MaxPriceUsd")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("max_price_usd");
+
+                    b.Property<decimal>("MinPriceUsd")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("min_price_usd");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<int?>("TypicalDaysMax")
+                        .HasColumnType("integer")
+                        .HasColumnName("typical_days_max");
+
+                    b.Property<int?>("TypicalDaysMin")
+                        .HasColumnType("integer")
+                        .HasColumnName("typical_days_min");
+
+                    b.HasKey("Id")
+                        .HasName("pk_market_price_references");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("ix_market_price_references_category_id");
+
+                    b.HasIndex("Deliverable", "Level", "CategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_market_price_references_identity");
+
+                    b.ToTable("market_price_references", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_market_price_references_min_le_max", "min_price_usd <= max_price_usd");
+
+                            t.HasCheckConstraint("ck_market_price_references_positive", "min_price_usd > 0 AND max_price_usd > 0");
+                        });
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Message", b =>
                 {
                     b.Property<int>("Id")
@@ -1363,6 +1464,98 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasDatabaseName("IX_notifications_recipient_read_created");
 
                     b.ToTable("notifications", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.NotificationPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("EmailEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_enabled");
+
+                    b.Property<bool>("InAppEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("in_app_enabled");
+
+                    b.Property<bool>("MasterEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("master_enabled");
+
+                    b.Property<bool>("PushEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("push_enabled");
+
+                    b.Property<bool>("SmsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("sms_enabled");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_preferences");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notification_preferences_user_id");
+
+                    b.ToTable("notification_preferences", (string)null);
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.NotificationTypePreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("type");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_type_preferences");
+
+                    b.HasIndex("UserId", "Type", "Channel")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notification_type_preferences_user_id_type_channel");
+
+                    b.ToTable("notification_type_preferences", (string)null);
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Payment", b =>
@@ -1640,6 +1833,11 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<NpgsqlTsVector>("search_vector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search_vector");
+
                     b.HasKey("Id")
                         .HasName("pk_projects");
 
@@ -1831,10 +2029,6 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("contract_id");
 
-                    b.Property<int?>("ContractId1")
-                        .HasColumnType("integer")
-                        .HasColumnName("contract_id1");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1864,9 +2058,6 @@ namespace WebOfWork.Api.Data.Migrations
 
                     b.HasIndex("ContractId")
                         .HasDatabaseName("ix_reviews_contract_id");
-
-                    b.HasIndex("ContractId1")
-                        .HasDatabaseName("ix_reviews_contract_id1");
 
                     b.HasIndex("RevieweeId")
                         .HasDatabaseName("ix_reviews_reviewee_id");
@@ -2261,6 +2452,18 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("requested_by_user_id");
 
+                    b.Property<string>("ResumeValue")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("resume_value");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("draft")
+                        .HasColumnName("stage");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
@@ -2286,6 +2489,9 @@ namespace WebOfWork.Api.Data.Migrations
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_workflow_runs_status");
+
+                    b.HasIndex("ProjectId", "Stage")
+                        .HasDatabaseName("ix_workflow_runs_project_id_stage");
 
                     b.ToTable("workflow_runs", (string)null);
                 });
@@ -2336,10 +2542,6 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("workflow_run_id");
 
-                    b.Property<int?>("WorkflowRunId1")
-                        .HasColumnType("integer")
-                        .HasColumnName("workflow_run_id1");
-
                     b.HasKey("Id")
                         .HasName("pk_workflow_step_logs");
 
@@ -2351,9 +2553,6 @@ namespace WebOfWork.Api.Data.Migrations
 
                     b.HasIndex("WorkflowRunId")
                         .HasDatabaseName("ix_workflow_step_logs_workflow_run_id");
-
-                    b.HasIndex("WorkflowRunId1")
-                        .HasDatabaseName("ix_workflow_step_logs_workflow_run_id1");
 
                     b.ToTable("workflow_step_logs", (string)null);
                 });
@@ -2510,16 +2709,11 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.ContractDeliverable", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
-                        .WithMany()
+                        .WithMany("Deliverables")
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_contract_deliverables_contracts_contract_id");
-
-                    b.HasOne("WebOfWork.Api.Models.Contract", null)
-                        .WithMany("Deliverables")
-                        .HasForeignKey("ContractId1")
-                        .HasConstraintName("fk_contract_deliverables_contracts_contract_id1");
 
                     b.HasOne("WebOfWork.Api.Models.FreelancerProfile", "Freelancer")
                         .WithMany()
@@ -2536,16 +2730,11 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.ContractRevision", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
-                        .WithMany()
+                        .WithMany("Revisions")
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_contract_revisions_contracts_contract_id");
-
-                    b.HasOne("WebOfWork.Api.Models.Contract", null)
-                        .WithMany("Revisions")
-                        .HasForeignKey("ContractId1")
-                        .HasConstraintName("fk_contract_revisions_contracts_contract_id1");
 
                     b.HasOne("WebOfWork.Api.Models.User", "User")
                         .WithMany()
@@ -2559,19 +2748,26 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.DeviceRegistration", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_device_registrations_users_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Dispute", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
-                        .WithMany()
-                        .HasForeignKey("ContractId")
+                        .WithOne("Dispute")
+                        .HasForeignKey("WebOfWork.Api.Models.Dispute", "ContractId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_disputes_contracts_contract_id");
-
-                    b.HasOne("WebOfWork.Api.Models.Contract", null)
-                        .WithOne("Dispute")
-                        .HasForeignKey("WebOfWork.Api.Models.Dispute", "ContractId1")
-                        .HasConstraintName("fk_disputes_contracts_contract_id1");
 
                     b.HasOne("WebOfWork.Api.Models.ClientProfile", "OpenedByClient")
                         .WithMany()
@@ -2736,6 +2932,17 @@ namespace WebOfWork.Api.Data.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("WebOfWork.Api.Models.MarketPriceReference", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_market_price_references_categories_category_id");
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("WebOfWork.Api.Models.Message", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.ChatRoom", "Room")
@@ -2767,6 +2974,30 @@ namespace WebOfWork.Api.Data.Migrations
                         .HasConstraintName("fk_notifications_users_recipient_id");
 
                     b.Navigation("Recipient");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.NotificationPreference", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_preferences_users_user_id");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebOfWork.Api.Models.NotificationTypePreference", b =>
+                {
+                    b.HasOne("WebOfWork.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_type_preferences_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebOfWork.Api.Models.Payment", b =>
@@ -2890,16 +3121,11 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.Review", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.Contract", "Contract")
-                        .WithMany()
+                        .WithMany("Reviews")
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_reviews_contracts_contract_id");
-
-                    b.HasOne("WebOfWork.Api.Models.Contract", null)
-                        .WithMany("Reviews")
-                        .HasForeignKey("ContractId1")
-                        .HasConstraintName("fk_reviews_contracts_contract_id1");
 
                     b.HasOne("WebOfWork.Api.Models.User", "Reviewee")
                         .WithMany()
@@ -3008,16 +3234,11 @@ namespace WebOfWork.Api.Data.Migrations
             modelBuilder.Entity("WebOfWork.Api.Models.WorkflowStepLog", b =>
                 {
                     b.HasOne("WebOfWork.Api.Models.WorkflowRun", "WorkflowRun")
-                        .WithMany()
+                        .WithMany("StepLogs")
                         .HasForeignKey("WorkflowRunId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_workflow_step_logs_workflow_runs_workflow_run_id");
-
-                    b.HasOne("WebOfWork.Api.Models.WorkflowRun", null)
-                        .WithMany("StepLogs")
-                        .HasForeignKey("WorkflowRunId1")
-                        .HasConstraintName("fk_workflow_step_logs_workflow_runs_workflow_run_id1");
 
                     b.Navigation("WorkflowRun");
                 });

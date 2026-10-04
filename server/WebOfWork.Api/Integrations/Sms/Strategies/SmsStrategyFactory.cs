@@ -48,10 +48,23 @@ public class ContractCompletedSmsStrategy : ISmsMessageStrategy
 
 public class PaymentCreditedSmsStrategy : ISmsMessageStrategy
 {
+    /// <remarks>
+    /// Says "held in escrow", not "credited to your account".
+    ///
+    /// This notification is published the moment a client's payment is verified,
+    /// which moves the payment to `Escrow` -- the funds are held, not paid out.
+    /// The money reaches the freelancer later, when `PayoutService` releases it
+    /// and publishes `PayoutReleased`. The old wording asserted something the
+    /// database contradicted at this point, and a freelancer who read it and
+    /// then found nothing in their balance had been told something untrue.
+    ///
+    /// The `args[0]` is the freelancer's share, not the gross amount, so it
+    /// matches the number quoted in the in-app notification.
+    /// </remarks>
     public string GenerateMessage(params object[] args)
     {
         var amount = args.Length > 0 ? args[0].ToString() : "the funds";
-        return $"A payment of {amount} USD has been credited to your WebOfWork account.";
+        return $"A payment of {amount} USD is held in escrow for you and will be released when the work is approved.";
     }
 }
 
@@ -75,10 +88,26 @@ public class OfferReceivedSmsStrategy : ISmsMessageStrategy
 {
     public string GenerateMessage(params object[] args)
     {
-        if (args.Length > 0 && decimal.TryParse(args[0]?.ToString(), out var amount))
-            return $"You have received a new contract offer for {amount:0.00} USD on WebOfWork!";
+        // The amount was parsed and then discarded: both branches returned the same
+        // string, so `out var amount` was dead and every offer SMS said "for the
+        // project" no matter what was actually on offer. A recipient deciding
+        // whether to accept needs the number.
+        //
+        // InvariantCulture is deliberate. Formatting to "1500.00" under a locale
+        // that uses a comma would render 1500.50 as "1500,50" -- or, worse, as
+        // 1.500,50 -- so the recipient would read the wrong figure.
+        if (args.Length > 0 && decimal.TryParse(
+                args[0]?.ToString(),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var amount))
+        {
+            var formatted = amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            return $"You have received a new contract offer for {formatted} USD on WebOfWork!";
+        }
 
-        return "You have received a new offer on WebOfWork.";
+        // No usable amount. Say the offer exists without inventing a figure.
+        return "You received a new contract offer for the project.";
     }
 }
 
@@ -86,7 +115,7 @@ public class InvitationReceivedSmsStrategy : ISmsMessageStrategy
 {
     public string GenerateMessage(params object[] args)
     {
-        return "You have received a new project invitation on WebOfWork.";
+        return "You received a new invitation for the project.";
     }
 }
 
@@ -94,7 +123,7 @@ public class ProposalAcceptedSmsStrategy : ISmsMessageStrategy
 {
     public string GenerateMessage(params object[] args)
     {
-        return "Congratulations! Your proposal has been accepted on WebOfWork.";
+        return "Your proposal for the project was accepted!";
     }
 }
 
@@ -106,10 +135,18 @@ public class SmsStrategyFactory
     {
         _strategies = new Dictionary<string, ISmsMessageStrategy>(StringComparer.OrdinalIgnoreCase)
         {
+            // Ad-hoc keys, for messages sent outside the notification system (OTP,
+            // transactional receipts). Anything that IS a `NotificationType` belongs
+            // in the `nameof(NotificationType.*)` group below, because that is the
+            // key `NotificationService` looks up.
             { "otp", new OtpSmsStrategy() },
             { "contract_offered", new ContractOfferedSmsStrategy() },
-            { "payment_verified", new PaymentVerifiedSmsStrategy() },
-            { "payout_released", new PayoutReleasedSmsStrategy() },
+            // "payment_verified" used to be registered here. Its only caller was a
+            // direct `_smsSender.SendSmsAsync` in `PaymentService`, which bypassed
+            // notification preferences and duplicated the `PaymentCredited`
+            // notification. That call is gone, so this key was unreachable --
+            // removed rather than left as a trap for the next person to wire up
+            // the same bypass.
             { nameof(NotificationType.ContractStarted), new ContractStartedSmsStrategy() },
             { nameof(NotificationType.WorkDelivered), new WorkDeliveredSmsStrategy() },
             { nameof(NotificationType.ContractCompleted), new ContractCompletedSmsStrategy() },
@@ -119,7 +156,19 @@ public class SmsStrategyFactory
             { nameof(NotificationType.RevisionRequested), new RevisionRequestedSmsStrategy() },
             { nameof(NotificationType.OfferReceived), new OfferReceivedSmsStrategy() },
             { nameof(NotificationType.InvitationReceived), new InvitationReceivedSmsStrategy() },
-            { nameof(NotificationType.ProposalAccepted), new ProposalAcceptedSmsStrategy() }
+            { nameof(NotificationType.ProposalAccepted), new ProposalAcceptedSmsStrategy() },
+            // `PayoutReleased` used to be registered above as "payout_released",
+            // with the ad-hoc keys. It is a `NotificationType`, and
+            // `NotificationService` looks strategies up by `type.ToString()` --
+            // "PayoutReleased" -- so that key was unreachable from the dispatcher,
+            // which fell through to `GenericNotificationSmsStrategy` and sent
+            // generic text.
+            //
+            // The tailored message only reached users at all because `PayoutService`
+            // sent a *second* SMS directly, bypassing their preferences: a
+            // freelancer with SMS switched off still got payout texts. Registering
+            // it correctly and deleting the direct send fixes both problems.
+            { nameof(NotificationType.PayoutReleased), new PayoutReleasedSmsStrategy() }
         };
     }
 
@@ -147,3 +196,4 @@ public class SmsStrategyFactory
         return true;
     }
 }
+

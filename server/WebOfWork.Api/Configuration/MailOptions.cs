@@ -3,7 +3,7 @@ namespace WebOfWork.Api.Configuration;
 /// <summary>
 /// SMTP settings for the MailKit sender.
 /// Host: mail.xetuwiz.de:587 with STARTTLS (from application.properties + plan spec).
-/// Do NOT use Gmail SMTP — that was a Grolance legacy error.
+/// Do NOT use Gmail SMTP — that was a the reference legacy error.
 /// </summary>
 public sealed class MailOptions
 {

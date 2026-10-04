@@ -48,10 +48,10 @@ public class InvitationsController : ControllerBase
     [HttpGet("sent")]
     [HttpGet("~/api/projects/invitations/sent")]
     [Authorize(Policy = "RequireClient")]
-    public async Task<IActionResult> GetSentInvitations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetSentInvitations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? project_id = null)
     {
         InvitationStatus? statusFilter = EnumQueryParser.TryParse<InvitationStatus>(status, out var parsed) ? parsed : null;
-        var result = await _invitationService.GetPagedSentInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, pageSize);
+        var result = await _invitationService.GetPagedSentInvitationsAsync(_currentUser.Id!.Value, statusFilter, page, pageSize, project_id);
         PaginationLinks.Apply(Request, result.Page, result.PageSize, result.Count, v => result.Next = v, v => result.Previous = v);
         return Ok(result);
     }

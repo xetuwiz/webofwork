@@ -27,10 +27,15 @@ public class CleanupExpiredOtpsJob
             return;
         }
 
-        var hostPort = endpoint.ToString().Split(':');
+        var hostPort = endpoint.ToString()!.Split(':');
         var host = hostPort[0];
         var port = hostPort.Length > 1 && int.TryParse(hostPort[1], out var parsedPort) ? parsedPort : 6379;
         var server = _redis.GetServer(host, port);
+        if (server is null)
+        {
+            _logger.LogWarning("CleanupExpiredOtpsJob skipped because the Redis server could not be resolved.");
+            return;
+        }
 
         var patterns = new[] { "otp:*", "reg:*", "reset:*", "phone:*", "del:*", "cooldown:*" };
         foreach (var pattern in patterns)

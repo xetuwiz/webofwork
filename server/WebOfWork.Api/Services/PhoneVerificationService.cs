@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using WebOfWork.Api.Data;
 using WebOfWork.Api.Integrations.Sms;
 using WebOfWork.Api.Integrations.Sms.Strategies;
+using WebOfWork.Api.Models;
 using WebOfWork.Api.Jobs;
 
 namespace WebOfWork.Api.Services;
@@ -56,13 +57,28 @@ public class PhoneVerificationService : IPhoneVerificationService
         var stored = await _otpService.GetOtpAsync($"phone:{userId}");
         if (stored != otp) throw new UnauthorizedAccessException("Invalid OTP");
 
+        // Get-or-create. This used to be a plain lookup guarded by
+        // "if (profile != null)", so for any account created through the signup
+        // UI -- which builds a ClientProfile only, never a FreelancerProfile --
+        // the verification was silently discarded: the OTP was consumed, HTTP
+        // 200 said "verified", IsPhoneVerified stayed false, and onboarding
+        // then failed with "Phone number not verified" with no way forward.
         var profile = await _db.FreelancerProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
-        if (profile != null)
+        if (profile == null)
         {
-            profile.Phone = normalizedPhone;
-            profile.IsPhoneVerified = true;
-            await _db.SaveChangesAsync();
+            profile = new FreelancerProfile
+            {
+                UserId = userId,
+                IsActive = false,
+                Availability = true,
+            };
+            _db.FreelancerProfiles.Add(profile);
         }
+
+        profile.Phone = normalizedPhone;
+        profile.IsPhoneVerified = true;
+        await _db.SaveChangesAsync();
+
         await _otpService.DeleteOtpAsync($"phone:{userId}");
     }
 }
