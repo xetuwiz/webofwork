@@ -166,11 +166,6 @@ function useWorkflowInvalidation() {
       client.invalidateQueries({ queryKey: ["ai-workflow", id] });
       client.invalidateQueries({ queryKey: ["ai-shortlist", id] });
     }
-    // Invitations are created server-side when a shortlist is approved.
-    // The proposals page holds a "sent-invitations" cache scoped by project
-    // that has no way to know new rows were written -- so it must be
-    // invalidated here, or the page shows nothing until the user refreshes.
-    client.invalidateQueries({ queryKey: ["sent-invitations"] });
   };
 }
 
