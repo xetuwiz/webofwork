@@ -42,4 +42,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-pubspec.lock
+
+# pubspec.lock is deliberately NOT ignored.
+#
+# This is an application, not a publishable Dart package, so the lockfile is a
+# deliverable and Flutter's own guidance is to commit it. Ignoring it let every
+# CI run resolve dependencies fresh against whatever pub.dev served that day, so
+# an upstream release could break the build with no commit of ours: the suite that
+# passed on flutter_widget_from_html_core 0.14.6 locally could not even compile
+# against 0.14.12 on the runner. A green main that turns red when somebody else
+# publishes is not a reproducible build.
