@@ -16,6 +16,7 @@ using Xunit;
 
 namespace WebOfWork.Api.Tests.Refunds;
 
+[Trait("Category", "Container")]
 public class RefundTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

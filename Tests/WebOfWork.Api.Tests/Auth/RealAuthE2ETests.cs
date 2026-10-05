@@ -23,6 +23,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace WebOfWork.Api.Tests.Auth;
 
 // We implement IAsyncLifetime to manage the Docker containers
+[Trait("Category", "Container")]
 public class RealAuthE2ETests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

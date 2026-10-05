@@ -14,6 +14,7 @@ using Testcontainers.PostgreSql;
 
 namespace WebOfWork.Api.Tests.Auth;
 
+[Trait("Category", "Container")]
 public class RealGoogleAuthE2ETests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

@@ -11,6 +11,7 @@ using Testcontainers.PostgreSql;
 
 namespace WebOfWork.Api.Tests.Platform;
 
+[Trait("Category", "Container")]
 public class PlatformTestFixture : IAsyncLifetime
 {
     public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder().WithImage("postgres:15-alpine").Build();
@@ -27,6 +28,7 @@ public class PlatformTestFixture : IAsyncLifetime
 }
 
 [CollectionDefinition("Platform Collection")]
+[Trait("Category", "Container")]
 public class PlatformCollection : ICollectionFixture<PlatformTestFixture> { }
 
 [Collection("Platform Collection")]

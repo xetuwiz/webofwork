@@ -15,6 +15,7 @@ using Moq;
 
 namespace WebOfWork.Api.Tests.Reviews;
 
+[Trait("Category", "Container")]
 public class ReviewTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

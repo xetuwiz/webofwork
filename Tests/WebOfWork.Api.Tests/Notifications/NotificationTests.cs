@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace WebOfWork.Api.Tests.Notifications;
 
+[Trait("Category", "Container")]
 public class NotificationTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

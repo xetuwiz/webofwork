@@ -13,6 +13,7 @@ using Xunit;
 
 namespace WebOfWork.Api.Tests.Admin;
 
+[Trait("Category", "Container")]
 public sealed class AdminAnalyticsTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

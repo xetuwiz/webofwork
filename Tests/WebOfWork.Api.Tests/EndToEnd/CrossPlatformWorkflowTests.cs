@@ -8,6 +8,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
+using Testcontainers.Redis;
 using WebOfWork.Api.Data;
 using WebOfWork.Api.Models;
 using WebOfWork.Api.Models.Enums;
@@ -73,6 +74,20 @@ public sealed class CrossPlatformWorkflowTests : IAsyncLifetime
         .WithPassword("postgres")
         .Build();
 
+    // Redis is not optional for this harness.
+    //
+    // Program.cs registers IConnectionMultiplexer only when Database:Redis is
+    // non-empty, and appsettings.json ships that value empty because
+    // appsettings.Development.json -- where a developer keeps it -- is
+    // gitignored. OtpService takes IConnectionMultiplexer unconditionally, so with
+    // no Redis configured the DI container fails to build, the host never starts,
+    // and each of the three tests below sat on its 120-second health timeout
+    // before failing: six minutes spent waiting on a startup that had already
+    // failed in its first second.
+    private readonly RedisContainer _redis = new RedisBuilder()
+        .WithImage("redis:7-alpine")
+        .Build();
+
     private readonly ITestOutputHelper _output;
 
     private const string InternalKey = "e2e-shared-internal-key-0123456789abcdef";
@@ -121,6 +136,7 @@ public sealed class CrossPlatformWorkflowTests : IAsyncLifetime
         Log($"repository root: {_repositoryRoot}");
 
         await _postgres.StartAsync();
+        await _redis.StartAsync();
 
         _apiPort = FreePort();
         _aiPort = FreePort();
@@ -169,6 +185,7 @@ public sealed class CrossPlatformWorkflowTests : IAsyncLifetime
             }
         }
 
+        await _redis.DisposeAsync();
         await _postgres.DisposeAsync();
     }
 
@@ -692,6 +709,7 @@ public sealed class CrossPlatformWorkflowTests : IAsyncLifetime
         info.Environment["ASPNETCORE_URLS"] = $"http://127.0.0.1:{_apiPort}";
         info.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
         info.Environment["ConnectionStrings__Postgres"] = _postgres.GetConnectionString();
+        info.Environment["Database__Redis"] = _redis.GetConnectionString();
         info.Environment["Jwt__Secret"] = "e2e-access-secret-that-is-long-enough-for-hmac-sha512-please";
         info.Environment["Jwt__RefreshSecret"] = "e2e-refresh-secret-that-is-long-enough-for-hmac-sha512-please";
         info.Environment["Jwt__Issuer"] = "WebOfWork.E2E";

@@ -22,6 +22,7 @@ using Testcontainers.PostgreSql;
 
 namespace WebOfWork.Api.Tests.Payments;
 
+[Trait("Category", "Container")]
 public class PaymentTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

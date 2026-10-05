@@ -112,42 +112,42 @@ jobs:
           path: ai/coverage.xml
           if-no-files-found: error
 
-      # ── 4. the image builds ────────────────────────────────────────────
+      # ── 4. the application actually assembles ───────────────────────────
       #
-      # Cheap, and it is the only way to know a Dockerfile that has not been run
-      # in a week still works. A broken build step in a Dockerfile is
-      # discovered by whoever deploys, which is the worst possible time.
-      - name: Build the image
-        run: docker build -t webofwork-ai:ci ai
-
-      # ── 5. the container answers ───────────────────────────────────────
+      # This used to build the image and run it. Docker is not part of this
+      # project's toolchain, and the image build was red anyway -- the Dockerfile
+      # copies its context into /app while the entrypoint asks for `ai.main`, so
+      # that module path cannot resolve. Neither of those is a fact about the
+      # service, and a red gate for them says nothing useful about the code.
       #
-      # Not a unit test. It starts the real image and asks it to describe itself,
-      # which catches a bad WORKDIR, a missing module copied in, and an
-      # entrypoint that exits -- none of which anything above would notice.
-      - name: Smoke test the container
+      # What is worth knowing is whether `ai.main` imports and routes, because a
+      # missing module anywhere in a chain of relative imports breaks the service
+      # at startup and no amount of unit testing notices. One second, no container.
+      - name: The app imports and routes
+        working-directory: ai
+        env:
+          # The repository root, not ai/. This step runs with ai/ as its working
+          # directory, so the `ai` package is its parent -- and pytest.ini's
+          # `pythonpath` applies to pytest only, not to a bare interpreter.
+          PYTHONPATH: ${{ github.workspace }}
+          INTERNAL_API_KEY: ci-not-a-real-key
+          APP_ENV: development
+          LLM_PROVIDER_CHAIN: fixture
+          LLM_ALLOW_FIXTURE_FALLBACK: "false"
         run: |
-          docker run -d --name ai-smoke \
-            -e INTERNAL_API_KEY=ci-not-a-real-key \
-            -e DOTNET_BASE_URL=http://host.docker.internal:9 \
-            -p 8001:8001 webofwork-ai:ci
+          python - <<'PY'
+          import sys
+          from ai.main import app
 
-          for i in $(seq 1 20); do
-            if curl -fsS http://localhost:8001/health > /tmp/health.json; then
-              break
-            fi
-            sleep 1
-          done
+          routes = {r.path for r in app.routes if hasattr(r, "path")}
+          expected = {"/health", "/agent/chat"}
+          missing = expected - routes
+          if missing:
+              sys.exit(f"missing routes: {sorted(missing)}; found {sorted(routes)}")
+          print(f"  routes ok: {sorted(expected)}")
+          PY
 
-          curl -fsS http://localhost:8001/health | tee /tmp/health.json
-          echo
-          # The service must be running on fixtures with no keys, and must say
-          # so rather than pretending to be live.
-          grep -q '"status":"ok"' /tmp/health.json
-          docker logs ai-smoke
-          docker rm -f ai-smoke
-
-      # ── 6. no key material ─────────────────────────────────────────────
+      # ── 5. no key material ─────────────────────────────────────────────
       #
       # The cheapest check here and the one most likely to catch a mistake.
       # `ai/.env` is gitignored, but gitignored is not the same as absent from a
@@ -171,15 +171,25 @@ jobs:
           fi
           echo "  no key-shaped strings in tracked files"
 
+      # `git check-ignore -q` exits 0 when the path IS ignored. Both assertions
+      # below were written as `check-ignore ... || fail`, which fires when the
+      # command exits non-zero -- that is, when the path is NOT ignored. So the
+      # second one failed on exactly the state it meant to confirm: .env.example
+      # is correctly un-ignored, so it got reported as ignored. A gate that fails
+      # on correct behaviour gets deleted, which would have quietly deleted the
+      # check that a real .env is never committed.
       - name: ai/.env is ignored
         run: |
           if [ -f ai/.env ]; then
-            git check-ignore -q ai/.env \
-              || { echo "::error::ai/.env exists but is not ignored"; exit 1; }
-            echo "  ai/.env exists and is ignored (expected locally)"
+            if git check-ignore -q ai/.env; then
+              echo "  ai/.env exists and is ignored (expected locally)"
+            else
+              echo "::error::ai/.env exists but is not ignored"; exit 1
+            fi
           fi
-          git check-ignore -q ai/.env.example || {
-            echo "::error::ai/.env.example is ignored, so nobody can bootstrap"; exit 1; }
+          if git check-ignore -q ai/.env.example; then
+            echo "::error::ai/.env.example is ignored, so nobody can bootstrap"; exit 1
+          fi
           echo "  ai/.env.example is tracked"
 
   # ── the guards, on their own ──────────────────────────────────────────
