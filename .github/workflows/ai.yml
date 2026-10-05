@@ -171,15 +171,25 @@ jobs:
           fi
           echo "  no key-shaped strings in tracked files"
 
+      # `git check-ignore -q` exits 0 when the path IS ignored. Both assertions
+      # below were written as `check-ignore ... || fail`, which fires when the
+      # command exits non-zero -- that is, when the path is NOT ignored. So the
+      # second one failed on exactly the state it meant to confirm: .env.example
+      # is correctly un-ignored, so it got reported as ignored. A gate that fails
+      # on correct behaviour gets deleted, which would have quietly deleted the
+      # check that a real .env is never committed.
       - name: ai/.env is ignored
         run: |
           if [ -f ai/.env ]; then
-            git check-ignore -q ai/.env \
-              || { echo "::error::ai/.env exists but is not ignored"; exit 1; }
-            echo "  ai/.env exists and is ignored (expected locally)"
+            if git check-ignore -q ai/.env; then
+              echo "  ai/.env exists and is ignored (expected locally)"
+            else
+              echo "::error::ai/.env exists but is not ignored"; exit 1
+            fi
           fi
-          git check-ignore -q ai/.env.example || {
-            echo "::error::ai/.env.example is ignored, so nobody can bootstrap"; exit 1; }
+          if git check-ignore -q ai/.env.example; then
+            echo "::error::ai/.env.example is ignored, so nobody can bootstrap"; exit 1
+          fi
           echo "  ai/.env.example is tracked"
 
   # ── the guards, on their own ──────────────────────────────────────────
