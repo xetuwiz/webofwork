@@ -17,7 +17,7 @@ public record FreelancerProfileResponse(
     decimal AverageRating,
     int ReviewCount,
     DateTime CreatedAt,
-    List<ProfileSkillDto> Skills,
+    List<string> Skills,
     List<ProfilePackageDto> Packages,
     List<PortfolioDto> Portfolios,
     int CompletedProjectsCount = 0,

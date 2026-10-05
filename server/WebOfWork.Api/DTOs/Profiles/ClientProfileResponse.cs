@@ -13,6 +13,10 @@ public record ClientProfileResponse(
     bool IsGoogleAccount,
     int ReviewCount,
     decimal AverageRating,
-    IReadOnlyList<int> CategoryIds,
+    /// <summary>
+    /// Category NAMES, not ids. the reference uses StringRelatedField(many=True); the ids
+    /// live on the entity. ProfileOverview.jsx and Interests.jsx both read this key.
+    /// </summary>
+    IReadOnlyList<string> Categories,
     string? ProfilePhoto = null
 );

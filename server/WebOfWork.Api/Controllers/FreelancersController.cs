@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WebOfWork.Api.DTOs.Profiles;
 using WebOfWork.Api.DTOs.Portfolio;
 using WebOfWork.Api.Configuration;
 using System.Security.Claims;
+using WebOfWork.Api.Integrations.Cloudinary;
 using WebOfWork.Api.Models.Enums;
 using WebOfWork.Api.Services;
 
@@ -38,7 +41,7 @@ public class FreelancersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetFreelancers([FromQuery] int? categoryId, [FromQuery] decimal? minPrice, [FromQuery] decimal? maxPrice)
     {
-        return Ok(await _profileService.GetFreelancersListAsync(categoryId, minPrice, maxPrice));
+        return Ok(await _profileService.GetFreelancersListAsync(null, categoryId, minPrice, maxPrice));
     }
 
     [HttpGet("{id:guid}")]
@@ -48,12 +51,13 @@ public class FreelancersController : ControllerBase
         return Ok(await _profileService.GetPublicFreelancerProfileAsync(id));
     }
 
-    [Authorize(Policy = "RequireFreelancer")]
-    [HttpGet("/api/profile/freelancer/me")]
-    public async Task<IActionResult> GetMyProfile()
-    {
-        return Ok(await _profileService.GetFreelancerProfileAsync(_currentUser.Id!.Value));
-    }
+    // NOTE: GET /api/profile/freelancer/me is implemented ONLY in
+    // ProfilesController.SmallFreelancer, which returns the reference
+    // "small" serializer (id, tagline, bio, phone, is_phone_verified,
+    // category, experience_level, availability, average_rating,
+    // review_count). It previously also existed here, producing an
+    // ambiguous-match 500. The richer management payload remains
+    // available at GET /api/profile/freelancer/profile.
 
     [Authorize(Policy = "RequireFreelancer")]
     [HttpPatch("/api/profile/freelancer/me")]
@@ -151,6 +155,7 @@ public class FreelancersController : ControllerBase
     }
 
     [HttpGet("payment-settings")]
+    [HttpGet("~/api/profile/freelancer/payment-settings")]
     [Authorize(Policy = "RequireFreelancer")]
     public async Task<IActionResult> GetPaymentSettings()
     {
@@ -160,22 +165,18 @@ public class FreelancersController : ControllerBase
     }
 
     [HttpPut("payment-settings")]
+    [HttpPut("~/api/profile/freelancer/payment-settings")]
     [Authorize(Policy = "RequireFreelancer")]
-    public async Task<IActionResult> UpdatePaymentSettings([FromBody] string PaypalEmail)
+    public async Task<IActionResult> UpdatePaymentSettings([FromBody] PaymentSettingsRequest request)
     {
+        // Was `[FromBody] string PaypalEmail`: the reference web client PUTs
+        // `{"paypal_email": "..."}`, which cannot bind to a bare string, so every
+        // save silently stored an empty address. Accept the same object shape
+        // the ProfilesController PATCH route does and write through one service.
+        await _profileService.UpdatePaymentSettingsAsync(_currentUser.Id!.Value, request.PaypalEmail);
         var db = HttpContext.RequestServices.GetRequiredService<WebOfWork.Api.Data.WebOfWorkDbContext>();
         var settings = await db.Set<WebOfWork.Api.Models.FreelancerPaymentSettings>().FirstOrDefaultAsync(p => p.UserId == _currentUser.Id!.Value);
-        if (settings == null)
-        {
-            settings = new WebOfWork.Api.Models.FreelancerPaymentSettings { UserId = _currentUser.Id!.Value, PaypalEmail = PaypalEmail };
-            db.Set<WebOfWork.Api.Models.FreelancerPaymentSettings>().Add(settings);
-        }
-        else
-        {
-            settings.PaypalEmail = PaypalEmail;
-        }
-        await db.SaveChangesAsync();
-        return Ok(settings);
+        return Ok(new { paypal_email = settings?.PaypalEmail ?? request.PaypalEmail, is_verified = settings?.IsVerified ?? true });
     }
 
     [HttpGet("recommended-projects")]
@@ -201,6 +202,72 @@ public class FreelancersController : ControllerBase
         context.FreelancerPortfolios.Add(portfolio);
         await context.SaveChangesAsync();
         return Ok(new { id = portfolio.Id });
+    }
+
+    /// <summary>Uploads a portfolio image and returns the URL to store in
+    /// <c>image_url</c>.</summary>
+    /// <remarks>
+    /// The web client uploads straight to Cloudinary with an unsigned upload
+    /// preset and stores the resulting <c>secure_url</c>. That is a browser
+    /// convenience, not a contract: a preset has to be public to be usable from a
+    /// page, so shipping one inside a mobile binary turns it into an open upload
+    /// bucket for anyone who unzips the APK. This route keeps the credentials
+    /// server-side -- it reuses the same <see cref="ICloudinaryStorageService"/>
+    /// the deliverable upload already goes through -- and hands the client back
+    /// only the URL, which then travels on the ordinary JSON create/PATCH routes.
+    /// <para>
+    /// Deliberately a *new* route rather than a change to
+    /// <c>POST|PATCH .../portfolio</c>: those are <c>[FromBody]</c> JSON, and
+    /// switching them to <c>multipart/form-data</c> would 415 the existing web
+    /// client.
+    /// </para>
+    /// </remarks>
+    // See SubmitDeliverable for why: Swashbuckle 6.6.2 cannot describe
+    // `[FromForm] IFormFile` and fails the entire API description. Hidden from
+    // the docs only; routing and the upload are unaffected.
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [HttpPost("~/api/profile/freelancer/portfolio/upload-image")]
+    [Authorize(Policy = "RequireFreelancer")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadPortfolioImage(
+            [FromServices] ICloudinaryStorageService cloudinary,
+            [FromForm] IFormFile? file)
+    {
+        if (file is not { Length: > 0 })
+            return BadRequest(new { error = "An image file is required." });
+
+        if (file.Length > 10 * 1024 * 1024)
+            return BadRequest(new { error = "Image must be 10 MB or smaller." });
+
+        // A multipart POST is attacker-controlled regardless of what the UI
+        // offers, so the type is still checked -- but on *either* signal.
+        //
+        // Content type alone is not enough: Dart's `MultipartFile.fromPath`
+        // infers it from the file name, and on Android that inference is
+        // unreliable. A real `.jpg` picked from the gallery arrived here as a
+        // non-`image/*` content type and was rejected by a content-type-only
+        // check, which is the "Only image files are accepted" the mobile user
+        // hit on a genuine JPEG. The extension is the other signal the client
+        // controls, so accept when either one says image.
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var looksLikeImage = file.ContentType?.StartsWith("image") == true
+            || extension is ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif";
+
+        if (!looksLikeImage)
+            return BadRequest(new { error = "Only image files are accepted." });
+
+        try
+        {
+            using var buffer = new MemoryStream();
+            await file.CopyToAsync(buffer);
+            var url = await cloudinary.UploadRawAsync(buffer.ToArray(), file.FileName, "portfolios");
+            return Ok(new { url });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpPost("~/api/profile/freelancer/portfolio/media")]
@@ -241,6 +308,38 @@ public class FreelancersController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    /// <summary>Item-level portfolio update. The reference edit flow only wrote to
+    /// React state, so edits were lost on refresh -- there was no PATCH route.</summary>
+    [HttpPatch("~/api/profile/freelancer/portfolio/{id:guid}")]
+    [Authorize(Policy = "RequireFreelancer")]
+    public async Task<IActionResult> UpdatePortfolioItem(Guid id, [FromServices] WebOfWork.Api.Data.WebOfWorkDbContext context, [FromBody] CreatePortfolioTestDto dto)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!);
+        var item = await context.FreelancerPortfolios.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        if (item == null) return NotFound();
+        item.Title = dto.Title;
+        item.Description = dto.Description;
+        item.ImageUrl = dto.ImageUrl;
+        await context.SaveChangesAsync();
+        return Ok(new { id = item.Id, title = item.Title, description = item.Description, image_url = item.ImageUrl });
+    }
+
+    /// <summary>Item-level portfolio delete. Removing the item must also remove its
+    /// media rows or the FK constraint trips and the DELETE 500s.</summary>
+    [HttpDelete("~/api/profile/freelancer/portfolio/{id:guid}")]
+    [Authorize(Policy = "RequireFreelancer")]
+    public async Task<IActionResult> DeletePortfolioItem(Guid id, [FromServices] WebOfWork.Api.Data.WebOfWorkDbContext context)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)!);
+        var item = await context.FreelancerPortfolios.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        if (item == null) return NotFound();
+        var media = await context.PortfolioMedia.Where(m => m.PortfolioItemId == id).ToListAsync();
+        context.PortfolioMedia.RemoveRange(media);
+        context.FreelancerPortfolios.Remove(item);
+        await context.SaveChangesAsync();
+        return NoContent();
     }
 
     [HttpPatch("~/api/profile/freelancer/portfolio/{portfolioItemId}/media/reorder")]

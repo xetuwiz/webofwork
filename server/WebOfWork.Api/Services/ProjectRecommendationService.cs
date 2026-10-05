@@ -78,7 +78,9 @@ public class ProjectRecommendationService : IProjectRecommendationService
                 (p.PricingType == ProjectPricingType.Range   && p.MaxPrice   >= proPrice));
         }
 
-        var candidates = await query.OrderByDescending(p => p.CreatedAt).Take(100).ToListAsync();
+        var candidates = await query
+            .Include(p => p.Category)
+            .OrderByDescending(p => p.CreatedAt).Take(100).ToListAsync();
 
         // 5. Skill intersection filter (in-memory, mirrors ref: project_skills & skill_names)
         var matched = candidates.Where(project =>
@@ -106,30 +108,28 @@ public class ProjectRecommendationService : IProjectRecommendationService
             Id                   = p.Id,
             ClientId             = p.ClientId,
             CategoryId           = p.CategoryId,
+            CategoryName         = p.Category?.Name ?? string.Empty,
             Title                = p.Title,
             Description          = p.Description,
             Requirements         = p.Requirements,
             ExpectedDeliverables = p.ExpectedDeliverables,
-            PricingType          = p.PricingType.ToString(),
+            PricingType          = p.PricingType,
             FixedPrice           = p.FixedPrice,
-            MinPrice             = p.MinPrice,
-            MaxPrice             = p.MaxPrice,
-            ExpectedDays         = p.ExpectedDays,
-            Status               = p.Status.ToString(),
+            MinBudget             = p.MinPrice,
+            MaxBudget             = p.MaxPrice,
+            DeliveryDays         = p.ExpectedDays,
+            Status               = p.Status,
             IsActive             = p.IsActive,
             CreatedAt            = p.CreatedAt,
             UpdatedAt            = p.UpdatedAt,
-            Skills               = p.Skills.Select(ps => new ProjectSkillResponse
-            {
-                SkillId = ps.SkillId,
-                Name    = ps.Skill?.Name ?? ps.CustomName ?? string.Empty
-            }).ToList()
+               Skills               = p.Skills.Select(ps => ps.Skill?.Name ?? ps.CustomName ?? string.Empty).ToList()
         }).ToList();
     }
 
     private async Task<List<ProjectResponse>> GetRecentOpenProjectsAsync()
     {
         var projects = await _db.Projects
+            .Include(p => p.Category)
             .Include(p => p.Skills).ThenInclude(ps => ps.Skill)
             .Where(p => p.Status == ProjectStatus.Open && p.IsActive)
             .OrderByDescending(p => p.CreatedAt)
@@ -141,24 +141,21 @@ public class ProjectRecommendationService : IProjectRecommendationService
             Id                   = p.Id,
             ClientId             = p.ClientId,
             CategoryId           = p.CategoryId,
+            CategoryName         = p.Category?.Name ?? string.Empty,
             Title                = p.Title,
             Description          = p.Description,
             Requirements         = p.Requirements,
             ExpectedDeliverables = p.ExpectedDeliverables,
-            PricingType          = p.PricingType.ToString(),
+            PricingType          = p.PricingType,
             FixedPrice           = p.FixedPrice,
-            MinPrice             = p.MinPrice,
-            MaxPrice             = p.MaxPrice,
-            ExpectedDays         = p.ExpectedDays,
-            Status               = p.Status.ToString(),
+            MinBudget             = p.MinPrice,
+            MaxBudget             = p.MaxPrice,
+            DeliveryDays         = p.ExpectedDays,
+            Status               = p.Status,
             IsActive             = p.IsActive,
             CreatedAt            = p.CreatedAt,
             UpdatedAt            = p.UpdatedAt,
-            Skills               = p.Skills.Select(ps => new ProjectSkillResponse
-            {
-                SkillId = ps.SkillId,
-                Name    = ps.Skill?.Name ?? ps.CustomName ?? string.Empty
-            }).ToList()
+               Skills               = p.Skills.Select(ps => ps.Skill?.Name ?? ps.CustomName ?? string.Empty).ToList()
         }).ToList();
     }
 }
