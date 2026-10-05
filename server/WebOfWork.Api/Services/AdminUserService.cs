@@ -44,21 +44,29 @@ public class AdminUserService : IAdminUserService
             query = query.Where(u => u.Status == status.Value);
         }
 
-        return await query
+        var items = await query
             .OrderByDescending(u => u.CreatedAt)
             .Select(u => new AdminUserResponse
             {
                 Id = u.Id,
                 Email = u.Email,
                 FullName = u.FullName,
-                Role = u.Role.ToString(),
-                Status = u.Status.ToString(),
+                Role = u.Role,
+                Status = u.Status,
                 IsActive = u.Status == UserStatus.Active,
                 IsEmailVerified = u.IsEmailVerified,
                 CreatedAt = u.CreatedAt,
-                UpdatedAt = u.UpdatedAt
+                UpdatedAt = u.UpdatedAt,
+                ProfilePhoto = u.ProfilePhoto,
+                IsDeleted = u.IsDeleted,
+                IsFreelancer = u.IsFreelancer,
+                IsAdmin = u.Role == UserRole.Admin,
+                CurrentRoleEnum = u.CurrentRole
             })
             .ToListAsync(ct);
+
+        ApplyCurrentRole(items);
+        return items;
     }
 
     public async Task<PagedResponse<AdminUserResponse>> GetPagedUsersAsync(string? search, UserRole? role, UserStatus? status, int page, int pageSize, CancellationToken ct = default)
@@ -68,8 +76,31 @@ public class AdminUserService : IAdminUserService
         if (role.HasValue) query = query.Where(u => u.Role == role.Value);
         if (status.HasValue) query = query.Where(u => u.Status == status.Value);
         var p = Math.Max(page, 1); var size = Math.Clamp(pageSize, 1, 100); var count = await query.CountAsync(ct);
-        var items = await query.OrderByDescending(u => u.CreatedAt).Skip((p - 1) * size).Take(size).Select(u => new AdminUserResponse { Id = u.Id, Email = u.Email, FullName = u.FullName, Role = u.Role.ToString(), Status = u.Status.ToString(), IsActive = u.Status == UserStatus.Active, IsEmailVerified = u.IsEmailVerified, CreatedAt = u.CreatedAt, UpdatedAt = u.UpdatedAt }).ToListAsync(ct);
+        var items = await query.OrderByDescending(u => u.CreatedAt).Skip((p - 1) * size).Take(size).Select(u => new AdminUserResponse
+        {
+            Id = u.Id, Email = u.Email, FullName = u.FullName, Role = u.Role, Status = u.Status,
+            IsActive = u.Status == UserStatus.Active, IsEmailVerified = u.IsEmailVerified,
+            CreatedAt = u.CreatedAt, UpdatedAt = u.UpdatedAt,
+            ProfilePhoto = u.ProfilePhoto, IsDeleted = u.IsDeleted, IsFreelancer = u.IsFreelancer,
+            IsAdmin = u.Role == UserRole.Admin, CurrentRoleEnum = u.CurrentRole
+        }).ToListAsync(ct);
+        ApplyCurrentRole(items);
         return new PagedResponse<AdminUserResponse> { Results = items, Count = count, Page = p, PageSize = size };
+    }
+
+    /// <summary>
+    /// Renders current_role as a string, falling back to Role when the column is
+    /// unset (0, not a valid UserRole — Client = 1). EF cannot call SnakeCase.Of
+    /// inside a projection, so it runs after materialization.
+    /// </summary>
+    private static void ApplyCurrentRole(List<AdminUserResponse> items)
+    {
+        foreach (var item in items)
+        {
+            var raw = (int)item.CurrentRoleEnum;
+            var isValid = raw != 0 && Enum.IsDefined(typeof(WebOfWork.Api.Models.Enums.UserRole), raw);
+            item.CurrentRole = WebOfWork.Api.Helpers.SnakeCase.Of(isValid ? item.CurrentRoleEnum : item.Role);
+        }
     }
 
     public async Task<AdminUserResponse> ToggleUserActiveAsync(Guid userId, CancellationToken ct = default)
@@ -107,16 +138,25 @@ public class AdminUserService : IAdminUserService
         return ToResponse(user);
     }
 
-    private static AdminUserResponse ToResponse(User user) => new()
+    private static AdminUserResponse ToResponse(User user)
     {
-        Id = user.Id,
-        Email = user.Email,
-        FullName = user.FullName,
-        Role = user.Role.ToString(),
-        Status = user.Status.ToString(),
-        IsActive = user.Status == UserStatus.Active,
-        IsEmailVerified = user.IsEmailVerified,
-        CreatedAt = user.CreatedAt,
-        UpdatedAt = user.UpdatedAt
-    };
+        var dto = new AdminUserResponse
+        {
+            Id = user.Id,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            Status = user.Status,
+            IsActive = user.Status == UserStatus.Active,
+            IsEmailVerified = user.IsEmailVerified,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt,
+            ProfilePhoto = user.ProfilePhoto,
+            IsDeleted = user.IsDeleted,
+            IsFreelancer = user.IsFreelancer,
+            IsAdmin = user.Role == UserRole.Admin
+        };
+        ApplyCurrentRole(new List<AdminUserResponse> { dto });
+        return dto;
+    }
 }

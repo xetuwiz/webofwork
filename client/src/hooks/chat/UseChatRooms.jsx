@@ -1,100 +1,118 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { useSelector } from "react-redux";
 
-const getChatHubUrl = () => {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "https://localhost:5001/api").replace(/\/api\/?$/, "");
-  return `${baseUrl}/hubs/chat`;
-};
-
-export function useChatSocket(options = {}) {
+export const useChatSocket = (roomId) => {
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const socketRef = useRef(null);
   const queryClient = useQueryClient();
-  const accessToken = useSelector((state) => state.auth?.accessToken ?? "");
-  const connectionRef = useRef(null);
-
-  const {
-    onMessageReceived,
-    onMessageDeleted,
-    onMessagesRead,
-    onUserTyping,
-  } = options;
+  const token = useSelector(state => state.auth.accessToken);
 
   useEffect(() => {
-    if (!accessToken) {
-      return undefined;
-    }
+    if (!roomId || !token) return;
 
-    const connection = new HubConnectionBuilder()
-      .withUrl(getChatHubUrl(), {
-        accessTokenFactory: () => accessToken,
-        withCredentials: true,
-      })
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
-      .build();
+    const wsUrl =`${import.meta.env.VITE_WS_URL}/chat/${roomId}/?token=${token}`;
+    socketRef.current = new WebSocket(wsUrl);
 
-    connection.on("MessageReceived", (message) => {
-      queryClient.invalidateQueries({ queryKey: ["chat-rooms"] });
-      queryClient.invalidateQueries({ queryKey: ["chat-messages"] });
-      onMessageReceived?.(message);
-    });
+    socketRef.current.onopen = () => {
+      setIsConnected(true);
+    };
 
-    connection.on("MessageDeleted", (payload) => {
-      queryClient.invalidateQueries({ queryKey: ["chat-messages"] });
-      onMessageDeleted?.(payload);
-    });
+    socketRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
 
-    connection.on("MessagesRead", (payload) => {
-      queryClient.invalidateQueries({ queryKey: ["chat-messages"] });
-      onMessagesRead?.(payload);
-    });
+      switch (data.type) {
+        case "chat_message":
+          queryClient.setQueryData(["messages", roomId], (oldData) => {
+            if (!oldData) return oldData;
+            const newPages = [...oldData.pages];
+            newPages[0] = {
+              ...newPages[0],
+              results: [data.message, ...newPages[0].results],
+            };
+            return { ...oldData, pages: newPages };
+          });
+          queryClient.invalidateQueries(["chatRooms"]);
+          break;
 
-    connection.on("UserTyping", (payload) => {
-      onUserTyping?.(payload);
-    });
+        case "typing":
+          setIsOtherTyping(data.is_typing);
+          break;
 
-    connectionRef.current = connection;
+        case "delete":
+          queryClient.setQueryData(["messages", roomId], (oldData) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                results: page.results.filter((m) => m.id !== data.message_id),
+              })),
+            };
+          });
+          break;
 
-    connection.start().catch((error) => {
-      console.error("Chat SignalR connection failed:", error);
-    });
+        case "read_receipt":
+          queryClient.setQueryData(["messages", roomId], (oldData) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                results: page.results.map((m) =>
+                  m.id === data.message_id ? { ...m, is_read: true } : m
+                ),
+              })),
+            };
+          });
+          break;
+
+        case "all_read_update":
+          queryClient.setQueryData(["messages", roomId], (oldData) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                results: page.results.map((m) => ({ ...m, is_read: true })),
+              })),
+            };
+          });
+          queryClient.invalidateQueries(["chatRooms"]);
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    socketRef.current.onclose = () => {
+      setIsConnected(false);
+    };
 
     return () => {
-      connection.stop().catch(() => {
-        // Ignore shutdown errors; the app is already cleaning up.
-      });
-      connectionRef.current = null;
+      socketRef.current?.close();
     };
-  }, [accessToken, onMessageDeleted, onMessageReceived, onMessagesRead, onUserTyping, queryClient]);
+  }, [roomId, queryClient, token]);
 
-  const joinRoom = useCallback(async (roomId) => {
-    if (!roomId || !connectionRef.current) {
-      return;
+  const sendMessage = (text) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "chat_message", message: text }));
     }
+  };
 
-    const connection = connectionRef.current;
-    if (connection.state === "Disconnected") {
-      await connection.start().catch(() => {});
+  const sendTypingStatus = (status) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "typing", is_typing: status }));
     }
+  };
 
-    if (connection.state === "Connected") {
-      await connection.invoke("JoinRoom", Number(roomId)).catch(() => {});
+  const notifyDeletion = (messageId) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "delete_message", message_id: messageId }));
     }
-  }, []);
+  };
 
-  const leaveRoom = useCallback(async (roomId) => {
-    if (!roomId || !connectionRef.current) {
-      return;
-    }
-
-    const connection = connectionRef.current;
-    if (connection.state === "Connected") {
-      await connection.invoke("LeaveRoom", Number(roomId)).catch(() => {});
-    }
-  }, []);
-
-  return { joinRoom, leaveRoom };
-}
-
-export default useChatSocket;
+  return { isConnected, isOtherTyping, sendMessage, sendTypingStatus, notifyDeletion };
+};

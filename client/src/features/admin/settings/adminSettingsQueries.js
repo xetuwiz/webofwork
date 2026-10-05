@@ -1,3 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchGlobalSettings } from "./adminSettingsApi.js";
-export const useGlobalSettings = () => useQuery({ queryKey: ["global-settings"], queryFn: fetchGlobalSettings });
+import { useQuery } from '@tanstack/react-query';
+import { fetchGlobalSettings } from './adminSettingsApi';
+
+export const useGlobalSettings = () => {
+  return useQuery({
+    queryKey: ['globalSettings'],
+    queryFn: fetchGlobalSettings,
+    staleTime: 1000 * 60 * 5,
+  });
+};

@@ -34,4 +34,9 @@ public class PayoutsController : ControllerBase
         var success = await _payoutService.ReleasePayoutAsync(request, cancellationToken);
         return Ok(new { Success = success });
     }
+
+    [HttpPost("~/api/payments/release-payout")]
+    [Authorize(Policy = "RequireAdmin")]
+    public async Task<IActionResult> Release([FromBody] ReleasePayoutRequest request, CancellationToken ct)
+        => Ok(await _payoutService.ReleaseByContractAsync(request.ContractId, ct));
 }

@@ -1,4 +1,17 @@
-import axiosInstance from "../../../api/axiosInstance.js";
-export const fetchDashboardStats = async () => (await axiosInstance.get("/admin/dashboard-stats")).data;
-export const fetchRevenueChart = async (params = {}) => (await axiosInstance.get("/admin/revenue-chart", { params })).data;
-export const fetchProposalsChart = async (params = {}) => (await axiosInstance.get("/admin/proposals-chart", { params })).data;
+import axiosInstance from "../../../api/axiosInstance"
+
+export const fetchDashboardStats = async () => {
+    const {data} = await axiosInstance.get('/admin/dashboard-stats/');
+    return data;
+}
+
+export const fetchRevenueChart = async (range) => {
+    const {data} = await axiosInstance.get(`/admin/revenue-chart/?range=${range}`)
+    return data;
+}
+
+export const fetchProposalsChart = async () =>{
+    const {data} = await axiosInstance.get('/admin/proposals-chart')
+    return data;
+}
+

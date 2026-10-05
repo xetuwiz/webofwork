@@ -10,7 +10,7 @@ namespace WebOfWork.Api.Services;
 public interface IAdminAnalyticsService
 {
     Task<DashboardStatsResponse> GetDashboardStatsAsync(CancellationToken ct = default);
-    Task<List<RevenueChartResponse>> GetRevenueChartAsync(int days, CancellationToken ct = default);
+    Task<List<RevenueChartResponse>> GetRevenueChartAsync(DateTime from, DateTime? to, CancellationToken ct = default);
     Task<List<ProposalsChartResponse>> GetProposalsChartAsync(int days, CancellationToken ct = default);
     Task<List<PaymentResponse>> GetPendingPayoutsAsync(CancellationToken ct = default);
 }
@@ -68,53 +68,93 @@ public class AdminAnalyticsService : IAdminAnalyticsService
         var openProjects = await _db.Projects.AsNoTracking().CountAsync(p => p.IsActive && p.Status == ProjectStatus.Open, ct);
         var completedContracts = await _db.Contracts.AsNoTracking().CountAsync(c => c.Status == ContractStatus.Completed, ct);
 
+        // ── Counters and month-over-month deltas read by AdminOverview.jsx ──
+        var activeContracts = await _db.Contracts.AsNoTracking()
+            .CountAsync(c => c.Status == ContractStatus.Active || c.Status == ContractStatus.Submitted, ct);
+        var totalProposals = await _db.Proposals.AsNoTracking().CountAsync(ct);
+        var totalDisputes = await _db.Disputes.AsNoTracking().CountAsync(ct);
+
+        // Contract has no CreatedAt column; ClientSignedAt is the closest meaningful
+        // "contract started" timestamp for the month-over-month delta.
+        var previousMonthActiveContracts = await _db.Contracts.AsNoTracking()
+            .CountAsync(c => (c.Status == ContractStatus.Active || c.Status == ContractStatus.Submitted) && c.ClientSignedAt >= previousMonthStart && c.ClientSignedAt < currentMonthStart, ct);
+        var currentMonthActiveContracts = await _db.Contracts.AsNoTracking()
+            .CountAsync(c => (c.Status == ContractStatus.Active || c.Status == ContractStatus.Submitted) && c.ClientSignedAt >= currentMonthStart, ct);
+        var previousMonthProposals = await _db.Proposals.AsNoTracking().CountAsync(p => p.CreatedAt >= previousMonthStart && p.CreatedAt < currentMonthStart, ct);
+        var currentMonthProposals = await _db.Proposals.AsNoTracking().CountAsync(p => p.CreatedAt >= currentMonthStart, ct);
+        var previousMonthDisputes = await _db.Disputes.AsNoTracking().CountAsync(d => d.CreatedAt >= previousMonthStart && d.CreatedAt < currentMonthStart, ct);
+        var currentMonthDisputes = await _db.Disputes.AsNoTracking().CountAsync(d => d.CreatedAt >= currentMonthStart, ct);
+
+        // Platform revenue is commission earnings, matching "Platform earnings via commissions"
+        // on the dashboard card.
+        var currentMonthFees = currentMonthPayments.Sum(p => p.PlatformFee);
+        var previousMonthFees = previousMonthPayments.Sum(p => p.PlatformFee);
+
         return new DashboardStatsResponse
         {
+            TotalUsers = totalUsers,
+            UsersChange = PercentChange(currentMonthUsers, previousMonthUsers),
+            TotalProjects = totalProjects,
+            ProjectsChange = PercentChange(currentMonthProjects, previousMonthProjects),
+            ActiveContracts = activeContracts,
+            ContractsChange = PercentChange(currentMonthActiveContracts, previousMonthActiveContracts),
+            TotalProposals = totalProposals,
+            ProposalsChange = PercentChange(currentMonthProposals, previousMonthProposals),
+            TotalDisputes = totalDisputes,
+            DisputeChange = PercentChange(currentMonthDisputes, previousMonthDisputes),
+            PlatformRevenue = platformFeesUsd,
+            RevenueChange = PercentChange(currentMonthFees, previousMonthFees),
+            PendingWithdrawals = pendingPayoutAmount,
+            PendingWithdrawalsCount = pendingPayouts.Count,
+
             TotalRevenueUsd = revenueUsd,
             TotalPlatformFeesUsd = platformFeesUsd,
             NetRevenueUsd = revenueUsd - platformFeesUsd,
             TotalPendingPayoutsUsd = pendingPayoutAmount,
             PendingPayoutCount = pendingPayouts.Count,
-            TotalUsers = totalUsers,
             ActiveUsers = activeUsers,
-            TotalProjects = totalProjects,
             OpenProjects = openProjects,
-            CompletedContracts = completedContracts,
-            UsersMonthOverMonthChange = PercentChange(currentMonthUsers, previousMonthUsers),
-            ProjectsMonthOverMonthChange = PercentChange(currentMonthProjects, previousMonthProjects),
-            RevenueMonthOverMonthChange = PercentChange(currentMonthRevenue, previousMonthRevenue),
-            CompletedContractsMonthOverMonthChange = PercentChange(currentMonthCompleted, previousMonthCompleted)
+            CompletedContracts = completedContracts
         };
     }
 
-    public async Task<List<RevenueChartResponse>> GetRevenueChartAsync(int days, CancellationToken ct = default)
+    public async Task<List<RevenueChartResponse>> GetRevenueChartAsync(DateTime from, DateTime? to, CancellationToken ct = default)
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(days - 1));
+        var start = from.Date;
+        var end = (to ?? DateTime.UtcNow).Date.AddDays(1);
 
-        var rows = await _db.Payments
+        var query = _db.Payments
             .AsNoTracking()
-            .Where(p => p.Status == PaymentStatus.Released && p.ProcessedAt >= start)
+            .Where(p => p.Status == PaymentStatus.Released && p.ProcessedAt >= start && p.ProcessedAt < end);
+
+        var rows = await query
             .GroupBy(p => p.ProcessedAt!.Value.Date)
             .Select(g => new RevenueChartResponse
             {
                 Date = g.Key,
+                // Platform earnings are the commission, matching the dashboard's
+                // "Platform earnings via commissions" framing.
+                Revenue = g.Sum(p => p.PlatformFee),
                 RevenueUsd = g.Sum(p => p.Amount),
                 TotalTransactions = g.Count()
             })
             .OrderBy(x => x.Date)
             .ToListAsync(ct);
 
-        // Ensure a day-by-day range is present for the dashboard.
+        // One row per month, zero-filled so the chart draws a continuous axis.
         var result = new List<RevenueChartResponse>();
-        for (var i = 0; i < days; i++)
+        for (var month = new DateTime(start.Year, start.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+             month < end;
+             month = month.AddMonths(1))
         {
-            var day = start.AddDays(i);
-            var item = rows.FirstOrDefault(x => x.Date == day);
+            var inMonth = rows.Where(x => x.Date.Year == month.Year && x.Date.Month == month.Month).ToList();
             result.Add(new RevenueChartResponse
             {
-                Date = day,
-                RevenueUsd = item?.RevenueUsd ?? 0m,
-                TotalTransactions = item?.TotalTransactions ?? 0
+                Date = month,
+                Month = month.ToString("MMM yyyy"),
+                Revenue = inMonth.Sum(x => x.Revenue),
+                RevenueUsd = inMonth.Sum(x => x.RevenueUsd),
+                TotalTransactions = inMonth.Sum(x => x.TotalTransactions)
             });
         }
 
@@ -139,14 +179,23 @@ public class AdminAnalyticsService : IAdminAnalyticsService
             .OrderBy(x => x.Date)
             .ToListAsync(ct);
 
+        var projectsPerDay = await _db.Projects.AsNoTracking()
+            .Where(p => p.CreatedAt >= start)
+            .GroupBy(p => p.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
         var result = new List<ProposalsChartResponse>();
         for (var i = 0; i < days; i++)
         {
             var day = start.AddDays(i);
             var item = rows.FirstOrDefault(x => x.Date == day);
+            var proj = projectsPerDay.FirstOrDefault(x => x.Date == day);
             result.Add(new ProposalsChartResponse
             {
                 Date = day,
+                Projects = proj?.Count ?? 0,
+                Proposals = item?.Submitted ?? 0,
                 Submitted = item?.Submitted ?? 0,
                 Accepted = item?.Accepted ?? 0,
                 Rejected = item?.Rejected ?? 0
@@ -175,7 +224,7 @@ public class AdminAnalyticsService : IAdminAnalyticsService
                 Amount = p.Amount,
                 PlatformFee = p.PlatformFee,
                 FreelancerAmount = p.Amount - p.PlatformFee,
-                Status = p.Status.ToString(),
+                Status = p.Status,
                 CreatedAt = p.CreatedAt
             })
             .ToListAsync(ct);

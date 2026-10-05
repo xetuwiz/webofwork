@@ -18,6 +18,8 @@ public interface IChatService
     Task ArchiveRoomAsync(Guid userId, UserRole role, int roomId, CancellationToken ct = default);
     Task<int> MarkRoomAsReadAsync(Guid userId, int roomId, int? messageId = null, CancellationToken ct = default);
     Task<bool> IsParticipantAsync(Guid userId, int roomId, CancellationToken ct = default);
+    /// <summary>Resolves the other side of a conversation, used to attribute read receipts.</summary>
+    Task<Guid?> GetOtherParticipantIdAsync(Guid userId, int roomId, CancellationToken ct = default);
 }
 
 public class ChatService : IChatService
@@ -81,7 +83,7 @@ public class ChatService : IChatService
                 LastMessageAt = r.LastMessageAt,
                 UnreadCount = r.Messages.Count(m => !m.IsDeleted && !m.IsRead && m.SenderId != userId),
                 IsArchived = role == UserRole.Client ? r.ClientArchived : r.FreelancerArchived,
-                ContractStatus = r.Contract.Status.ToString(),
+                ContractStatus = r.Contract.Status,
                 CreatedAt = r.CreatedAt
             })
             .ToListAsync(ct);
@@ -153,7 +155,7 @@ public class ChatService : IChatService
                 Role = nameof(UserRole.Freelancer)
             },
             CanSendMessages = canSend,
-            ContractStatus = room.Contract.Status.ToString(),
+            ContractStatus = room.Contract.Status,
             LastMessageAt = room.LastMessageAt,
             CreatedAt = room.CreatedAt,
             UnreadCount = unreadCount
@@ -280,6 +282,19 @@ public class ChatService : IChatService
             .AnyAsync(r => r.Id == roomId && (r.ClientId == userId || r.FreelancerId == userId), ct);
     }
 
+    public async Task<Guid?> GetOtherParticipantIdAsync(Guid userId, int roomId, CancellationToken ct)
+    {
+        var room = await _db.ChatRooms
+            .AsNoTracking()
+            .Where(r => r.Id == roomId && !r.IsDeleted)
+            .Select(r => new { r.ClientId, r.FreelancerId })
+            .FirstOrDefaultAsync(ct);
+        if (room == null) return null;
+        if (room.ClientId == userId) return room.FreelancerId;
+        if (room.FreelancerId == userId) return room.ClientId;
+        return null;
+    }
+
     private async Task<ChatRoom> FindRoomOrThrow(Guid userId, int roomId, CancellationToken ct, UserRole? role = null)
     {
         var room = await _db.ChatRooms
@@ -314,7 +329,7 @@ public class ChatService : IChatService
                 LastMessageAt = r.LastMessageAt,
                 UnreadCount = r.Messages.Count(m => !m.IsDeleted && !m.IsRead && m.SenderId != viewerId),
                 IsArchived = viewerRole == UserRole.Client ? r.ClientArchived : r.FreelancerArchived,
-                ContractStatus = r.Contract.Status.ToString(),
+                ContractStatus = r.Contract.Status,
                 CreatedAt = r.CreatedAt
             })
             .FirstAsync(ct);
