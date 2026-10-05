@@ -7,10 +7,13 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Hosting;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
+using StackExchange.Redis;
 
 namespace WebOfWork.Api.Tests.Authorization;
 
@@ -38,11 +41,34 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
     }
 }
 
-public class RoleAuthorizationTests : IClassFixture<WebApplicationFactory<Program>>
+// A bare WebApplicationFactory<Program> cannot build a host for this API.
+//
+// Program.cs registers IConnectionMultiplexer only when Database:Redis is
+// non-empty, OtpService depends on IConnectionMultiplexer unconditionally, and
+// ValidateOnBuild then fails before a single request is served -- the symptom
+// being "the entry point exited without ever building an IHost".
+//
+// Nothing in these three tests touches Redis: they assert that a non-admin is
+// refused a settings write. So the fixture supplies a stub multiplexer rather
+// than weakening the check in Program.cs for a test that does not care about
+// OTP, and rather than standing up a Redis container -- which would have made
+// the no-container tier require Docker to exist, for no gain.
+public sealed class RedisStubbedWebApplicationFactory : WebApplicationFactory<Program>
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<IConnectionMultiplexer>(Mock.Of<IConnectionMultiplexer>());
+        });
+    }
+}
+
+public class RoleAuthorizationTests : IClassFixture<RedisStubbedWebApplicationFactory>
 {
     private readonly WebApplicationFactory<Program> _factory;
 
-    public RoleAuthorizationTests(WebApplicationFactory<Program> factory)
+    public RoleAuthorizationTests(RedisStubbedWebApplicationFactory factory)
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
