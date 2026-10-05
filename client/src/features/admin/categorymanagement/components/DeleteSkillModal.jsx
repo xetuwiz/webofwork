@@ -1,70 +1,90 @@
-import { useState } from "react";
-import toast from "react-hot-toast";
-import { useDeleteSkill } from "../categoryMutations.js";
+import React from 'react';
+import { useDeleteSkill } from "../skillMutations";
+import Dialog from "../../../../components/common/Dialog";
+import { toastSuccess } from "../../../../utils/toast";
+import { getErrorMessage } from "../../../../utils/errorMessage";
 
 export default function DeleteSkillModal({ open, onOpenChange, skill }) {
   const deleteSkillMutation = useDeleteSkill();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!open || !skill) return null;
 
   const handleDelete = () => {
-    setIsSubmitting(true);
     deleteSkillMutation.mutate(skill.id, {
       onSuccess: () => {
-        toast.success("Skill deleted.");
         onOpenChange(false);
       },
-      onError: (error) => {
-        const message = error?.response?.data?.error || error?.response?.data?.detail || "Failed to delete skill.";
-        toast.error(message);
-      },
-      onSettled: () => setIsSubmitting(false),
     });
+    toastSuccess("Skill removed")
   };
 
   const handleCancel = () => {
+    deleteSkillMutation.reset();
+
     onOpenChange(false);
   };
 
+  // Covers the array-of-strings, ProblemDetails `detail`, and plain `error` shapes
+  // in one call. Deleting a skill that projects still reference fails with a
+  // specific reason from the API, and that is what the admin needs to see.
+  const errorMessage = getErrorMessage(
+    deleteSkillMutation.error,
+    "An error occurred while deleting."
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-      <div className="w-full max-w-[448px] overflow-hidden rounded-xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between px-8 pb-6 pt-8">
-          <h2 className="text-[17px] font-semibold text-slate-800">Delete Skill</h2>
-          <button type="button" onClick={handleCancel} className="text-slate-400 transition hover:text-slate-600">
-            ✕
-          </button>
+    <Dialog
+            open={open}
+            onClose={() => onOpenChange(false)}
+      title="Delete Skill"
+      size="sm"
+      className="overflow-hidden"
+    >
+        
+        <div className="flex items-center justify-between px-8 pt-8 pb-6">
+          <h2 className="text-[17px] font-semibold text-fg">Delete Skill</h2>
+          <button onClick={handleCancel} className="text-fg-subtle hover:text-fg-muted">✕</button>
         </div>
 
         <div className="px-8 pb-8">
-          <p className="mb-4 text-xs text-slate-600">Are you sure you want to delete this skill?</p>
+          {deleteSkillMutation.isError && (
+            <div className="mb-4 p-3 bg-danger-soft border border-danger/30 rounded-lg">
+              <p className="text-xs text-danger font-medium text-center">
+                {errorMessage}
+              </p>
+            </div>
+          )}
 
-          <div className="mb-6 rounded-lg bg-slate-50 px-4 py-4">
-            <p className="text-sm font-medium text-slate-800">{skill.name}</p>
+          <p className="text-xs text-fg-muted mb-4">
+            Are you sure you want to delete this skill?
+          </p>
+
+          <div className="bg-surface-2 rounded-lg px-4 py-4 mb-6">
+            <p className="text-sm font-medium text-fg">{skill.name}</p>
           </div>
 
-          <p className="mb-8 text-xs text-slate-500">This action cannot be undone.</p>
+          <p className="text-xs text-fg-subtle mb-8">
+            This action cannot be undone.
+          </p>
 
           <div className="flex gap-3">
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 rounded-lg bg-slate-100 py-3 font-medium text-slate-700 transition hover:bg-slate-200"
+              className="flex-1 h-12 bg-surface-3 rounded-lg font-medium text-sm"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleDelete}
-              disabled={deleteSkillMutation.isPending || isSubmitting}
-              className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={deleteSkillMutation.isPending}
+              className="flex-1 h-12 bg-danger-soft text-danger-fg rounded-lg hover:bg-danger disabled:opacity-50 font-medium text-sm"
             >
-              {deleteSkillMutation.isPending || isSubmitting ? "Deleting..." : "Delete Skill"}
+              {deleteSkillMutation.isPending ? "Deleting..." : "Delete Skill"}
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

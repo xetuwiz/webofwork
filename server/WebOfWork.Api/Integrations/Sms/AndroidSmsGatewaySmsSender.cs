@@ -10,6 +10,104 @@ using WebOfWork.Api.Configuration;
 
 namespace WebOfWork.Api.Integrations.Sms;
 
+/// <summary>
+/// Single source of truth for Sri Lankan mobile numbers.
+/// <para>
+/// Accepts every shape a user realistically types and returns canonical E.164
+/// (<c>+947XXXXXXXX</c>). All of these normalize to the same value:
+/// <c>+94779091086</c>, <c>94779091086</c>, <c>0094779091086</c>,
+/// <c>0779091086</c>, <c>077 909 1086</c>, <c>077-909-1086</c>,
+/// <c>(077) 909 1086</c>, <c>779091086</c>.
+/// </para>
+/// <para>
+/// Only the allocated mobile ranges are accepted. Landline (0 11/12/...),
+/// 070-072/074-078 only. In particular 073 and 079 are not allocated and are
+/// rejected, as is anything that is not 9 national digits starting with 7.
+/// </para>
+/// </summary>
+public static class SriLankanPhone
+{
+    public const string CountryCode = "94";
+    public const string MobilePrefix = "7";
+    public const int NationalNumberLength = 9;      // 7XXXXXXXX
+    public const int LocalNumberLength = 10;        // 07XXXXXXXX
+    public const string ErrorMessage = "Enter a valid Sri Lankan mobile number, e.g. 0779091086 or +94779091086.";
+
+    // Allocated mobile operator codes (national format, 07X).
+    private static readonly string[] AllocatedOperators =
+    {
+        "070", "071", "072", "074", "075", "076", "077", "078"
+    };
+
+    /// <summary>
+    /// Converts any accepted Sri Lankan mobile format to <c>+947XXXXXXXX</c>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The number is not a valid SL mobile.</exception>
+    public static string Normalize(string? phoneNumber)
+    {
+        if (!TryNormalize(phoneNumber, out var normalized, out var error))
+        {
+            throw new ArgumentException(error, nameof(phoneNumber));
+        }
+
+        return normalized!;
+    }
+
+    /// <summary>
+    /// Non-throwing counterpart to <see cref="Normalize"/>.
+    /// </summary>
+    public static bool TryNormalize(string? phoneNumber, out string? normalized, out string? error)
+    {
+        normalized = null;
+        error = null;
+
+        // Strip everything that is not a digit: spaces, dashes, dots, brackets,
+        // and a leading '+'. "077 909-1086" and "(077) 909 1086" both collapse
+        // to the same 10 digits.
+        var digits = new string((phoneNumber ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+
+        // International access code.
+        if (digits.StartsWith("00" + CountryCode, StringComparison.Ordinal))
+        {
+            digits = digits[2..];
+        }
+
+        // Drop a bare country code (94XXXXXXXXX).
+        if (digits.Length == NationalNumberLength + 2 && digits.StartsWith(CountryCode, StringComparison.Ordinal))
+        {
+            digits = digits[2..];
+        }
+
+        // Drop a leading trunk zero (0 7 XXXXXXX -> 7 XXXXXXX).
+        if (digits.Length == LocalNumberLength && digits[0] == '0')
+        {
+            digits = digits[1..];
+        }
+
+        if (digits.Length != NationalNumberLength ||
+            !digits.StartsWith(MobilePrefix, StringComparison.Ordinal))
+        {
+            error = ErrorMessage;
+            return false;
+        }
+
+        // Reject unallocated operator codes (073, 079, ...).
+        // digits[0] is the mobile marker (7); digits[1] is the operator digit.
+        var operatorCode = "0" + digits[..2];
+        if (Array.IndexOf(AllocatedOperators, operatorCode) < 0)
+        {
+            error = $"Mobile prefix {operatorCode} is not an allocated Sri Lankan operator. Use 070, 071, 072, 074, 075, 076, 077 or 078.";
+            return false;
+        }
+
+        normalized = "+" + CountryCode + digits;
+        return true;
+    }
+
+    /// <summary>Convenience predicate for validators.</summary>
+    public static bool IsValid(string? phoneNumber) => TryNormalize(phoneNumber, out _, out _);
+}
+
 public class AndroidSmsGatewaySmsSender : ISmsSender
 {
     private readonly HttpClient _httpClient;
@@ -78,30 +176,10 @@ public class AndroidSmsGatewaySmsSender : ISmsSender
         }
     }
 
+    /// <summary>
+    /// Kept for existing callers. Delegates to <see cref="SriLankanPhone"/>
+    /// so the codebase has exactly one set of phone rules.
+    /// </summary>
     public static string NormalizeSriLankanPhoneNumber(string phoneNumber)
-    {
-        var digits = Regex.Replace(phoneNumber ?? string.Empty, @"\D", string.Empty);
-
-        if (digits.StartsWith("0094", StringComparison.Ordinal))
-        {
-            digits = digits[2..];
-        }
-
-        if (digits.StartsWith("94", StringComparison.Ordinal) && digits.Length == 11 && digits[2] == '7')
-        {
-            return $"+{digits}";
-        }
-
-        if (digits.StartsWith("07", StringComparison.Ordinal) && digits.Length == 10)
-        {
-            return $"+94{digits[1..]}";
-        }
-
-        if (digits.Length == 9 && digits.StartsWith("7", StringComparison.Ordinal))
-        {
-            return $"+94{digits}";
-        }
-
-        throw new ArgumentException("Phone number must be a valid Sri Lankan mobile number.", nameof(phoneNumber));
-    }
+        => SriLankanPhone.Normalize(phoneNumber);
 }

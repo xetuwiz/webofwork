@@ -16,7 +16,7 @@ public interface IInvitationService
     Task<InvitationResponse> CreateInvitationAsync(Guid userId, CreateInvitationRequest request);
     Task<List<InvitationResponse>> GetSentInvitationsAsync(Guid userId);
     Task<List<InvitationResponse>> GetReceivedInvitationsAsync(Guid userId);
-    Task<PagedResponse<InvitationResponse>> GetPagedSentInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize);
+    Task<PagedResponse<InvitationResponse>> GetPagedSentInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize, int? projectId = null);
     Task<PagedResponse<InvitationResponse>> GetPagedReceivedInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize, bool closedOnly = false);
     Task<bool> UpdateInvitationStatusAsync(Guid userId, int invitationId, UpdateInvitationStatusRequest request);
     Task<bool> CancelInvitationAsync(Guid userId, int invitationId);
@@ -136,10 +136,11 @@ public class InvitationService : IInvitationService
         return invitations.Select(i => MapToResponse(i, info.GetValueOrDefault(i.ProjectId))).ToList();
     }
 
-    public async Task<PagedResponse<InvitationResponse>> GetPagedSentInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize)
+    public async Task<PagedResponse<InvitationResponse>> GetPagedSentInvitationsAsync(Guid userId, InvitationStatus? status, int page, int pageSize, int? projectId = null)
     {
         var clientId = await GetClientIdAsync(userId);
         var query = _db.Invitations.Include(i => i.Client).ThenInclude(c => c.User).Include(i => i.Freelancer).ThenInclude(f => f.User).Include(i => i.Project).Where(i => i.ClientId == clientId).AsQueryable();
+        if (projectId.HasValue) query = query.Where(i => i.ProjectId == projectId.Value);
         if (status.HasValue) query = query.Where(i => i.Status == status.Value);
         return await PageAsync(query, page, pageSize);
     }

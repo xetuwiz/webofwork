@@ -1,19 +1,12 @@
-export const buildOnboardingPayload = (steps) => ({
-  tagline: steps.tagline ?? "",
-  bio: steps.bio ?? "",
-  phone: steps.phone ?? "",
-  experienceLevel: steps.experienceLevel ?? "",
-  primaryCategory: steps.primaryCategory ?? steps.categoryId ?? null,
-  skills: (steps.skills ?? []).map((skill) => typeof skill === "number" ? { skillId: skill, customName: "" } : {
-    skillId: skill.skillId ?? null,
-    customName: skill.customName ?? "",
-  }),
-  packages: (steps.packages ?? []).map((item) => ({
-    packageType: item.packageType ?? item.title ?? "",
-    price: Number(item.price ?? 0),
-    deliveryDays: Number(item.deliveryDays ?? 0),
-    description: item.description ?? "",
-  })),
-});
+const uploadToCloudinary = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "your_preset_name"); 
 
-export const mergeOnboardingStep = (current, step) => ({ ...current, ...step });
+  const res = await fetch("https://api.cloudinary.com/v1_1/your_cloud_name/image/upload", {
+    method: "POST",
+    body: formData,
+  });
+  const data = await res.json();
+  return data.secure_url; 
+};

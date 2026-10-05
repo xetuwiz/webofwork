@@ -17,7 +17,7 @@ public record ChatRoomResponse
     public DateTime? LastMessageAt { get; init; }
     public int UnreadCount { get; init; }
     public bool IsArchived { get; init; }
-    public string ContractStatus { get; init; } = string.Empty;
+    public WebOfWork.Api.Models.Enums.ContractStatus ContractStatus { get; init; }
     public DateTime CreatedAt { get; init; }
 }
 
@@ -28,7 +28,7 @@ public record ChatRoomDetailResponse
     public ChatParticipantDto Client { get; init; } = new();
     public ChatParticipantDto Freelancer { get; init; } = new();
     public bool CanSendMessages { get; init; }
-    public string ContractStatus { get; init; } = string.Empty;
+    public WebOfWork.Api.Models.Enums.ContractStatus ContractStatus { get; init; }
     public DateTime? LastMessageAt { get; init; }
     public DateTime CreatedAt { get; init; }
     public int UnreadCount { get; init; }

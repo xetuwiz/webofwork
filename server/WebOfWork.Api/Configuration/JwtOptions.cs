@@ -10,7 +10,7 @@ public sealed class JwtOptions
     public string Secret                  { get; init; } = string.Empty;
     /// <summary>Separate secret for refresh-token signing to limit blast radius.</summary>
     public string RefreshSecret           { get; init; } = string.Empty;
-    /// <summary>Access token TTL in minutes. Grolance legacy used 1 min — too short. Default 60.</summary>
+    /// <summary>Access token TTL in minutes. the reference legacy used 1 min — too short. Default 60.</summary>
     public int    AccessTokenExpiryMinutes { get; init; } = 60;
     /// <summary>Sliding refresh window in days.</summary>
     public int    RefreshTokenExpiryDays  { get; init; } = 7;

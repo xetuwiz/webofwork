@@ -15,7 +15,7 @@ namespace WebOfWork.Api.Integrations.Email;
 /// Ported from:
 ///   - demo2/application.properties (spring.mail.host/port/starttls)
 ///   - demo2/MailConfig.java (JavaMailSender configuration)
-/// Do NOT use Gmail SMTP — that was the Grolance legacy setting.
+/// Do NOT use Gmail SMTP — that was the reference legacy setting.
 /// </summary>
 public sealed class SmtpEmailSender : IEmailSender
 {

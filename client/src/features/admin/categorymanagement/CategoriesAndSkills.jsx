@@ -1,64 +1,79 @@
 import { useState } from "react";
 import { LayoutGrid, Wrench } from "lucide-react";
-import { AddCategoryModal } from "./components/AddCategoryModal.jsx";
-import { DeleteCategoryModal } from "./components/DeleteCategoryModal.jsx";
-import { EditCategoryModal } from "./components/EditCategoryModal.jsx";
-import AddSkillModal from "./components/AddSkillsModal.jsx";
-import DeleteSkillModal from "./components/DeleteSkillModal.jsx";
-import EditSkillModal from "./components/EditSkillsModal.jsx";
-import { ManagementList } from "./ManagementList.jsx";
-import { useAllCategories, useCategories, useSkills } from "./categoryQueries.js";
-import { useModal } from "../../../hooks/modal/useModalStore.jsx";
+import { ManagementList } from "./ManagementList";
+import { useAllCategories, useCategories } from "./categoryQueries";
+import { useSkills } from "./skillQueries";
+import { useModal } from "../../../hooks/modal/useModalStore";
+import { useListState, toQueryParams } from "../../../hooks/useListState";
 
 export default function CategoriesAndSkills() {
-  const { modal, modalProps, closeModal, openModal } = useModal();
-  const [categoryPage, setCategoryPage] = useState(1);
-  const [skillPage, setSkillPage] = useState(1);
-  const [categoryInput, setCategoryInput] = useState("");
-  const [skillInput, setSkillInput] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
-  const [skillSearch, setSkillSearch] = useState("");
+  const { openModal } = useModal();
 
-  const { data: categoryData, isLoading: catLoading } = useCategories({ page: categoryPage, search: categorySearch });
-  const { data: allCategoriesData = [], isLoading: categoriesListLoading } = useAllCategories();
-  const { data: skillData, isLoading: skillLoading } = useSkills({ page: skillPage, search: skillSearch });
+  // Two independent lists on one page, so each gets its own URL namespace.
+  // Without the prefixes both would read and write `page`, and paging the
+  // categories would silently reset the skills to page 1.
+  const categories = useListState({ prefix: "cat_", defaults: { search: "" } });
+  const skills = useListState({ prefix: "skill_", defaults: { search: "" } });
+
+  // The raw inputs are what the fields show; the committed terms are what the
+  // queries and the URL use. Submit-driven rather than debounced, so typing does
+  // not fire a request per keystroke.
+  const [categoryInput, setCategoryInput] = useState(categories.filters.search);
+  const [skillInput, setSkillInput] = useState(skills.filters.search);
+
+  // Re-sync the fields when the URL changes underneath them (Back/Forward).
+  // Render-time adjustment, which React documents for exactly this case.
+  const [lastCat, setLastCat] = useState(categories.filters.search);
+  if (categories.filters.search !== lastCat) {
+    setLastCat(categories.filters.search);
+    setCategoryInput(categories.filters.search);
+  }
+  const [lastSkill, setLastSkill] = useState(skills.filters.search);
+  if (skills.filters.search !== lastSkill) {
+    setLastSkill(skills.filters.search);
+    setSkillInput(skills.filters.search);
+  }
+
+  const { data: categoryData, isLoading: catLoading } = useCategories(
+    toQueryParams({ search: categories.filters.search }, categories.page, categories.pageSize),
+  );
+
+  const allCategories = useAllCategories();
+
+  const { data: skillData, isLoading: skillLoading } = useSkills(
+    toQueryParams({ search: skills.filters.search }, skills.page, skills.pageSize),
+  );
 
   if ((catLoading && !categoryData) || (skillLoading && !skillData)) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+      <div className="min-h-screen flex items-center justify-center text-sm text-fg-subtle">
         Loading management data...
       </div>
     );
   }
 
-  const categories = Array.isArray(categoryData) ? categoryData : categoryData?.results ?? [];
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(categorySearch.toLowerCase()),
-  );
-
-  const skills = Array.isArray(skillData) ? skillData : skillData?.results ?? [];
-  const filteredSkills = skills.filter((skill) => skill.name.toLowerCase().includes(skillSearch.toLowerCase()));
-
   return (
-    <div className="min-h-screen bg-slate-50 p-8 md:p-12">
-      <div className="mx-auto max-w-5xl">
+    <div className="min-h-screen bg-surface-2 p-8 md:p-12">
+      <div className="max-w-5xl mx-auto">
         <ManagementList
           title="Categories"
+          itemNoun="categories"
           icon={LayoutGrid}
-          items={filteredCategories}
+          items={categoryData?.results ?? []}
+          count={categoryData?.count ?? 0}
           iconColor="blue"
           searchValue={categoryInput}
           onSearchChange={setCategoryInput}
-          onSearchSubmit={() => {
-            setCategorySearch(categoryInput.trim());
-            setCategoryPage(1);
+          onSearchSubmit={() => categories.set("search", categoryInput.trim())}
+          hasActiveSearch={!!categories.filters.search}
+          onClearSearch={() => {
+            setCategoryInput("");
+            categories.set("search", "");
           }}
-          currentPage={categoryPage}
-          totalCount={filteredCategories.length}
-          onNext={() => setCategoryPage((page) => page + 1)}
-          onPrev={() => setCategoryPage((page) => Math.max(page - 1, 1))}
-          hasNext={false}
-          hasPrev={categoryPage > 1}
+          page={categories.page}
+          pageSize={categories.pageSize}
+          onPageChange={categories.setPage}
+          onPageSizeChange={categories.setPageSize}
           onAdd={() => openModal("add-category")}
           onEdit={(item) => openModal("edit-category", item)}
           onDelete={(item) => openModal("delete-category", item)}
@@ -66,37 +81,28 @@ export default function CategoriesAndSkills() {
 
         <ManagementList
           title="Skills"
+          itemNoun="skills"
           icon={Wrench}
-          items={filteredSkills}
+          items={skillData?.results ?? []}
+          count={skillData?.count ?? 0}
           iconColor="purple"
           searchValue={skillInput}
           onSearchChange={setSkillInput}
-          onSearchSubmit={() => {
-            setSkillSearch(skillInput.trim());
-            setSkillPage(1);
+          onSearchSubmit={() => skills.set("search", skillInput.trim())}
+          hasActiveSearch={!!skills.filters.search}
+          onClearSearch={() => {
+            setSkillInput("");
+            skills.set("search", "");
           }}
-          currentPage={skillPage}
-          totalCount={filteredSkills.length}
-          onNext={() => setSkillPage((page) => page + 1)}
-          onPrev={() => setSkillPage((page) => Math.max(page - 1, 1))}
-          hasNext={false}
-          hasPrev={skillPage > 1}
-          onAdd={() => openModal("add-skill", { allCategories: allCategoriesData })}
-          onEdit={(item) => openModal("edit-skill", { item, allCategories: allCategoriesData })}
+          page={skills.page}
+          pageSize={skills.pageSize}
+          onPageChange={skills.setPage}
+          onPageSizeChange={skills.setPageSize}
+          onAdd={() => openModal("add-skill", { allCategories })}
+          onEdit={(item) => openModal("edit-skill", { item, allCategories })}
           onDelete={(item) => openModal("delete-skill", item)}
         />
       </div>
-
-      {modal === "add-category" && <AddCategoryModal open onOpenChange={(value) => !value && closeModal()} />}
-      {modal === "edit-category" && <EditCategoryModal open onOpenChange={(value) => !value && closeModal()} category={modalProps} />}
-      {modal === "delete-category" && <DeleteCategoryModal open onOpenChange={(value) => !value && closeModal()} category={modalProps} />}
-      {modal === "add-skill" && (
-        <AddSkillModal categories={allCategoriesData} isLoading={categoriesListLoading} onClose={closeModal} />
-      )}
-      {modal === "edit-skill" && (
-        <EditSkillModal open onOpenChange={(value) => !value && closeModal()} skill={modalProps.item} categories={modalProps.allCategories ?? []} />
-      )}
-      {modal === "delete-skill" && <DeleteSkillModal open onOpenChange={(value) => !value && closeModal()} skill={modalProps} />}
     </div>
   );
 }

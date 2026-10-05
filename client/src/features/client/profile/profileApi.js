@@ -1,28 +1,31 @@
-import axiosInstance from "../../../api/axiosInstance.js";
+import axiosInstance from "../../../api/axiosInstance";
 
 export const getMyProfile = async () => {
-  const response = await axiosInstance.get("/profile/me");
-  return response.data;
+  const { data } = await axiosInstance.get("/profile/me/");
+  return data;
 };
+
 
 export const updateProfile = async (payload) => {
-  const response = await axiosInstance.patch("/profile/me", payload);
-  return response.data;
+  const { data } = await axiosInstance.patch("/profile/me/update/", payload);
+  return data;
 };
 
+
 export const changePassword = async (payload) => {
-  const response = await axiosInstance.post("/auth/change-password", payload);
-  return response.data;
+  const { data } = await axiosInstance.post("/auth/change-password/", payload);
+  return data;
 };
 
 export const fetchClientSpendingSummary = async () => {
-  const response = await axiosInstance.get("/payments/client/spending");
-  return response.data;
+    const { data } = await axiosInstance.get('/payments/client/spending-summary/');
+    return data;
 };
 
-export const fetchClientReviews = async (userId, page = 1) => {
-  const response = await axiosInstance.get("/reviews/me/client", {
-    params: userId ? { userId, page } : { page },
+
+export const fetchClientReviews = async (userId, { page = 1, page_size = 20 } = {}) => {
+  const { data } = await axiosInstance.get(`/profile/reviews/client/${userId}/`, {
+    params: { page, page_size },
   });
-  return response.data;
+  return data;
 };

@@ -1,12 +1,21 @@
-import { googleAuth } from "../../../../api/auth/authApi.js";
-
-export const handleGoogleSignup = async ({ idToken, role = 1 }) => {
-  if (!idToken || !String(idToken).trim()) {
-    throw new Error("Google authentication token is required.");
+// googleSignupHelper.js
+export const initGoogleButton = (elementId, callback) => {
+  if (!window.google) {
+    return;
   }
 
-  const response = await googleAuth({ idToken, role });
-  return response;
-};
+  window.google.accounts.id.initialize({
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    callback,
+  });
 
-export default handleGoogleSignup;
+  window.google.accounts.id.renderButton(
+    document.getElementById(elementId),
+    {
+      theme: "outline",
+      size: "large",
+      width: 360,       
+      text: "continue_with",
+    }
+  );
+};

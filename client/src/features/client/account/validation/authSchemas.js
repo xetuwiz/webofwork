@@ -1,27 +1,55 @@
-import { z } from "zod";
+import {z} from 'zod'
 
-const passwordSchema = z
-  .string()
-  .min(8, "Password must be at least 8 characters")
-  .regex(/[A-Z]/, "Password must contain an uppercase letter")
-  .regex(/[a-z]/, "Password must contain a lowercase letter")
-  .regex(/[0-9]/, "Password must contain a number")
-  .regex(/[^A-Za-z0-9]/, "Password must contain a special character");
 
+// Signup Schema
 export const signupSchema = z
   .object({
-    fullName: z.string().trim().min(3).max(200),
-    email: z.string().trim().email(),
-    password: passwordSchema,
-    confirmPassword: z.string(),
-    role: z.coerce.number().int().min(1).max(2),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
+    fullName: z
+      .string()
+      .min(3, "Full name must be at least 3 characters long")
+      .regex(/^[^0-9]*$/, "Full name cannot contain numbers")
+      .regex(/^[a-zA-Z\s]*$/, "Full name can only contain letters and spaces"),
 
+    email: z
+      .string()
+      .trim()
+      .email({ message: "Please enter a valid email address" }),
+
+    password: z
+      .string()
+      .min(6, { message: "Password must be at least 6 characters" })
+      .regex(/[A-Z]/, {
+        message: "Password must contain at least one uppercase letter",
+      })
+      .regex(/[a-z]/, {
+        message: "Password must contain at least one lowercase letter",
+      })
+      .regex(/[0-9]/, { message: "Password must contain at least one number" })
+      .regex(/[@$!%*?&#]/, {
+        message:
+          "Password must contain at least one special character (@, #, $, etc.)",
+      }),
+
+    confirmPassword: z
+      .string()
+      .min(6, { message: "Please confirm your password" }),
+  
+}).refine((data) => data.password === data.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "Passwords do not match",
+
+})
+
+
+// signin schema 
 export const signinSchema = z.object({
-  email: z.string().trim().email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z
+    .string()
+    .trim()
+    .email("Enter a valid email address"),
+
+  password: z
+    .string()
+    .min(1, "Password is required"),
 });
+

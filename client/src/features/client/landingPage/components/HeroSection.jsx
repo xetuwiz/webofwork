@@ -1,21 +1,50 @@
-import { Link } from "react-router-dom";
-
 export default function HeroSection() {
+  const categories = [
+    "Web Development",
+    "UI/UX",
+    "Branding",
+    "Mobile App",
+    "Content Writing",
+  ];
+
   return (
-    <section className="landing-hero">
-      <div className="landing-hero__copy">
-        <span className="app-shell__eyebrow">A clearer way to get work done</span>
-        <h1>Good work starts with the right working relationship.</h1>
-        <p>WebOfWork brings clients and independent professionals together with clear briefs, accountable delivery, and protected payments.</p>
-        <div className="landing-hero__actions">
-          <Link className="button button--accent" to="/create-project">Post a project</Link>
-          <Link className="button button--quiet" to="/find-talents">Explore talent</Link>
+    <section className="mt-40 pb-20 px-4 md:px-8 mb-20">
+      <div className="max-w-page-3xl mx-auto">
+        <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+          <div className="flex-1 max-w-[656px]">
+            <h1 className="font-grotesk font-bold text-[42px] md:text-[60px] leading-none tracking-[-3px] mb-6">
+              <span className="text-fg">Hire World-Class</span>
+              <br />
+              <span className="bg-linear-to-r from-[#8A2BE2] to-[#00BFFF] bg-clip-text text-transparent">Freelancers</span>
+              <span className="text-fg"> for Any</span>
+              <br />
+              <span className="text-fg">Project</span>
+            </h1>
+
+            <p className="text-fg-muted font-grotesk font-bold text-lg leading-7 mb-6">
+              Access a global network of vetted experts and bring your ideas to life.
+            </p>
+
+            <div className="flex flex-wrap gap-4">
+              {categories.map((category, index) => (
+                <span
+                  key={index}
+                  className="inline-flex h-8 px-4 items-center justify-center rounded-full bg-fg/10 text-fg font-grotesk font-bold text-sm leading-5"
+                >
+                  {category}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 max-w-page-lg">
+            <img
+              src="https://api.builder.io/api/v1/image/assets/TEMP/d980d2e1ac6b36e1ae1e2899e34972477b352239?width=1914"
+              alt="Team collaborating"
+              className="w-full h-auto rounded-[40px] object-cover"
+            />
+          </div>
         </div>
-      </div>
-      <div className="landing-hero__visual" role="img" aria-label="A collaborative workspace represented by layered work surfaces">
-        <div className="landing-hero__image" />
-        <div className="landing-hero__note"><span>Brief clarity</span><strong>Before the first message</strong></div>
-        <div className="landing-hero__status"><i /> Protected delivery flow</div>
       </div>
     </section>
   );

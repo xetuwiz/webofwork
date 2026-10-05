@@ -1,28 +1,101 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useModal } from "../../../../hooks/modal/useModalStore.jsx";
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import SignupModal from '../../account/SignupModal';
+import { useModal } from '../../../../hooks/modal/useModalStore';
+import { Menu, X } from 'lucide-react';
 
-export default function Header() {
+const Header = () => {
   const { openModal } = useModal();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const links = [["About us", "/about-us"], ["Why WebOfWork", "/why-us"], ["How it works", "/how-it-works"]];
-
-  const closeMenu = () => setMenuOpen(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="public-header">
-      <Link className="public-header__brand" to="/" onClick={closeMenu}>
-        <span className="public-header__mark">W</span>
-        <span>WebOfWork</span>
-      </Link>
-      <nav className={menuOpen ? "public-header__nav public-header__nav--open" : "public-header__nav"}>
-        {links.map(([label, href]) => <Link key={href} to={href} onClick={closeMenu}>{label}</Link>)}
-        <button type="button" className="button button--quiet" onClick={() => { openModal("signin"); closeMenu(); }}>Log in</button>
-        <button type="button" className="button button--accent" onClick={() => { openModal("signup"); closeMenu(); }}>Join WebOfWork</button>
-      </nav>
-      <button type="button" className="public-header__menu" aria-expanded={menuOpen} aria-label="Toggle navigation" onClick={() => setMenuOpen((open) => !open)}>
-        {menuOpen ? "Close" : "Menu"}
-      </button>
-    </header>
+    <nav className="fixed top-4 md:top-8 left-0 right-0 z-raised px-4">
+      <div className="max-w-page-3xl mx-auto relative">
+        <div className="flex items-center justify-between h-16 md:h-20 px-4 md:px-12 rounded-2xl md:rounded-3xl border border-white/30 backdrop-blur-md bg-surface/80 shadow-sm">
+          <div className="flex items-center">
+            <Link to="/">
+              <h2 className="text-[28px] md:text-[37px] font-museo font-extrabold leading-none">
+                <span className="text-fg">Web</span>
+                <span className="text-brand">OfWork</span>
+              </h2>
+            </Link>
+          </div>
+
+          <div className="hidden md:flex items-center gap-9">
+            <Link to="/about-us" className="text-fg font-grotesk font-bold text-sm hover:text-brand transition-colors">
+              About Us
+            </Link>
+            <Link to="/why-us" className="text-fg font-grotesk font-bold text-sm hover:text-brand transition-colors">
+              Why Us
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
+              <button 
+                onClick={() => openModal('signin')}
+                className="h-10 px-5 rounded-2xl bg-fg/5 text-fg font-grotesk font-bold text-sm hover:bg-fg/10 transition-all"
+              >  
+                Log In
+              </button>
+              <button 
+                onClick={() => openModal("signup")}
+                className="h-10 px-5 rounded-2xl bg-brand text-white font-grotesk font-bold text-sm shadow-lg shadow-blue-500/20 hover:bg-brand transition-all"
+              >
+                Sign Up
+              </button>
+            </div>
+
+            <button 
+              className="md:hidden p-2 text-fg"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            </button>
+          </div>
+        </div>
+
+        {isMenuOpen && (
+          <div className="absolute top-20 left-0 right-0 md:hidden animate-in fade-in slide-in-from-top-4 duration-base">
+            <div className="bg-surface/95 backdrop-blur-md border border-line-soft rounded-2xl p-6 shadow-xl flex flex-col gap-6">
+              <div className="flex flex-col gap-4">
+                <Link 
+                  to="/about-us" 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-fg font-grotesk font-bold text-lg border-b border-line-soft pb-2"
+                >
+                  About Us
+                </Link>
+                <Link 
+                  to="/why-us" 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-fg font-grotesk font-bold text-lg border-b border-line-soft pb-2"
+                >
+                  Why Us
+                </Link>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => { openModal('signin'); setIsMenuOpen(false); }}
+                  className="w-full h-12 rounded-xl bg-surface-3 text-fg font-grotesk font-bold"
+                >
+                  Log In
+                </button>
+                <button 
+                  onClick={() => { openModal('signup'); setIsMenuOpen(false); }}
+                  className="w-full h-12 rounded-xl bg-brand text-white font-grotesk font-bold"
+                >
+                  Sign Up
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <SignupModal />
+    </nav>
   );
-}
+};
+
+export default Header;

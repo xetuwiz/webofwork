@@ -1,23 +1,38 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { changePassword, updateProfile } from "./profileApi";
 import { useDispatch, useSelector } from "react-redux";
-import { setCredentials } from "../account/auth/authslice.js";
-import { changePassword, updateProfile } from "./profileApi.js";
+import {setCredentials} from '../../client/account/auth/authslice'
 
 export const useUpdateProfile = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
-  const currentUser = useSelector((state) => state.auth.user);
+  const { user: currentUser } = useSelector(state => state.auth);
 
   return useMutation({
     mutationFn: updateProfile,
-    onSuccess: (updatedProfile) => {
-      const user = { ...currentUser, ...updatedProfile };
-      dispatch(setCredentials({ user }));
-      queryClient.setQueryData(["profile", "me"], updatedProfile);
-      queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
+    onSuccess: (updatedData) => {
+      const updatedUser = {
+        ...currentUser,
+        ...updatedData, 
+      };
+      dispatch(setCredentials({ user: updatedUser }));
+
+      queryClient.setQueryData(['profile'], (oldData) => {
+        return {
+          ...oldData,
+          ...updatedData
+        };
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 };
 
-export const useChangePassword = () =>
-  useMutation({ mutationFn: changePassword });
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: changePassword,
+  });
+};
+

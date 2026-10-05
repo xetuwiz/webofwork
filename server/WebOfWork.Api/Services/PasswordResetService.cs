@@ -3,14 +3,16 @@ using WebOfWork.Api.Data;
 using WebOfWork.Api.Integrations.Email;
 using WebOfWork.Api.Jobs;
 using Microsoft.EntityFrameworkCore;
+using WebOfWork.Api.DTOs.Auth;
+using StackExchange.Redis;
 
 namespace WebOfWork.Api.Services;
 
 public interface IPasswordResetService
 {
-    Task GenerateResetTokenAsync(string email);
-    Task<bool> ValidateResetTokenAsync(string email, string token);
-    Task ResetPasswordAsync(string email, string token, string newPassword);
+    Task<string?> CreateResetGrantAsync(string email);
+    Task<ResetGrant?> ValidateResetTokenAsync(string uid, string token);
+    Task ResetPasswordAsync(string uid, string token, string newPassword);
 }
 
 public class PasswordResetService : IPasswordResetService
@@ -20,46 +22,40 @@ public class PasswordResetService : IPasswordResetService
     private readonly IPasswordHasher _hasher;
     private readonly IEmailSender _emailSender;
     private readonly IBackgroundJobClient? _jobs;
+    private readonly IConnectionMultiplexer _redis;
 
-    public PasswordResetService(WebOfWorkDbContext db, IOtpService otpService, IPasswordHasher hasher, IEmailSender emailSender, IBackgroundJobClient? jobs = null)
+    public PasswordResetService(WebOfWorkDbContext db, IOtpService otpService, IPasswordHasher hasher, IEmailSender emailSender, IConnectionMultiplexer redis, IBackgroundJobClient? jobs = null)
     {
-        _db = db; _otpService = otpService; _hasher = hasher; _emailSender = emailSender; _jobs = jobs;
+        _db = db; _otpService = otpService; _hasher = hasher; _emailSender = emailSender; _jobs = jobs; _redis = redis;
     }
 
-    public async Task GenerateResetTokenAsync(string email)
+    public async Task<string?> CreateResetGrantAsync(string email)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
-        if (user == null) return; // Silent failure for security
-
-        var token = Guid.NewGuid().ToString("N");
-        await _otpService.SetOtpAsync($"reset:{email}", token, TimeSpan.FromMinutes(15));
-
-        if (_jobs is not null)
-        {
-            _jobs.Enqueue<SendPasswordResetEmailJob>(job => job.ExecuteAsync(email, token, CancellationToken.None));
-            return;
-        }
-
-        var html = $"<h2>Password Reset</h2><p>Use the following token to reset your password:</p><p><strong>{token}</strong></p>";
-        await _emailSender.SendAsync(email, "Password Reset Request", html);
+        if (user == null) return null;
+        var uid = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(user.Id.ToString())).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+        var db = _redis.GetDatabase();
+        await db.StringSetAsync($"reset:{uid}:{token}", user.Id.ToString(), TimeSpan.FromHours(24));
+        if (_jobs is not null) _jobs.Enqueue<SendPasswordResetEmailJob>(job => job.ExecuteAsync(email, $"{uid}:{token}", CancellationToken.None));
+        else await _emailSender.SendAsync(email, "Reset your password", $"<p>Password reset token: <strong>{uid}:{token}</strong></p>");
+        return $"{uid}:{token}";
     }
 
-    public async Task ResetPasswordAsync(string email, string token, string newPassword)
+    public async Task<ResetGrant?> ValidateResetTokenAsync(string uid, string token)
     {
-        var stored = await _otpService.GetOtpAsync($"reset:{email}");
-        if (stored != token) throw new UnauthorizedAccessException("Invalid or expired token.");
+        var value = await _redis.GetDatabase().StringGetAsync($"reset:{uid}:{token}");
+        if (!value.HasValue || !Guid.TryParse(value.ToString(), out var userId)) return null;
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+        return user == null ? null : new ResetGrant(user.Id.ToString(), user.Email);
+    }
 
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null) throw new UnauthorizedAccessException("User not found.");
-
+    public async Task ResetPasswordAsync(string uid, string token, string newPassword)
+    {
+        var grant = await ValidateResetTokenAsync(uid, token) ?? throw new UnauthorizedAccessException("Reset link is invalid or expired");
+        var user = await _db.Users.FindAsync(Guid.Parse(grant.UserId)) ?? throw new UnauthorizedAccessException("Invalid reset link");
         user.PasswordHash = _hasher.HashPassword(newPassword);
         await _db.SaveChangesAsync();
-        await _otpService.DeleteOtpAsync($"reset:{email}");
-    }
-
-    public async Task<bool> ValidateResetTokenAsync(string email, string token)
-    {
-        var stored = await _otpService.GetOtpAsync($"reset:{email}");
-        return !string.IsNullOrWhiteSpace(stored) && stored == token;
+        await _redis.GetDatabase().KeyDeleteAsync($"reset:{uid}:{token}");
     }
 }

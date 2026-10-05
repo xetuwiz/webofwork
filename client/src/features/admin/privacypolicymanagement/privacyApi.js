@@ -1,5 +1,29 @@
-import axiosInstance from "../../../api/axiosInstance.js";
-export const fetchprivacypolicies = async (params = {}) => (await axiosInstance.get("/content/admin/cms", { params: { ...params, category: "privacy" } })).data;
-export const createPrivacyPolicy = async (payload) => (await axiosInstance.post("/content/admin/cms", { ...payload, category: "privacy" })).data;
-export const updatePrivacyPolicy = async ({ id, ...payload }) => (await axiosInstance.put(`/content/admin/cms/${id}`, { ...payload, category: "privacy" })).data;
-export const deletePrivacyPolicy = async (id) => (await axiosInstance.delete(`/content/admin/cms/${id}`)).data;
+import axiosInstance from "../../../api/axiosInstance";
+
+export const fetchprivacypolicies = async ({ page = 1, page_size = 20 } = {}) => {
+      // Was a string-concatenated URL carrying no page size at all, so the
+      // page-size selector had nothing to control. ContentController accepts
+      // both `page_size` and `pageSize`.
+      const { data } = await axiosInstance.get("/admin/cms/", {
+        params: { category: "privacy", page, page_size },
+      });
+      return data;
+    };
+
+export const createPrivacyPolicy = async (payload) => {
+  const { data } = await axiosInstance.post(`/admin/cms/`, {
+    ...payload,
+    category: "privacy",
+  });
+  return data;
+};
+
+export const updatePrivacyPolicy = async (payload) => {
+  const { data } = await axiosInstance.patch(`/admin/cms/`, payload);
+  return data;
+};
+
+export const deletePrivacyPolicy = async (id) => {
+  const { data } = await axiosInstance.delete(`/admin/cms/${id}/delete/`);
+  return data;
+};

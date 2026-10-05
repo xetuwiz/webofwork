@@ -1,88 +1,99 @@
 import { useState } from "react";
-import { Loader2, ShieldCheck, Smartphone } from "lucide-react";
-import toast from "react-hot-toast";
-import { useSendPhoneOtp, useVerifyPhoneOtp } from "../onBoardingMutations.js";
+import { useVerifyPhoneOtp, useSendPhoneOtp } from "../onBoardingMutations";
+import { useModal } from "../../../../hooks/modal/useModalStore";
+import Dialog from "../../../../components/common/Dialog";
+import { toastApiError, toastError, toastSuccess } from "../../../../utils/toast";
 
-export default function PhoneOtpModal({ isOpen, phone, onClose, onVerified }) {
+export default function PhoneOtpModal({ phone }) {
   const [otp, setOtp] = useState("");
-  const { mutateAsync: sendOtp, isPending: isSending } = useSendPhoneOtp();
-  const { mutateAsync: verifyOtp, isPending: isVerifying } = useVerifyPhoneOtp();
+  const { closeModal } = useModal();
+  const { mutateAsync: verifyOtp, isPending } = useVerifyPhoneOtp();
+  const { mutateAsync: resendOtp, isPending: isResending } = useSendPhoneOtp();
 
-  if (!isOpen) return null;
-
-  const handleSend = async () => {
-    if (!phone?.trim()) {
-      toast.error("Enter a phone number first.");
-      return;
+  const handleResend = async () => {
+    try {
+      await resendOtp({ phone });
+      toastSuccess("A new OTP has been sent by SMS.");
+    } catch (error) {
+      toastApiError(error, "Could not resend the OTP. Please wait a moment and try again.");
     }
-
-    await sendOtp({ phone });
-    toast.success("Verification code sent.");
   };
 
   const handleVerify = async () => {
-    if (!otp.trim()) {
-      toast.error("Enter the OTP code.");
+    if (otp.length !== 6) {
+      toastError("Please enter a valid 6-digit OTP");
       return;
     }
 
-    await verifyOtp({ phone, otp });
-    toast.success("Phone verified.");
-    onVerified?.();
-    onClose();
+    try {
+      await verifyOtp({ phone, otp });
+      toastSuccess("Phone verified successfully!");
+      closeModal();
+    } catch (error) {
+      toastApiError(error, "Invalid OTP. Please try again.");
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-blue-50 p-2 text-blue-600">
-              <Smartphone className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Verify phone</h3>
-              <p className="text-sm text-slate-500">One-time passcode</p>
-            </div>
-          </div>
-          <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
-        </div>
+    <Dialog
+            open
+            onClose={closeModal}
+      title="Verify Phone Number"
+      size="md"
+    >
+        <h2 className="text-2xl font-extrabold text-fg mb-2">
+          Verify Phone Number
+        </h2>
+        <p className="text-sm text-fg-subtle mb-6">
+          {/* The backend sends this code by SMS to the phone number
+              (PhoneVerificationService -> SendPhoneOtpJob -> SMS gateway).
+              This used to name the user's email, which sent people looking in
+              their inbox for a code that never arrived there. */}
+          Enter the 6-digit OTP sent by SMS to{" "}
+          <span className="font-semibold text-fg">{phone || "your phone"}</span>
+        </p>
 
-        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-          Sending OTP to <span className="font-semibold">{phone}</span>
-        </div>
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          onPaste={(e) => {
+            // maxLength truncates a pasted value *before* onChange runs, so a code
+            // pasted as " 629337" became "62933". Strip first, then set.
+            e.preventDefault();
+            setOtp(e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6));
+          }}
+          placeholder="Enter OTP"
+          className="w-full h-[54px] px-5 rounded-xl border border-line-strong text-lg tracking-widest text-center outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        />
 
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">OTP code</label>
-            <input
-              value={otp}
-              onChange={(event) => setOtp(event.target.value)}
-              placeholder="123456"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
+        <button
+          onClick={handleVerify}
+          disabled={isPending}
+          className="mt-6 w-full h-[54px] rounded-xl bg-brand text-brand-fg font-bold hover:opacity-90 disabled:opacity-50"
+        >
+          {isPending ? "Verifying..." : "Verify OTP"}
+        </button>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={isSending}
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSending ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Sending</span> : "Send code"}
-            </button>
-            <button
-              type="button"
-              onClick={handleVerify}
-              disabled={isVerifying}
-              className="flex-1 rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isVerifying ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Verifying</span> : <span className="inline-flex items-center justify-center gap-2"><ShieldCheck className="h-4 w-4" />Verify</span>}
-            </button>
-          </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <button
+            onClick={handleResend}
+            disabled={isResending}
+            className="text-sm font-semibold text-brand hover:underline disabled:opacity-50 disabled:no-underline"
+          >
+            {isResending ? "Sending..." : "Resend OTP"}
+          </button>
+
+          <button
+            onClick={closeModal}
+            className="text-sm font-semibold text-fg-subtle hover:text-fg-muted"
+          >
+            Cancel
+          </button>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

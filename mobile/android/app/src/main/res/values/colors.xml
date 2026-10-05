@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Notification accent colour, referenced by
+  `com.google.firebase.messaging.default_notification_color` in the manifest.
+
+  Android tints the small status-bar icon with this on API 21+. It is
+  deliberately the brand blue rather than a dark neutral: the shade applies it
+  as a background tint behind a white glyph, and a near-black value renders as
+  a barely-visible smudge. Must be an opaque colour - a translucent one is
+  ignored by the platform and the meta-data silently does nothing.
+-->
+<resources>
+    <color name="notification_icon_bg">#2563EB</color>
+</resources>

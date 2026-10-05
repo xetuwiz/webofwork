@@ -12,6 +12,7 @@
     <PackageReference Include="QuestPDF" Version="2026.9.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 
+
     <!-- Postgres + EF Core 8 (0.3) -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
     <PackageReference Include="EFCore.NamingConventions" Version="8.0.3" />
@@ -46,12 +47,27 @@
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
 
     <!-- MailKit (0.9) -->
-    <PackageReference Include="MailKit" Version="4.8.0" />
+    <PackageReference Include="MailKit" Version="4.18.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Update="Templates\Email\**\*.cshtml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Lets the test project reach `internal` members.
+
+      Used for implementation details that are worth testing directly and have no
+      public surface to reach them through: JSON extraction helpers, parsing
+      guards, and the like. The alternative is a `ForTest` shim in production
+      code, which adds a member to the shipping assembly purely so a test can call
+      it and then has to be kept in step with the real one.
+
+      Nothing here widens the HTTP surface: the API is still whatever the
+      controllers expose.
+    -->
+    <InternalsVisibleTo Include="WebOfWork.Api.Tests" />
+  </ItemGroup>
 
 </Project>

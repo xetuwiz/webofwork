@@ -1,66 +1,76 @@
-import axiosInstance from "../axiosInstance.js";
-
-export const sendOtp = async ({ email }) => {
-  const response = await axiosInstance.post("/auth/send-otp", { email });
-  return response.data;
+import { useDispatch } from "react-redux";
+import axiosInstance from "../axiosInstance";
+import { logout } from "../../features/client/account/auth/authslice";
+export const sendOtp = async (data) => {
+  const res = await axiosInstance.post("/auth/send-otp/", {
+    full_name: data.fullName,
+    email: data.email,
+    password: data.password,
+  });
+  return res.data;
 };
 
-export const verifyOtp = async ({ email, otp, password, fullName, role }) => {
-  const response = await axiosInstance.post("/auth/verify-otp", {
+export const verifyOtp = async ({ email, otp_code }) => {
+  const res = await axiosInstance.post("/auth/verify-otp/", {
     email,
-    otp,
-    password,
-    fullName,
-    role,
+    otp_code,
   });
-  return response.data;
+  return res.data;
 };
 
 export const loginUser = async ({ email, password }) => {
-  const response = await axiosInstance.post("/auth/login", { email, password });
-  return response.data;
+  const res = await axiosInstance.post("/auth/login/", { email, password });
+  return res.data;
 };
 
 export const getCurrentUser = async () => {
-  const response = await axiosInstance.get("/auth/me");
-  return response.data;
+  const res = await axiosInstance.get("/auth/me/");
+  return res.data;
 };
 
-export const logoutUser = async () => {
-  const response = await axiosInstance.post("/auth/logout");
-  return response.data;
-};
-
-export const refreshToken = async () => {
-  const response = await axiosInstance.post("/auth/refresh");
-  return response.data;
+export const resendOtp = async ({ email }) => {
+  const res = await axiosInstance.post("/auth/resend-otp/", { email });
+  return res.data;
 };
 
 export const forgotPassword = async ({ email }) => {
-  const response = await axiosInstance.post("/auth/forgot-password", { email });
-  return response.data;
+  const res = await axiosInstance.post("/auth/forgot-password/", { email });
+  return res.data;
 };
 
-export const resetPassword = async ({ email, token, newPassword }) => {
-  const response = await axiosInstance.post("/auth/reset-password", {
-    email,
+export const validateLink = async ({ uid, token }) => {
+  const res = await axiosInstance.get(
+    `/auth/reset-password/validate/?uid=${uid}&token=${token}`,
+  );
+  return res.data;
+};
+
+export const resetPassword = async ({
+  uid,
+  token,
+  newPassword,
+  confirmPassword,
+}) => {
+  await axiosInstance.post("/auth/reset-password/", {
+    uid,
     token,
-    newPassword,
+    new_password: newPassword,
+    confirm_password: confirmPassword,
   });
-  return response.data;
 };
 
-export const googleAuth = async ({ idToken, role }) => {
-  const response = await axiosInstance.post("/auth/google", { idToken, role });
-  return response.data;
+export const googleAuth = async (idToken) => {
+  const res = await axiosInstance.post("/auth/google/", {
+    token: idToken,
+  });
+  return res.data;
 };
 
-export const requestDeleteOtp = async () => {
-  const response = await axiosInstance.post("/auth/request-delete-otp");
-  return response.data;
+export const logoutUser = async () => {
+  await axiosInstance.post("/auth/logout/");
 };
 
-export const deleteAccount = async ({ otp }) => {
-  const response = await axiosInstance.post("/auth/delete-account", { otp });
-  return response.data;
+export const refreshToken = async () => {
+  const res = await axiosInstance.post("/auth/refresh/");
+  return res.data;
 };

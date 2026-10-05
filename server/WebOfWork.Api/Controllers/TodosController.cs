@@ -22,6 +22,7 @@ public class TodosController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet("~/api/profile/todos")]
     public async Task<IActionResult> GetTodos()
     {
         var todos = await _db.Set<FreelancerTodo>().Where(t => t.UserId == _currentUser.Id!.Value).ToListAsync();
@@ -29,6 +30,7 @@ public class TodosController : ControllerBase
     }
 
     [HttpPost]
+    [HttpPost("~/api/profile/todos")]
     public async Task<IActionResult> AddTodo([FromBody] string task)
     {
         var todoCount = await _db.Set<FreelancerTodo>()
@@ -53,6 +55,9 @@ public class TodosController : ControllerBase
     }
 
     [HttpPatch("{id}/mark-complete")]
+    // FreelancerTodo.Id is a Guid, so an {id:int} constraint could never match and
+    // the route was unreachable. DashboardApi.jsx POSTs a Guid from the list response.
+    [HttpPost("~/api/profile/todos/{id:guid}/mark-complete")]
     public async Task<IActionResult> MarkComplete(Guid id)
     {
         var todo = await _db.Set<FreelancerTodo>().FirstOrDefaultAsync(t => t.Id == id && t.UserId == _currentUser.Id!.Value);
@@ -64,6 +69,7 @@ public class TodosController : ControllerBase
 
 
     [HttpDelete("{id}")]
+    [HttpDelete("~/api/profile/todos/{id:guid}")]
     public async Task<IActionResult> DeleteTodo(Guid id)
     {
         var todo = await _db.Set<FreelancerTodo>().FirstOrDefaultAsync(t => t.Id == id && t.UserId == _currentUser.Id!.Value);

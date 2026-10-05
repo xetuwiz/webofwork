@@ -1,6 +1,13 @@
-import AuthLayout from "./components/AuthLayout.jsx";
-import SignInForm from "./components/SignInForm.jsx";
+import React from 'react'
+import SigninLayout from './components/SigninLayout'
+import ModalWrapper from './components/ModelWrapper'
 
-export default function SignInModal({ onClose }) {
-  return <AuthLayout eyebrow="Welcome back" title="Sign in to WebOfWork" description="Pick up where the work left off." onClose={onClose}><SignInForm onClose={onClose} /></AuthLayout>;
+function SignInModal({isOpen, onClose}) {
+  return (
+    <ModalWrapper onClose={onClose} title="Sign in">
+          <SigninLayout onClose={onClose} />
+        </ModalWrapper>
+  )
 }
+
+export default SignInModal

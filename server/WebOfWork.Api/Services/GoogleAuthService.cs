@@ -26,6 +26,11 @@ public class GoogleAuthService : IGoogleAuthService {
                 IsEmailVerified = payload.EmailVerified
             };
             _db.Users.Add(user);
+            // Google signup is client-only here (the controller always passes
+            // UserRole.Client), so create the client profile up front. Without
+            // it /api/profile/me/ 401s with "Profile not found" for every
+            // Google-only account, exactly like the email/OTP path.
+            _db.ClientProfiles.Add(new ClientProfile { User = user });
         } else {
             user.IsGoogleAccount = true;
             user.GoogleSub = payload.Subject;

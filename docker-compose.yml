@@ -1,0 +1,106 @@
+# WebOfWork, all layers.
+#
+# ## What this file does and does not do
+#
+# It brings up the AI service and a Postgres for local use. It does NOT bring up
+# the .NET API, because that needs a real connection string, a migration history
+# and PayPal credentials, and a compose file that pretends otherwise produces a
+# container that starts and then fails on first request -- which is harder to
+# diagnose than one that never started.
+#
+# Run the .NET API on the host with `dotnet run`, and point it at the AI service
+# with `AgenticAi__BaseUrl=http://localhost:8001`.
+#
+# ## The keys
+#
+# No key is required to start. With none configured the service runs on recorded
+# fixtures, which is deliberate: a fresh clone comes up and works, and says so in
+# `/health` and in the startup log, rather than failing on a missing setting.
+# Give it a key to make it real.
+
+services:
+  # ── the AI service ───────────────────────────────────────────────────
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: webofwork-ai
+    ports:
+      - "8001:8001"
+    environment:
+      APP_ENV: development
+
+      # The .NET API. From inside a container "localhost" is the container, so
+      # this must be the host -- `host.docker.internal` on Docker Desktop, and
+      # the `extra_hosts` entry below is what makes that resolve on Linux.
+      #
+      # Port 5000, not 5001. launchSettings binds both, but 5001 is the HTTPS
+      # endpoint and 5000 the HTTP one:
+      #
+      #   applicationUrl: "https://0.0.0.0:5001;http://0.0.0.0:5000;..."
+      #
+      # Pointing a plain `http://` URL at 5001 asks for TLS on a plaintext
+      # socket, so every call from the container failed at the handshake --
+      # surfacing as DotNetUnavailableError and an unreadable "Could not reach
+      # the WebOfWork API" on a stage whose real fault was one character of
+      # scheme-versus-port mismatch.
+      #
+      # HTTP rather than HTTPS also means `DOTNET_VERIFY_TLS` below is not
+      # load-bearing here; it is kept for the case where this is pointed back
+      # at 5001.
+      DOTNET_BASE_URL: http://host.docker.internal:5000
+
+      # Shared with the .NET `AgenticAi:InternalApiKey`. Must match exactly.
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-6520842e9c86247873517b76ed60ba57e4bf5425a7de8c22992bb6ea5e07f03e}
+
+      # Off because the .NET development certificate is self-signed. Refused
+      # outright when APP_ENV=production, and there are seven tests that say so.
+      DOTNET_VERIFY_TLS: "false"
+
+      # Ordered by measured latency rather than alphabetically. Groq answered in
+      # 317ms and Cerebras in 560ms; Gemini was first in an earlier draft and
+      # spent 74 seconds returning 503 across ten keys before falling through.
+      #
+      # Unset means fixtures. Set these to go live.
+      LLM_PROVIDER_CHAIN: ${LLM_PROVIDER_CHAIN:-fixture}
+      LLM_GROQ_API_KEYS: ${LLM_GROQ_API_KEYS:-}
+      LLM_CEREBRAS_API_KEYS: ${LLM_CEREBRAS_API_KEYS:-}
+      LLM_COHERE_API_KEYS: ${LLM_COHERE_API_KEYS:-}
+      LLM_GEMINI_API_KEYS: ${LLM_GEMINI_API_KEYS:-}
+
+      # Recorded responses as the last resort, so a workflow still completes when
+      # every provider is down. It says so in the output rather than pretending.
+      LLM_ALLOW_FIXTURE_FALLBACK: ${LLM_ALLOW_FIXTURE_FALLBACK:-true}
+    extra_hosts:
+      # Linux has no `host.docker.internal` without this. Harmless on Windows.
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # ── a database, for trying the AI service without touching anything real ──
+  #
+  # The AI service never reads this. It reaches PostgreSQL through the .NET API,
+  # and a test in the suite enforces that. It exists so `docker compose up` gives
+  # you something to point the .NET API at.
+  postgres:
+    image: postgres:16-alpine
+    container_name: webofwork-postgres
+    environment:
+      POSTGRES_DB: webofwork
+      POSTGRES_USER: webofwork_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-webofwork_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` alone reports ready during the init phase, so the .NET API
+      # can connect and be refused by a server that is not accepting connections
+      # yet. This is why the healthcheck exists rather than a `depends_on`.
+      test: ["CMD-SHELL", "pg_isready -U webofwork_user -d webofwork"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

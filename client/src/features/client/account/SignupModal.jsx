@@ -1,6 +1,23 @@
-import AuthLayout from "./components/AuthLayout.jsx";
-import SignupForm from "./components/SignupForm.jsx";
+import { createPortal } from "react-dom";
+import ModalWrapper from "./components/ModelWrapper";
+import SignupLayout from "./components/SignupLayout";
 
-export default function SignupModal({ onClose }) {
-  return <AuthLayout eyebrow="Join the workspace" title="Create your account" description="Bring clearer projects and better collaboration into focus." onClose={onClose}><SignupForm onClose={onClose} /></AuthLayout>;
+export default function SignupModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <ModalWrapper onClose={onClose} title="Create an account">
+      <SignupLayout onClose={onClose} />
+    </ModalWrapper>,
+    document.getElementById("modal-root")
+  );
 }
+
+
+
+
+
+
+
+
+

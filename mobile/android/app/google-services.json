@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "267114013376",
+    "project_id": "webofwork-ba52d",
+    "storage_bucket": "webofwork-ba52d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:267114013376:android:71c71faf7fb54c276d0325",
+        "android_client_info": {
+          "package_name": "com.xetuwiz.webofwork"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSfXQo3_m7FctFblqHrPEmkaNL81cVIG4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

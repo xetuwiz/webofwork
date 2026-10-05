@@ -1,53 +1,54 @@
-import toast from "react-hot-toast";
-import { useDeleteCategory } from "../categoryMutations.js";
+import { useDeleteCategory } from "../categoryMutations";
+import Dialog from "../../../../components/common/Dialog";
+import { toastError } from "../../../../utils/toast";
+import { getErrorMessage } from "../../../../utils/errorMessage";
 
-export function DeleteCategoryModal({ onOpenChange, category }) {
+export function DeleteCategoryModal({ open, onOpenChange, category }) {
   const deleteMutation = useDeleteCategory();
 
   const handleDelete = () => {
-    if (!category) return;
-
     deleteMutation.mutate(category.id, {
-      onSuccess: () => {
-        toast.success("Category deleted.");
-        onOpenChange(false);
-      },
+      onSuccess: () => onOpenChange(false),
       onError: (error) => {
-        const message = error?.response?.data?.error || error?.response?.data?.detail || "Failed to delete category.";
-        toast.error(message);
-      },
+        // This raised the failure text through `toastSuccess`. So deleting a
+        // category that could not be deleted showed the reason in a *green
+        // success toast* -- reading as "An error occurred: done", which is worse
+        // than showing nothing because it looks like the operation succeeded.
+        toastError(getErrorMessage(error, "An error occurred"));
+      }
     });
   };
 
   if (!category) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4">
-      <div className="w-[440px] rounded-xl bg-white p-8 shadow-2xl">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Delete Category</h2>
+    <Dialog
+            open={open}
+            onClose={() => onOpenChange(false)}
+      title="Delete Category"
+      size="sm"
+    >
+          <h2 className="text-lg font-semibold mb-4">Delete Category</h2>
 
-        <p className="mb-6 text-sm text-slate-600">
-          Are you sure you want to delete <span className="font-semibold text-slate-800">{category.name}</span>?
-        </p>
+          <p className="text-sm text-fg-muted mb-6">
+            Are you sure you want to delete <b>{category.name}</b>?
+          </p>
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="flex-1 rounded-lg bg-slate-100 py-3 font-medium text-slate-700 transition hover:bg-slate-200"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="flex-1 rounded-lg bg-red-600 py-3 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending ? "Deleting..." : "Delete"}
-          </button>
-        </div>
-      </div>
-    </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => onOpenChange(false)}
+              className="flex-1 h-12 bg-surface-3 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="flex-1 h-12 bg-danger text-danger-fg rounded-lg"
+            >
+              Delete
+            </button>
+          </div>
+    </Dialog>
   );
 }
+

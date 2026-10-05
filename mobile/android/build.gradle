@@ -1,0 +1,90 @@
+// buildscript {
+//     ext.kotlin_version = '1.7.10'
+//     repositories {
+//         google()
+//         mavenCentral()
+//     }
+
+//     dependencies {
+//         classpath 'com.android.tools.build:gradle:7.2.0'
+//         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+//     }
+// }
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+
+// Several plugins in this template (connectivity_plus, and others pinned in
+// 2022) predate the AGP 8 requirement that every module declare a `namespace`
+// in its build file. Without this the build fails while configuring those
+// modules: "Namespace not specified. Specify a namespace in the module's
+// build file". Derive it from the manifest package instead of bumping ~30
+// plugin majors (each of which would bring its own API breakage through a
+// 39k-line codebase). Newly-updated plugins set namespace themselves and are
+// left untouched.
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            def androidExt = project.extensions.findByName('android')
+            if (androidExt != null && androidExt.namespace == null) {
+                def manifestPkg = project.file('src/main/AndroidManifest.xml').text
+                        ?.find(/package\s*=\s*"([^"]+)"/)
+                if (manifestPkg != null) {
+                    androidExt.namespace = manifestPkg[1]
+                }
+            }
+        }
+    }
+}
+
+// Those same 2022-era plugins pin jvmTarget/sourceCompatibility to 1.8 while
+// the toolchain compiles Kotlin at 21, so the build dies with
+// "Inconsistent JVM Target Compatibility Between Java and Kotlin Tasks".
+// They also declare compileSdk below 30, which AGP 8 refuses outright
+// ("In order to compile Java 9+ source, please set compileSdkVersion to 30 or
+// above"). Align every module on a single JDK-17 / compileSdk 35 baseline.
+subprojects {
+    afterEvaluate { project ->
+        def androidExt = project.extensions.findByName('android')
+        if (androidExt != null) {
+            try {
+                if (androidExt.compileSdkVersion == null ||
+                    androidExt.compileSdkVersion.toString().toInteger() < 35) {
+                    androidExt.compileSdkVersion 35
+                }
+            } catch (ignored) { }
+            if (androidExt.compileOptions != null) {
+                androidExt.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+                androidExt.compileOptions.targetCompatibility = JavaVersion.VERSION_17
+            }
+            // These modules declare no jvmTarget at all, so kotlinc falls back to
+            // the JDK running Gradle (21) while javac uses the compileOptions
+            // above (17) -- "Inconsistent JVM-target compatibility detected".
+            try {
+                androidExt.kotlinOptions.jvmTarget = '17'
+            } catch (ignored) { }
+            def kotlinExt = project.extensions.findByName('kotlin')
+            if (kotlinExt != null) {
+                try {
+                    kotlinExt.jvmTarget = '17'
+                } catch (ignored) {
+                    // Older KGP exposed this through kotlinOptions only.
+                    try { kotlinExt.kotlinOptions.jvmTarget = '17' } catch (ignoredToo) { }
+                }
+            }
+        }
+    }
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

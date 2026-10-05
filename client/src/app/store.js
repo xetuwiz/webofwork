@@ -1,22 +1,23 @@
-import { configureStore } from "@reduxjs/toolkit";
-import { combineReducers } from "redux";
-import { persistReducer, persistStore } from "redux-persist";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import authReducer from "../features/client/account/auth/authslice";
+import { persistReducer, persistStore, REHYDRATE } from "redux-persist";
 import storage from "redux-persist/lib/storage";
-import authReducer from "../features/client/account/auth/authslice.js";
+
+const authPersistConfig = {
+  key: "auth",
+  storage,
+  whitelist: ["user", "accessToken"],
+};
 
 const rootReducer = combineReducers({
-  auth: persistReducer(
-    {
-      key: "auth",
-      storage,
-      whitelist: ["user", "accessToken"],
-    },
-    authReducer,
-  ),
+  auth: persistReducer(authPersistConfig, authReducer),
 });
 
 const resettableRootReducer = (state, action) => {
-  if (action.type === "auth/logout" || action.type === "auth/logout/fulfilled") {
+  if (
+    action.type === "auth/logout" ||
+    action.type === "auth/logout/fulfilled"
+  ) {
     storage.removeItem("persist:auth");
     state = undefined;
   }

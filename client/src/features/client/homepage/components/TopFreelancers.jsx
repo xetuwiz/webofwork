@@ -1,9 +1,39 @@
-import { Link } from "react-router-dom";
-import { useRecommendedFreelancers } from "../homePageQueries.js";
-import HomeFreelancerCard from "./HomeFreelancerCard.jsx";
+import { Loader2 } from "lucide-react";
+import { useRecommendedFreelancers } from "../homePageQueries";
+import HomeFreelancerCard from "./HomeFreelancerCard";
 
 export default function TopFreelancers() {
-  const { data, isLoading } = useRecommendedFreelancers();
-  const people = data?.items ?? data?.Items ?? data ?? [];
-  return <section className="content-section"><div className="section-heading section-heading--split"><div><span className="app-shell__eyebrow">People worth meeting</span><h2>Start with a point of view.</h2></div><Link className="text-link" to="/find-talents">Browse all talent</Link></div>{isLoading && <div className="content-state">Loading recommendations...</div>}{!isLoading && people.length === 0 && <div className="content-state">Recommendations will appear as the marketplace grows.</div>}{people.length > 0 && <div className="people-grid">{people.slice(0, 4).map((person) => <HomeFreelancerCard freelancer={person} key={person.id ?? person.Id} />)}</div>}</section>;
+  const {data, isLoading} = useRecommendedFreelancers();
+  
+  if (isLoading) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-brand mb-4" />
+        <p className="text-fg-subtle font-medium">Curating top experts for you...</p>
+      </div>
+    );
+  }
+  
+  return (
+    <section className="py-12 sm:py-16 lg:py-20 bg-surface">
+      <div className="max-w-page-3xl mx-auto px-4 sm:px-8 lg:px-12 xl:px-20">
+        
+        <h2 className="text-fg font-inter text-2xl sm:text-3xl lg:text-[40px] font-bold leading-tight mb-8 lg:mb-12">
+          Recommended Freelancers
+        </h2>
+
+        <div className="flex flex-col gap-6 lg:gap-8">
+          {data?.map((freelancer) => (
+            <HomeFreelancerCard key={freelancer.id} freelancer={freelancer} />
+          ))}
+          
+          {data?.length === 0 && (
+            <div className="text-center py-12 bg-surface rounded-xl border border-dashed border-line-strong">
+              <p className="text-fg-subtle">No recommendations available at the moment.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }

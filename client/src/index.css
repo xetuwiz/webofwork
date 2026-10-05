@@ -1,306 +1,845 @@
+@import "tailwindcss";
+
+/* ── Dark mode strategy ───────────────────────────────────────────────────────
+ *
+ * Tailwind v4 defaults `dark:` to `prefers-color-scheme`, which cannot express a
+ * user-overridden preference. This redefines the variant to key off a `.dark`
+ * class on <html>, so `prefers-color-scheme` is only consulted when the user has
+ * actually chosen "system" (see ThemeProvider).
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Semantic tokens ─────────────────────────────────────────────────────────
+ *
+ * The app previously hard-coded `bg-white text-slate-900 border-slate-200` on
+ * every surface, in 159 files. Those literals cannot respond to a theme, which is
+ * why there were zero `dark:` variants in the codebase: adding one per class was
+ * never viable.
+ *
+ * So the palette is expressed as *semantic* roles -- what a thing IS (a card, a
+ * border, muted text) rather than what colour it happens to be today. A
+ * component picks `bg-surface border-line text-fg-muted` once and dark mode is
+ * free, because the variables below are redefined under `.dark`.
+ *
+ * `inline` is required: it makes the generated utilities reference the custom
+ * property instead of copying its value, so they resolve against the live
+ * cascade and follow the `.dark` override.
+ */
 :root {
-  color: #17202a;
-  background: #f4f1eb;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  color-scheme: light;
+
+  /* Surfaces, lightest to deepest. */
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
+  --surface-inset: #e2e8f0;
+
+  /* Foreground. Three steps, all clearing WCAG AA (4.5:1) for body text.
+     `--fg-subtle` was #94a3b8, which is only 2.56:1 on white -- it read as
+     disabled text in light mode and was the most-used "quiet" tone. */
+  --fg: #0f172a;         /* 17.85:1 on --surface */
+  --fg-muted: #475569;   /*  7.58:1 */
+  --fg-subtle: #64748b;  /*  4.76:1 */
+
+  /* Borders. */
+  --line: #e2e8f0;
+  --line-soft: #f1f5f9;
+  --line-strong: #cbd5e1;
+
+  /* Brand. Kept legible on both surfaces. */
+  --brand: #2563eb;
+  --brand-hover: #1d4ed8;
+  --brand-fg: #ffffff;
+  --brand-soft: #eff6ff;
+  --brand-soft-fg: #1d4ed8;
+  --brand-line: #bfdbfe;
+
+  --danger: #dc2626;
+  /* Foreground for text sitting ON the solid status fills. White on a deep red in
+     light mode; near-black on the light red that `--danger` becomes under `.dark`,
+     because white on #f87171 fails contrast badly. */
+  --danger-fg: #ffffff;
+  --danger-soft: #fef2f2;
+  --danger-soft-fg: #b91c1c;
+  --success: #16a34a;
+  --success-fg: #ffffff;
+  --success-soft: #f0fdf4;
+  --success-soft-fg: #15803d;
+  --warning: #d97706;
+  --warning-fg: #ffffff;
+  --warning-soft: #fffbeb;
+  --warning-soft-fg: #b45309;
+
+  /* Deliberately-dark surfaces: footers, dark banners, marketing bands.
+     Foreground on top of them stays near-white in BOTH themes, so a footer never
+     has to have its text colour flipped per theme. In dark mode the surface
+     lightens to a slate rather than staying near-black, which keeps it
+     distinguishable from the page canvas instead of merging into it. */
+  --inverse: #0f172a;
+  --inverse-fg: #f8fafc;
+
+  /* ── Page container widths ───────────────────────────────────────────────
+   *
+   * 53 distinct `max-w-*` values were in use, 74 of them arbitrary pixels, and
+   * they were not chosen -- they were arithmetic. `max-w-[1037px]` is
+   * 54% of 1920, `max-w-[1546px]` is 80.5%, `max-w-[349px]` is 18.2%: a set of
+   * percentage widths that got baked into pixels and lost their relationship to
+   * the viewport. Nobody picks 1037px.
+   *
+   * Two visible consequences. A wrapper that was meant to scale with the
+   * viewport became a fixed cap, so it behaved nothing like the original on a
+   * 1280px laptop or a 2560px display. And "make the reading column narrower"
+   * was a find-and-replace across however many files happened to use that
+   * number.
+   *
+   * Six steps, mapped to the nearest existing width so the visual change is
+   * small: the largest shift is ~7% on a centred wrapper, most are under 4%.
+   * The values that are *not* in this scale are text measures, avatars, images
+   * and two-column hero splits -- element sizing, not page layout, and folding
+   * them in here would be a category error.
+   *
+   * Named `--page-*`, NOT `--container-*`, and that is load-bearing. Tailwind v4
+   * emits its own default theme as `--container-sm/lg/xl/...` in `:root` and
+   * wires `max-w-lg` to `var(--container-lg)`. An earlier draft of this file
+   * defined `--container-lg: 1024px` here, which is a second `:root` declaration
+   * of a name Tailwind already owns. Same specificity, declared later, so it won
+   * -- and `max-w-sm`, `max-w-md`, `max-w-lg`, `max-w-xl` and `max-w-2xl` all
+   * silently doubled in width across the whole app with no diff to show for it.
+   * Prefixing the utilities is not enough on its own; the *variables* have to
+   * stay out of Tailwind's namespace too.
+   */
+  --page-md: 800px;   /* reading width, wizard steps */
+  --page-lg: 1024px;  /* the default page container */
+  --page-xl: 1280px;  /* dense data: tables, card grids */
+  --page-2xl: 1440px; /* wide app shells */
+  --page-3xl: 1600px; /* marketing bands and hero sections */
+  --page-4xl: 1920px; /* the full-bleed cap */
+
+  /* Dialog widths are a separate scale on purpose. A modal is sized to its
+     content, not to the page, and mixing the two would invite the wrong one:
+     a 600px dialog on a 1920px page is correct, a 600px page container is not.
+     These were previously 440/448/512/538/600/672/720/1100 -- eight numbers for
+     four jobs. */
+  --dialog-sm: 448px;   /* confirmations, small forms */
+  --dialog-md: 600px;   /* dispute and dispute-detail dialogs */
+  --dialog-lg: 720px;   /* wide forms: skill, offer, invitation */
+  --dialog-xl: 1100px;  /* the full proposal detail dialog */
+
+  /* ── Stacking scale ───────────────────────────────────────────────────────
+   *
+   * There were 33 hardcoded `z-[N]` values across 22 files and no scale behind
+   * them, spanning 55 to 300. Because nothing declared the intended order, two
+   * things went wrong: a modal and a dropdown both sat at 100 so which won
+   * depended on DOM order, and a confirmation dialog opened on top of another
+   * modal was at 110 by two values rather than by intent.
+   *
+   * These are ROLES, not sizes, so the number can move without touching markup.
+   * Each maps to a utility registered in `@utility` further down (Tailwind v4
+   * has no `--z-*` theme namespace, so `z-modal` is not something `@theme` can
+   * generate for us).
+   *
+   * Every value starts at 100, deliberately above Tailwind's built-in `z-50`,
+   * which this app uses 29 times for in-page stacking (sticky headers, sidebars,
+   * badges). Keeping the two ranges disjoint means an overlay can never tie with
+   * a page element and fall back to DOM order to decide. Anything that stacks
+   * *within* a page -- sticky headers at `z-10`/`z-20`, the client sidebar at
+   * `z-50` -- stays on the built-in numeric scale and needs no token.
+   *
+   * The order carries two invariants that are easy to get backwards:
+   *
+   *   overlay < popover  A scrim must sit BELOW the thing it dims. RootLayout
+   *                       and Chat both render a full-screen scrim immediately
+   *                       before their panel; if the scrim scored higher it
+   *                       would paint over the panel and swallow every click on
+   *                       it, leaving an un-dismissable overlay.
+   *
+   *   popover < modal    A dialog must cover an open anchored panel, not
+   *                       interleave with it. These two used to share z-100 and
+   *                       were separated only by DOM order.
+   */
+  --z-raised: 100;       /* above its siblings inside a container (modal close button) */
+  --z-overlay: 200;      /* click-catching scrim, painted BEHIND what it dims */
+  --z-popover: 300;      /* anchored panel: notifications, profile menu, chat */
+  --z-modal: 400;        /* modal dialog */
+  --z-modal-raised: 500; /* a confirm dialog stacked on top of another modal */
+  --z-banner: 600;       /* global status banner (offline notice) */
+  --z-toast: 700;        /* toasts */
+
+  /* ── Motion ──────────────────────────────────────────────────────────────
+   *
+   * 53 `duration-*` usages across 20 files, using six different values chosen
+   * ad hoc, and only four of them had any easing at all -- the other 49 ran on
+   * the browser default `ease`. So a dropdown, a modal and a sidebar all
+   * decelerated identically despite moving very different distances.
+   *
+   * Named by role rather than by milliseconds, so "make panels a touch slower"
+   * is a one-line change rather than a 27-file find-and-replace. Each token
+   * below maps 1:1 onto a duration that was genuinely in use -- there is no
+   * 100ms step because nothing used 100ms, and an unused token is dead code.
+   */
+  --duration-fast: 150ms;        /* button and input state flips */
+  --duration-base: 200ms;        /* the default: dropdowns, colour changes, theme cross-fade */
+  --duration-slow: 300ms;        /* panels, popovers, accordions */
+  --duration-slower: 500ms;      /* full modal enter/exit */
+  --duration-deliberate: 700ms;  /* slow decorative motion: the portfolio image zoom */
+  --duration-progress: 1000ms;   /* the contract status bar filling across */
+
+  /* Reused by the `prefers-reduced-motion` block below. A token rather than a
+     literal so the 0.01ms floor is one documented decision instead of a magic
+     number repeated in the stylesheet. It is 0.01ms and not 0 on purpose: see
+     the comment on that block for why zeroing it hangs `transitionend`. */
+  --duration-reduced: 0.01ms;
+
+  /* Two curves, because there are two kinds of movement in the app.
+   *
+   * `standard` decelerates: fast at first, settling gently. Correct for anything
+   * responding to a direct action -- a hover zoom, a panel appearing.
+   *
+   * `emphasized` is symmetric, slow-in and slow-out. Correct for large layout
+   * shifts where an abrupt start would be visible, like a sidebar sliding in or
+   * an accordion expanding.
+   *
+   * Named `--ease-curve-*` rather than `--ease-*` so the raw values do not
+   * collide with the `--ease-*` theme namespace mapped in `@theme` below. */
+  --ease-curve-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-curve-emphasized: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Skeleton sweep. On the light palette a placeholder sits at --surface-2
+     (#f8fafc), so the highlight has to be brighter than that or the sweep is
+     invisible. */
+  --shimmer-highlight: rgba(255, 255, 255, 0.9);
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: #f4f1eb; }
-a { color: inherit; text-decoration: none; }
-button { cursor: pointer; }
+.dark {
+  color-scheme: dark;
 
-.app-shell { min-height: 100dvh; display: flex; flex-direction: column; background: #f4f1eb; }
-.app-shell__header { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px clamp(20px, 5vw, 72px); color: #f8f5ef; background: #17202a; }
-.app-shell__brand { display: inline-flex; align-items: center; gap: 10px; font-size: 1.05rem; font-weight: 700; letter-spacing: .02em; }
-.app-shell__brand-mark { display: grid; width: 32px; height: 32px; place-items: center; color: #17202a; background: #d6a84f; font-weight: 800; }
-.app-shell__header-copy { display: flex; align-items: center; gap: 14px; color: #c8d0d6; font-size: .9rem; }
-.app-shell__header-copy strong { color: #f8f5ef; font-weight: 600; }
-.app-shell__eyebrow { display: block; color: #a56f24; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.app-shell__body { display: flex; flex: 1; min-height: 0; }
-.app-shell__sidebar { width: 240px; flex: 0 0 240px; padding: 28px 16px; border-right: 1px solid #ded8ce; background: #ebe6dd; }
-.app-shell__nav { display: grid; gap: 5px; }
-.app-shell__link { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; color: #59636c; border-left: 2px solid transparent; font-size: .9rem; transition: background-color .18s ease, color .18s ease, border-color .18s ease; }
-.app-shell__link:hover, .app-shell__link--active { color: #17202a; border-left-color: #a56f24; background: #f4f1eb; }
-.app-shell__link small { color: #8b949b; }
-.app-shell__main { width: 100%; min-width: 0; padding: clamp(28px, 5vw, 72px); }
-.app-shell__footer { padding: 16px clamp(20px, 5vw, 72px); color: #778089; border-top: 1px solid #ded8ce; font-size: .78rem; }
-.route-placeholder { max-width: 720px; padding-top: 5vh; }
-.route-placeholder h1, .not-found h1 { max-width: 720px; margin: 12px 0; color: #17202a; font-size: clamp(2rem, 5vw, 4.4rem); line-height: 1; letter-spacing: -.045em; }
-.route-placeholder p, .not-found p { max-width: 58ch; color: #68727b; font-size: 1.05rem; line-height: 1.65; }
-.onboarding-shell { min-height: 100dvh; padding: clamp(30px, 6vw, 80px) 20px; background: #f4f1eb; }
-.onboarding-shell__header, .onboarding-shell__content, .onboarding-shell__progress { width: min(100%, 920px); margin-inline: auto; }
-.onboarding-shell__header { text-align: center; }
-.onboarding-shell__header h1 { margin: 10px 0 8px; font-size: clamp(2rem, 5vw, 4rem); letter-spacing: -.05em; line-height: 1; }
-.onboarding-shell__header p { margin: 0 auto; color: #68727b; }
-.onboarding-shell__progress { display: flex; gap: 7px; margin-top: 34px; }
-.onboarding-shell__step { height: 6px; flex: 1; background: #ded8ce; }
-.onboarding-shell__step--active { background: #a56f24; }
-.onboarding-shell__content { margin-top: 34px; padding: clamp(24px, 5vw, 58px); border: 1px solid #ded8ce; background: #fbfaf7; }
-.loading-state { min-height: 100dvh; display: grid; place-items: center; gap: 12px; align-content: center; color: #68727b; }
-.loading-state__spinner { width: 28px; height: 28px; border: 3px solid #ded8ce; border-top-color: #a56f24; border-radius: 50%; animation: spin .8s linear infinite; }
-.not-found { max-width: 760px; margin: 0 auto; padding-top: 7vh; }
-.not-found__code { display: block; color: #a56f24; font-family: ui-monospace, SFMono-Regular, monospace; font-size: clamp(5rem, 16vw, 12rem); font-weight: 800; line-height: .8; letter-spacing: -.1em; }
-.not-found__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
-.button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 1px solid transparent; font-weight: 700; transition: transform .18s ease, background-color .18s ease; }
-.button:hover { transform: translateY(-1px); }
-.button--quiet { color: #59636c; border-color: #ded8ce; background: transparent; }
-.button--accent { color: #fbfaf7; background: #a56f24; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (max-width: 720px) {
-  .app-shell__header { align-items: flex-start; flex-direction: column; }
-  .app-shell__header-copy { flex-direction: column; align-items: flex-start; gap: 3px; }
-  .app-shell__body { display: block; }
-  .app-shell__sidebar { width: 100%; padding: 12px 20px; border-right: 0; border-bottom: 1px solid #ded8ce; }
-  .app-shell__nav { display: flex; gap: 4px; overflow-x: auto; }
-  .app-shell__link { flex: 0 0 auto; border-left: 0; border-bottom: 2px solid transparent; }
-  .app-shell__link:hover, .app-shell__link--active { border-bottom-color: #a56f24; border-left-color: transparent; }
-  .app-shell__main { padding: 28px 20px 46px; }
+  /* Not pure black: pure black on OLED makes elevation impossible to read, and
+     the elevation scale below is a small stack of greys on purpose. */
+  --surface: #0b1120;
+  --surface-2: #111827;
+  --surface-3: #1e293b;
+  --surface-inset: #334155;
+
+  /* Foreground. The dark scale is one step lighter than the light one at each
+     level, because light-on-dark reads weaker than dark-on-light at the same
+     relative luminance. The old values were #94a3b8 / #64748b, and
+     `--fg-subtle` (#64748b) measured 3.96:1 on --surface, 3.73 on --surface-2,
+     3.07 on --surface-3 and 2.18 on --surface-inset -- below the 4.5:1 AA
+     threshold on every dark surface, which is why hero copy, card meta and
+     stat labels looked washed out. */
+  --fg: #e2e8f0;         /* 15.27:1 on --surface */
+  --fg-muted: #cbd5e1;   /* 12.68:1 */
+  --fg-subtle: #94a3b8;  /*  7.34:1 */
+
+  --line: #1e293b;
+  --line-soft: #172033;
+  --line-strong: #334155;
+
+  --brand: #60a5fa;
+  --brand-hover: #93c5fd;
+  --brand-fg: #0b1120;
+  --brand-soft: #172554;
+  --brand-soft-fg: #bfdbfe;
+  --brand-line: #1e3a8a;
+
+  --danger: #f87171;
+  --danger-fg: #0b1120;
+  --danger-soft: #2a1113;
+  --danger-soft-fg: #fca5a5;
+  --success: #4ade80;
+  --success-fg: #0b1120;
+  --success-soft: #0f2317;
+  --success-soft-fg: #86efac;
+  --warning: #fbbf24;
+  --warning-fg: #0b1120;
+  --warning-soft: #2a1f0b;
+  --warning-soft-fg: #fcd34d;
+
+  --inverse: #1e293b;
+  --inverse-fg: #f8fafc;
+
+  /* Inverted: on the dark surfaces a white sweep is right, but at full strength
+     it blows out the block, so it is kept low. */
+  --shimmer-highlight: rgba(255, 255, 255, 0.07);
 }
 
-.public-page { overflow: hidden; background: #fbfaf7; }
-.public-header { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px clamp(20px, 5vw, 72px); border-bottom: 1px solid #ded8ce; background: rgba(251, 250, 247, .92); }
-.public-header__brand { display: inline-flex; align-items: center; gap: 10px; color: #17202a; font-size: 1.05rem; font-weight: 800; }
-.public-header__mark { display: grid; width: 32px; height: 32px; place-items: center; color: #fbfaf7; background: #a56f24; font-weight: 800; }
-.public-header__nav { display: flex; align-items: center; gap: 20px; color: #59636c; font-size: .84rem; font-weight: 700; }
-.public-header__nav > a:hover { color: #a56f24; }
-.public-header__menu { display: none; border: 0; color: #17202a; background: transparent; font-weight: 700; }
-.public-footer { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 32px; padding: 46px clamp(20px, 5vw, 72px); border-top: 1px solid #ded8ce; color: #68727b; background: #ebe6dd; }
-.public-footer strong { color: #17202a; }
-.public-footer p { max-width: 28ch; margin: 10px 0 0; font-size: .86rem; line-height: 1.5; }
-.public-footer__links { display: flex; flex-wrap: wrap; align-content: start; gap: 12px 22px; font-size: .82rem; font-weight: 700; }
-.public-footer__links a:hover { color: #a56f24; }
-.public-footer small { align-self: end; font-size: .76rem; }
-.landing-hero, .client-home-hero, .how-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); gap: clamp(40px, 8vw, 120px); align-items: center; min-height: 650px; padding: clamp(60px, 9vw, 130px) clamp(20px, 8vw, 120px); }
-.landing-hero__copy h1, .client-home-hero h1, .how-hero h1, .editorial-hero h1 { max-width: 760px; margin: 14px 0 22px; color: #17202a; font-size: clamp(3rem, 7vw, 7.2rem); line-height: .94; letter-spacing: -.07em; }
-.landing-hero__copy p, .client-home-hero p, .how-hero p, .editorial-hero p { max-width: 58ch; color: #68727b; font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.65; }
-.landing-hero__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
-.landing-hero__visual, .how-hero__visual { position: relative; min-height: 480px; }
-.landing-hero__image, .how-hero__image { position: absolute; inset: 0 0 36px 40px; background: linear-gradient(135deg, rgba(23, 32, 42, .08), rgba(165, 111, 36, .32)), url("https://picsum.photos/seed/webofwork-collaboration/1000/900") center/cover; filter: saturate(.75); }
-.landing-hero__visual::before, .how-hero__visual::before { position: absolute; inset: 36px 40px 0 0; content: ""; border: 1px solid #d6a84f; }
-.landing-hero__note, .landing-hero__status, .how-hero__visual > span { position: absolute; padding: 14px 16px; color: #fbfaf7; background: #17202a; font-size: .75rem; box-shadow: 0 16px 30px rgba(23, 32, 42, .16); }
-.landing-hero__note { right: 0; top: 32px; display: grid; gap: 4px; }
-.landing-hero__note span { color: #d6a84f; font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; }
-.landing-hero__status { left: 0; bottom: 0; }
-.landing-hero__status i { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #7fae8e; }
-.content-section { padding: clamp(70px, 9vw, 130px) clamp(20px, 8vw, 120px); }
-.content-section--lined { border-top: 1px solid #ded8ce; }
-.section-heading { max-width: 820px; margin: 0 auto 48px; text-align: center; }
-.section-heading--split { display: grid; grid-template-columns: 1.2fr .8fr; gap: 40px; align-items: end; max-width: 1100px; text-align: left; }
-.section-heading h2 { margin: 12px 0 0; color: #17202a; font-size: clamp(2.2rem, 5vw, 5rem); line-height: .98; letter-spacing: -.06em; }
-.section-heading p { margin: 0; color: #68727b; line-height: 1.6; }
-.steps-grid, .feature-grid, .people-grid, .contact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; max-width: 1100px; margin: 0 auto; }
-.step-item { padding: 26px 0 0; border-top: 2px solid #a56f24; }
-.step-item > span { color: #a56f24; font: 700 .78rem ui-monospace, SFMono-Regular, monospace; }
-.step-item h3, .feature-grid h3, .person-item h3 { margin: 24px 0 8px; color: #17202a; font-size: 1.15rem; }
-.step-item p, .feature-grid p, .person-item p { margin: 0; color: #68727b; line-height: 1.6; }
-.categories-section { background: #17202a; }
-.categories-section .section-heading h2, .categories-section .section-heading p { color: #fbfaf7; }
-.categories-section .app-shell__eyebrow { color: #d6a84f; }
-.category-list { max-width: 1100px; margin: 0 auto; border-top: 1px solid rgba(251, 250, 247, .18); }
-.category-item { display: grid; grid-template-columns: 60px 1fr 24px; gap: 16px; align-items: center; padding: 20px 0; color: #fbfaf7; border-bottom: 1px solid rgba(251, 250, 247, .18); }
-.category-item span { color: #aeb8bf; font: .75rem ui-monospace, SFMono-Regular, monospace; }
-.category-item strong { font-size: clamp(1.2rem, 2vw, 1.7rem); font-weight: 600; }
-.feature-band { background: #ebe6dd; }
-.feature-grid article { min-height: 190px; padding: 26px; background: #fbfaf7; }
-.feature-grid__line { display: block; width: 42px; height: 3px; background: #a56f24; }
-.quote-section { padding: clamp(80px, 12vw, 170px) 20px; text-align: center; background: #d6a84f; }
-.quote-section .app-shell__eyebrow { color: #17202a; }
-.quote-section blockquote { max-width: 920px; margin: 24px auto; color: #17202a; font-size: clamp(2rem, 5vw, 5rem); line-height: .98; letter-spacing: -.06em; }
-.quote-section p { margin: 0; color: rgba(23, 32, 42, .7); }
-.cta-section { display: flex; justify-content: space-between; align-items: end; gap: 28px; padding: clamp(60px, 8vw, 100px) clamp(20px, 8vw, 120px); color: #fbfaf7; background: #17202a; }
-.cta-section h2 { margin: 12px 0 0; font-size: clamp(2.2rem, 5vw, 5rem); line-height: .95; letter-spacing: -.06em; }
-.cta-section .app-shell__eyebrow { color: #d6a84f; }
-.editorial-hero { max-width: 1080px; margin: 0 auto; padding: clamp(90px, 14vw, 190px) 20px 110px; }
-.editorial-hero--compact { padding-bottom: 70px; }
-.editorial-hero .button { margin-top: 28px; }
-.contact-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 1100px; padding: 0 20px 120px; }
-.contact-grid > * { padding: 28px; border-top: 2px solid #a56f24; background: #ebe6dd; }
-.contact-grid strong { display: block; margin: 18px 0 8px; color: #17202a; font-size: 1.15rem; }
-.contact-grid p { margin: 0; color: #68727b; line-height: 1.55; }
-.text-link { color: #a56f24; font-weight: 700; }
-.filter-row { display: flex; flex-wrap: wrap; gap: 8px; max-width: 1100px; margin: 0 auto 30px; }
-.filter-chip { padding: 10px 14px; border: 1px solid #ded8ce; color: #68727b; background: #fbfaf7; font-weight: 700; }
-.filter-chip--active, .filter-chip:hover { color: #fbfaf7; border-color: #a56f24; background: #a56f24; }
-.faq-section { max-width: 1100px; margin: 0 auto; padding-top: 0; }
-.faq-list { display: grid; gap: 8px; }
-.faq-item { border-top: 1px solid #ded8ce; }
-.faq-item button { display: flex; justify-content: space-between; width: 100%; padding: 20px 0; border: 0; color: #17202a; background: transparent; text-align: left; font-weight: 700; }
-.faq-item button b { color: #a56f24; font-size: 1.3rem; }
-.faq-item p { margin: -4px 42px 20px 0; color: #68727b; line-height: 1.65; }
-.content-state { padding: 42px 0; color: #68727b; }
-.legal-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; max-width: 1100px; margin: 0 auto; padding: 0 20px 120px; }
-.legal-layout aside { position: sticky; top: 20px; align-self: start; display: grid; gap: 10px; }
-.legal-layout aside a { color: #68727b; font-size: .85rem; }
-.legal-layout aside a:hover { color: #a56f24; }
-.legal-content { display: grid; gap: 20px; }
-.legal-section { padding: 28px; border: 1px solid #ded8ce; background: #ebe6dd; scroll-margin-top: 24px; }
-.legal-section > span { color: #a56f24; font: .75rem ui-monospace, SFMono-Regular, monospace; }
-.legal-section h2 { margin: 14px 0 10px; color: #17202a; font-size: 1.35rem; }
-.legal-section p { margin: 0; color: #68727b; line-height: 1.7; white-space: pre-line; }
-.client-home-hero { min-height: 530px; padding-top: 80px; padding-bottom: 70px; }
-.client-home-hero h1 { font-size: clamp(2.8rem, 6vw, 6.4rem); }
-.client-home-hero__panel { display: grid; gap: 12px; padding: 30px; border-left: 4px solid #a56f24; color: #fbfaf7; background: #17202a; }
-.client-home-hero__panel span { color: #d6a84f; font: .72rem ui-monospace, SFMono-Regular, monospace; text-transform: uppercase; }
-.client-home-hero__panel strong { font-size: clamp(1.7rem, 4vw, 3.2rem); line-height: 1; letter-spacing: -.05em; }
-.client-home-hero__panel small { color: #aeb8bf; }
-.client-home-header { position: relative; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px clamp(20px, 5vw, 72px); border-bottom: 1px solid #ded8ce; background: #fbfaf7; }
-.client-home-header__nav { display: flex; align-items: center; gap: 18px; color: #59636c; font-size: .82rem; font-weight: 700; }
-.client-home-header__link:hover, .client-home-header__link--active { color: #a56f24; }
-.client-home-header__profile { display: inline-flex; align-items: center; gap: 10px; padding: 0; border: 0; color: #17202a; background: transparent; font-weight: 700; }
-.client-home-header__profile strong { display: grid; width: 38px; height: 38px; place-items: center; color: #fbfaf7; background: #17202a; font-size: .95rem; }
-.client-home-header__menu { display: none; padding: 8px 0; border: 0; color: #17202a; background: transparent; font-weight: 700; }
-.client-profile-menu { position: absolute; top: calc(100% + 8px); right: clamp(20px, 5vw, 72px); display: grid; gap: 14px; width: min(300px, calc(100vw - 40px)); padding: 18px; border: 1px solid #ded8ce; background: #fbfaf7; box-shadow: 0 18px 35px rgba(23, 32, 42, .14); }
-.client-profile-menu nav { display: grid; gap: 2px; }
-.client-profile-menu nav a, .client-profile-menu button { padding: 10px 12px; border: 0; color: #59636c; background: #ebe6dd; text-align: left; font: inherit; font-size: .82rem; }
-.client-profile-menu nav a:hover, .client-profile-menu button:hover { color: #17202a; background: #ded8ce; }
-.client-profile-menu__error { margin: 0; color: #a33e32; font-size: .78rem; }
-.client-profile-menu__logout { color: #a33e32 !important; background: transparent !important; }
-.client-home-footer { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 32px; padding: 42px clamp(20px, 5vw, 72px); border-top: 1px solid #ded8ce; color: #68727b; background: #ebe6dd; }
-.client-home-footer strong { color: #17202a; }
-.client-home-footer p { max-width: 28ch; margin: 10px 0 0; font-size: .86rem; line-height: 1.5; }
-.client-home-footer nav { display: flex; flex-wrap: wrap; align-content: start; gap: 12px 20px; font-size: .82rem; font-weight: 700; }
-.client-home-footer nav a:hover { color: #a56f24; }
-.freelancer-card { display: grid; gap: 16px; padding: 24px; border-top: 2px solid #a56f24; background: #fbfaf7; }
-.freelancer-card__identity { display: flex; align-items: center; gap: 14px; }
-.freelancer-card__avatar { display: grid; width: 48px; height: 48px; flex: 0 0 48px; place-items: center; color: #fbfaf7; background: #17202a; font-weight: 800; }
-.freelancer-card h3 { margin: 0 0 4px; color: #17202a; font-size: 1.08rem; }
-.freelancer-card p { margin: 0; color: #68727b; line-height: 1.55; }
-.freelancer-card__bio { font-size: .9rem; }
-.freelancer-card__meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: #a56f24; font: .72rem ui-monospace, SFMono-Regular, monospace; }
-.people-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 1100px; }
-.person-item { display: flex; gap: 16px; align-items: flex-start; padding: 20px 0; border-top: 1px solid #ded8ce; }
-.person-item__avatar { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; color: #fbfaf7; background: #17202a; font-weight: 800; }
-.person-item h3 { margin: 0 0 5px; }
-.person-item p { font-size: .9rem; }
-.how-hero { min-height: 580px; }
-.how-hero__visual { min-height: 400px; }
-.how-hero__image { inset: 0 0 25px 25px; }
-.how-hero__visual::before { inset: 25px 25px 0 0; }
-.how-hero__visual > span { right: 20px; bottom: 0; }
-.workflow-list { max-width: 900px; margin: 0 auto; }
-.workflow-list article { display: grid; grid-template-columns: 70px 1fr; gap: 24px; padding: 24px 0; border-top: 1px solid #ded8ce; }
-.workflow-list article > span { color: #a56f24; font: 700 1rem ui-monospace, SFMono-Regular, monospace; }
-.workflow-list h3 { margin: 0 0 6px; color: #17202a; font-size: 1.35rem; }
-.workflow-list p { margin: 0; color: #68727b; line-height: 1.6; }
-.admin-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); grid-template-rows: 1fr auto; min-height: 100dvh; color: #17202a; background: #f4f1eb; }
-.admin-sidebar { grid-row: 1 / span 2; display: grid; align-content: start; gap: 8px; padding: 28px 16px; border-right: 1px solid #ded8ce; background: #ebe6dd; }
-.admin-sidebar > strong { padding: 0 12px 24px; font-size: 1.15rem; }
-.admin-sidebar nav { display: grid; gap: 4px; }
-.admin-sidebar nav a { padding: 11px 12px; border-left: 2px solid transparent; color: #59636c; font-size: .88rem; font-weight: 700; }
-.admin-sidebar nav a:hover, .admin-sidebar nav a.active { color: #17202a; border-left-color: #a56f24; background: #f4f1eb; }
-.admin-shell__main { min-width: 0; padding: clamp(28px, 5vw, 72px); }
-.admin-footer { display: flex; justify-content: space-between; gap: 16px; padding: 15px clamp(28px, 5vw, 72px); border-top: 1px solid #ded8ce; color: #68727b; font-size: .78rem; background: #fbfaf7; }
-.admin-page { max-width: 1180px; margin: 0 auto; }
-.admin-page__heading { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
-.admin-page__heading h1 { margin: 10px 0 8px; color: #17202a; font-size: clamp(2.2rem, 5vw, 4.5rem); line-height: .95; letter-spacing: -.06em; }
-.admin-page__heading p { margin: 0; color: #68727b; line-height: 1.6; }
-.admin-stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.admin-stat { display: grid; gap: 10px; padding: 22px; border-top: 2px solid #a56f24; background: #fbfaf7; }
-.admin-stat span, .admin-stat small { color: #68727b; font-size: .78rem; }
-.admin-stat strong { color: #17202a; font-size: clamp(1.5rem, 3vw, 2.5rem); line-height: 1; letter-spacing: -.05em; }
-.admin-data-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 34px; }
-.admin-subsection { margin-top: 34px; border-top: 1px solid #ded8ce; }
-.admin-subsection__heading { display: flex; justify-content: space-between; gap: 20px; align-items: end; padding: 24px 0 14px; }
-.admin-subsection__heading h2 { margin: 9px 0 0; color: #17202a; font-size: 1.5rem; letter-spacing: -.04em; }
-.admin-subsection__heading > span { color: #68727b; font-size: .78rem; }
-.admin-chart-list { display: grid; gap: 8px; }
-.admin-chart-list > div { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid #ded8ce; }
-.admin-chart-list span, .admin-chart-list small { color: #68727b; font-size: .76rem; }
-.admin-chart-list strong { color: #17202a; font-size: .82rem; text-align: right; }
-.admin-chart-list small { grid-column: 1 / -1; }
-.admin-payout-list { display: grid; gap: 8px; }
-.admin-payout-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid #ded8ce; }
-.admin-payout-row div { display: grid; gap: 4px; }
-.admin-payout-row small { color: #68727b; font-size: .78rem; }
-.admin-payout-row > strong { color: #17202a; }
-.admin-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; padding: 14px; border: 1px solid #ded8ce; background: #fbfaf7; }
-.admin-filters input, .admin-filters select { min-height: 44px; padding: 0 12px; border: 1px solid #ded8ce; color: #17202a; background: #f4f1eb; font: inherit; }
-.admin-filters input { min-width: min(320px, 100%); flex: 1; }
-.admin-table-wrap { overflow-x: auto; border: 1px solid #ded8ce; background: #fbfaf7; }
-.admin-table { width: 100%; border-collapse: collapse; min-width: 720px; font-size: .84rem; }
-.admin-table th, .admin-table td { padding: 15px 16px; border-bottom: 1px solid #ded8ce; text-align: left; }
-.admin-table th { color: #59636c; background: #ebe6dd; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
-.admin-table tr:last-child td { border-bottom: 0; }
-.admin-table__user { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; color: #17202a; background: transparent; text-align: left; }
-.admin-table__user span:last-child { display: grid; gap: 3px; }
-.admin-table__user small { color: #68727b; }
-.admin-user-avatar { display: grid; width: 36px; height: 36px; flex: 0 0 36px; place-items: center; color: #fbfaf7; background: #17202a; font-weight: 800; }
-.admin-archived { color: #68727b; font-size: .76rem; font-weight: 700; }
-.admin-status { color: #a33e32; font-size: .76rem; font-weight: 700; }
-.admin-status--active { color: #39704b; }
-.admin-table__actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.admin-table__actions button { padding: 7px 9px; border: 1px solid #ded8ce; color: #59636c; background: transparent; font: inherit; font-size: .75rem; }
-.admin-table__actions button:hover { color: #17202a; background: #ebe6dd; }
-.admin-empty, .admin-loading { padding: 46px 20px; color: #68727b; text-align: center; }
-.admin-auth-page { display: grid; min-height: 100dvh; place-items: center; padding: 24px; background: #17202a; }
-.admin-auth-panel { width: min(100%, 500px); padding: clamp(28px, 6vw, 58px); background: #fbfaf7; }
-.admin-auth-panel h1 { margin: 12px 0 10px; color: #17202a; font-size: clamp(2.4rem, 6vw, 4.8rem); line-height: .92; letter-spacing: -.07em; }
-.admin-auth-panel > p { margin: 0 0 30px; color: #68727b; line-height: 1.6; }
-.admin-auth-panel form { display: grid; gap: 16px; }
-.admin-auth-panel label { display: grid; gap: 7px; color: #59636c; font-size: .8rem; font-weight: 700; }
-.admin-auth-panel input { min-height: 46px; padding: 0 12px; border: 1px solid #ded8ce; color: #17202a; background: #f4f1eb; font: inherit; }
-.admin-auth-panel label small, .admin-form-error { color: #a33e32; font-size: .78rem; }
-.admin-form-error { padding: 11px 12px; border: 1px solid #e3b6b0; background: #f9e9e6; }
-.admin-modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgba(23, 32, 42, .52); }
-.admin-modal { position: relative; display: grid; gap: 16px; width: min(100%, 460px); padding: 28px; border: 1px solid #ded8ce; background: #fbfaf7; box-shadow: 0 22px 50px rgba(23, 32, 42, .22); }
-.admin-modal h2 { margin: 0; color: #17202a; font-size: 1.7rem; letter-spacing: -.04em; }
-.admin-modal p { margin: 0; color: #68727b; line-height: 1.6; }
-.admin-modal__close { position: absolute; top: 14px; right: 14px; border: 0; color: #68727b; background: transparent; }
-.admin-modal dl { display: grid; gap: 8px; margin: 0; }
-.admin-modal dl div { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 8px; border-bottom: 1px solid #ded8ce; }
-.admin-modal dt { color: #68727b; font-size: .8rem; }
-.admin-modal dd { margin: 0; color: #17202a; font-size: .85rem; font-weight: 700; }
-.admin-modal__actions { display: flex; justify-content: end; gap: 10px; }
-.button--danger { color: #fbfaf7; background: #a33e32; }
-.auth-modal-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 20px; background: rgba(23, 32, 42, .58); }
-.auth-modal { position: relative; display: grid; gap: 14px; width: min(100%, 500px); padding: clamp(26px, 5vw, 46px); background: #fbfaf7; box-shadow: 0 24px 60px rgba(23, 32, 42, .24); }
-.auth-modal__close { position: absolute; top: 14px; right: 14px; border: 0; color: #68727b; background: transparent; }
-.auth-modal h2 { margin: 8px 0 0; color: #17202a; font-size: clamp(2rem, 5vw, 3.4rem); line-height: .95; letter-spacing: -.06em; }
-.auth-modal > p { margin: 0 0 14px; color: #68727b; line-height: 1.6; }
-.auth-form { display: grid; gap: 14px; }
-.auth-field { display: grid; gap: 7px; color: #59636c; font-size: .8rem; font-weight: 700; }
-.auth-field input { min-height: 44px; padding: 0 12px; border: 1px solid #ded8ce; color: #17202a; background: #f4f1eb; font: inherit; }
-.auth-field small { color: #a33e32; font-size: .76rem; }
-.auth-modal__actions { display: flex; justify-content: end; gap: 10px; }
-.project-card { display: grid; gap: 14px; padding: 24px; border-top: 2px solid #a56f24; background: #fbfaf7; }
-.project-card h3 { margin: 8px 0; color: #17202a; font-size: 1.35rem; }
-.project-card p { margin: 0; color: #68727b; line-height: 1.6; }
-.project-card__meta, .proposal-header__meta { display: flex; flex-wrap: wrap; gap: 10px 18px; color: #a56f24; font: .75rem ui-monospace, SFMono-Regular, monospace; }
-.project-card__actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.project-card__actions button { border: 0; color: #a33e32; background: transparent; font: inherit; font-size: .8rem; }
-.proposal-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 24px; border-top: 2px solid #a56f24; background: #fbfaf7; }
-.proposal-header h2 { margin: 8px 0 14px; color: #17202a; font-size: clamp(1.5rem, 3vw, 2.4rem); letter-spacing: -.05em; }
-@media (max-width: 760px) {
-  .admin-shell { display: block; }
-  .admin-sidebar { padding: 18px 20px; border-right: 0; border-bottom: 1px solid #ded8ce; }
-  .admin-sidebar > strong { padding-bottom: 12px; }
-  .admin-sidebar nav { display: flex; overflow-x: auto; gap: 5px; }
-  .admin-sidebar nav a { flex: 0 0 auto; border-left: 0; border-bottom: 2px solid transparent; }
-  .admin-sidebar nav a:hover, .admin-sidebar nav a.active { border-bottom-color: #a56f24; }
-  .admin-shell__main { padding: 28px 20px 44px; }
-  .admin-footer { padding: 14px 20px; }
-  .admin-stats-grid { grid-template-columns: 1fr; }
-  .admin-data-grid { grid-template-columns: 1fr; }
-  .proposal-header { display: grid; align-items: start; }
+@theme inline {
+  /* Brand. `--color-primary` is the pre-existing name and stays the brand
+     colour, so existing `text-primary` / `bg-primary` keep working. */
+  --color-primary: var(--brand);
+  --color-primary-hover: var(--brand-hover);
+
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-inset: var(--surface-inset);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+  --color-brand-line: var(--brand-line);
+
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-fg: var(--danger-soft-fg);
+  --color-success: var(--success);
+  --color-success-fg: var(--success-fg);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-fg: var(--success-soft-fg);
+  --color-warning: var(--warning);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-fg: var(--warning-soft-fg);
+
+  --color-inverse: var(--inverse);
+  --color-inverse-fg: var(--inverse-fg);
+
+  /* Motion curves. `--ease-*` IS a real Tailwind v4 theme namespace, so these
+     generate ordinary `ease-standard` / `ease-emphasized` utilities. The raw
+     values are named `--ease-curve-*` in `:root` to avoid shadowing the
+     namespace. Durations have no namespace, so they are `@utility` blocks. */
+  --ease-standard: var(--ease-curve-standard);
+  --ease-emphasized: var(--ease-curve-emphasized);
 }
-@media (max-width: 720px) {
-  .public-header { align-items: center; }
-  .public-header__menu { display: block; }
-  .public-header__nav { display: none; position: absolute; top: 100%; right: 20px; left: 20px; flex-direction: column; align-items: stretch; padding: 18px; border: 1px solid #ded8ce; background: #fbfaf7; box-shadow: 0 16px 30px rgba(23, 32, 42, .12); }
-  .public-header__nav--open { display: flex; }
-  .landing-hero, .client-home-hero, .how-hero { grid-template-columns: 1fr; min-height: auto; padding-top: 70px; }
-  .landing-hero__visual, .how-hero__visual { min-height: 330px; }
-  .section-heading--split, .steps-grid, .feature-grid, .contact-grid, .legal-layout { grid-template-columns: 1fr; }
-  .people-grid { grid-template-columns: 1fr; }
-  .legal-layout aside { position: static; }
-  .cta-section, .public-footer { grid-template-columns: 1fr; align-items: start; }
-  .cta-section { display: grid; }
-  .public-footer small { align-self: auto; }
-  .client-home-header { align-items: center; }
-  .client-home-header__menu { display: block; }
-  .client-home-header__nav { display: none; position: absolute; top: 100%; right: 20px; left: 20px; flex-direction: column; align-items: stretch; padding: 18px; border: 1px solid #ded8ce; background: #fbfaf7; box-shadow: 0 16px 30px rgba(23, 32, 42, .12); }
-  .client-home-header__nav--open { display: flex; }
-  .client-home-header__profile { justify-content: space-between; }
-  .client-home-footer { grid-template-columns: 1fr; gap: 22px; }
+
+@layer base {
+  html {
+    /* The page canvas follows the theme so overscroll and any area a page forgets
+       to paint does not flash a white band in dark mode. */
+    background-color: var(--surface-2);
+  }
+
+  body {
+    background-color: var(--surface-2);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    /* Theme switches should feel like one cross-fade, not a repaint per node.
+       Uses the shared motion tokens, so the canvas cross-fade can never drift
+       out of step with component transitions. */
+    transition:
+      background-color var(--duration-base) var(--ease-curve-standard),
+      color var(--duration-base) var(--ease-curve-standard);
+  }
+
+  /* ── Reduced motion ────────────────────────────────────────────────────────
+   *
+   * WCAG 2.3.3. The app animates in several places -- Tailwind `transition-*`
+   * utilities and framer-motion. This block covers the CSS-driven ones;
+   * framer-motion is covered by <MotionConfig reducedMotion="user"> in main.jsx,
+   * which strips transform/layout motion but keeps opacity fades.
+   *
+   * (lottie-react is installed but not imported anywhere, so there is no
+   * JS-animation canvas to handle yet.)
+   *
+   * The durations are floored at 0.01ms rather than 0 so `transitionend` and
+   * `animationend` still fire. Zeroing them outright makes any code waiting on
+   * those events hang forever, which is a common source of stuck spinners and
+   * skeletons. The floor is `--duration-reduced`, declared with the rest of the
+   * motion tokens, so it is one documented decision rather than a magic number
+   * repeated here.
+   *
+   * `!important` is required: it has to beat every per-component `transition-*`
+   * utility, which are single-class specificity and would otherwise win on
+   * order alone for any rule declared after this block.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: var(--duration-reduced) !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: var(--duration-reduced) !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Native controls (date pickers, scrollbars, checkbox accents) otherwise stay
+     light and look like holes punched in a dark page. */
+  ::selection {
+    background-color: var(--brand);
+    color: var(--brand-fg);
+  }
+
+  /* ── Pointer cursor on interactive elements ──────────────────────────────
+   *
+   * The notification bell, the messages button and the profile avatar all looked
+   * dead: hovering them left the default arrow cursor, so nothing indicated they
+   * were clickable at all.
+   *
+   * The cause is a Tailwind version change rather than a per-component mistake.
+   * Tailwind **v3** shipped `button, [role="button"] { cursor: pointer }` in its
+   * preflight; **v4 removed it**, on the reasoning that a pointer cursor on every
+   * button over-promises -- a button that toggles to an inactive state, or a
+   * disabled one, is not really a link. The app had been relying on the v3
+   * behaviour, so upgrading silently reverted it everywhere at once.
+   *
+   * Fixing it per-component would mean adding `cursor-pointer` to roughly 330
+   * more buttons and hoping nobody adds the next one without it. That is the same
+   * mistake as the 33 hardcoded `z-[N]` values: the rule belongs in one place.
+   * So it is stated once here, and the opt-in `cursor-pointer` utility stays
+   * available for the cases below where it is genuinely an override.
+   *
+   * `a[href]` rather than `a`: an anchor with no `href` is a placeholder, not a
+   * link, and should not advertise itself as one.
+   */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  a[href],
+  summary {
+    cursor: pointer;
+  }
+
+  /* Disabled controls get the "no entry" cursor rather than falling back to the
+     arrow. A plain arrow on a greyed-out button gives no hint that the control
+     exists but is unavailable, which reads as a rendering glitch. */
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  .font-museo {
+    font-family: 'MuseoModerno', sans-serif;
+  }
+
+  /* Scrollbars are visible chrome on macOS/Windows but invisible on Linux, which
+     made dark mode look unfinished on a long page. */
+  .scrollbar-themed {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .scrollbar-themed::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .scrollbar-themed::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-themed::-webkit-scrollbar-thumb {
+    background-color: var(--line-strong);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-themed::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fg-subtle);
+  }
+}
+
+/* ── Stacking utilities ─────────────────────────────────────────────────────
+ *
+ * Registered with `@utility` rather than `@theme` because Tailwind v4 has no
+ * theme namespace for z-index: `--color-*`, `--spacing-*` and `--ease-*` exist,
+ * `--z-*` does not, so `@theme` would silently generate nothing. These emit
+ * `z-raised`, `z-popover`, `z-overlay`, `z-modal`, `z-modal-raised`, `z-banner`
+ * and `z-toast`.
+ *
+ * `z-raised` and `z-modal-raised` are not a typo or a duplicate: the first lifts
+ * an element above its *siblings inside a container*, the second lifts a whole
+ * dialog above another dialog.
+ *
+ * These sit at the top level of the file, not inside `@layer utilities`, because
+ * `@utility` cannot be nested -- the build fails with "`@utility` cannot be
+ * nested" if it is.
+ */
+@utility z-raised {
+  z-index: var(--z-raised);
+}
+@utility z-popover {
+  z-index: var(--z-popover);
+}
+@utility z-overlay {
+  z-index: var(--z-overlay);
+}
+@utility z-modal {
+  z-index: var(--z-modal);
+}
+@utility z-modal-raised {
+  z-index: var(--z-modal-raised);
+}
+@utility z-banner {
+  z-index: var(--z-banner);
+}
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+
+/* ── Enter / exit animations ───────────────────────────────────────────────
+ *
+ * `animate-in fade-in zoom-in-95` was used in 32 places across 27 files and
+ * produced **no CSS at all** -- those utilities come from `tailwindcss-animate`,
+ * which was never installed. Every modal's enter animation, and the command
+ * palette's, had been silently dead since the day they were written. A build
+ * passing says nothing here: unknown utilities are simply dropped, so the
+ * classes looked fine in the markup and did nothing on screen.
+ *
+ * Reimplemented here rather than by adding the dependency, because the whole
+ * surface actually in use is six class names and one keyframe pair. The
+ * durations come from the motion tokens, and the global `prefers-reduced-motion`
+ * block already floors `animation-duration` for every one of them.
+ *
+ * `animate-in` and `fade-in` share a keyframe on purpose: the pairs are always
+ * written together (`animate-in fade-in zoom-in-95`), and the `animation`
+ * shorthand means the last utility wins, so a separate scale-only keyframe would
+ * silently drop the fade. Folding the opacity into one keyframe makes the
+ * combination order-independent.
+ */
+@keyframes webofwork-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes webofwork-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes webofwork-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@utility animate-in {
+  animation: webofwork-enter var(--duration-base) var(--ease-curve-standard) both;
+}
+@utility animate-out {
+  animation: webofwork-exit var(--duration-fast) var(--ease-curve-standard) both;
+}
+@utility fade-in {
+  animation: webofwork-fade-in var(--duration-base) var(--ease-curve-standard) both;
+}
+@utility fade-out {
+  animation: webofwork-fade-in var(--duration-fast) var(--ease-curve-standard) reverse both;
+}
+/* Aliases kept so the existing `zoom-in-95` call sites resolve; the scale is
+   already part of the enter/exit keyframes. */
+@utility zoom-in-95 {
+  animation: webofwork-enter var(--duration-base) var(--ease-curve-standard) both;
+}
+@utility zoom-out-95 {
+  animation: webofwork-exit var(--duration-fast) var(--ease-curve-standard) both;
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────────────────────────
+ *
+ * A flat `animate-pulse` block reads as "this is disabled", not "this is
+ * loading" -- it fades in and out in place, so the eye has nothing to track.
+ * A shimmer sweeps a highlight across the block, which reads as motion and
+ * therefore as work in progress.
+ *
+ * The highlight is a token rather than a hard-coded white because the correct
+ * value inverts between themes: a white sweep is nearly invisible on a
+ * near-white light-mode surface, and a black sweep is invisible on the dark
+ * ones.
+ *
+ * `background-image` sits over whatever `bg-*` colour the block already has, so
+ * this composes with the existing skeleton markup rather than replacing it.
+ */
+@keyframes webofwork-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@utility shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--shimmer-highlight) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: webofwork-shimmer 1.6s linear infinite;
+}
+
+/* ── Page container utilities ──────────────────────────────────────────────
+ *
+ * Emitted as `max-w-page-*` and `max-w-dialog-*` rather than plain
+ * `max-w-sm` / `max-w-lg`.
+ *
+ * All thirteen of Tailwind's default container names are already in use in this
+ * app, and Tailwind v4 emits them as `--container-*` variables in `:root` that
+ * `max-w-lg` and friends resolve through. Both the utility names and the
+ * variable names are therefore prefixed -- see the note on `--page-*` above for
+ * what happens if only one of the two is.
+ */
+@utility max-w-page-md {
+  max-width: var(--page-md);
+}
+@utility max-w-page-lg {
+  max-width: var(--page-lg);
+}
+@utility max-w-page-xl {
+  max-width: var(--page-xl);
+}
+@utility max-w-page-2xl {
+  max-width: var(--page-2xl);
+}
+@utility max-w-page-3xl {
+  max-width: var(--page-3xl);
+}
+@utility max-w-page-4xl {
+  max-width: var(--page-4xl);
+}
+
+@utility max-w-dialog-sm {
+  max-width: var(--dialog-sm);
+}
+@utility max-w-dialog-md {
+  max-width: var(--dialog-md);
+}
+@utility max-w-dialog-lg {
+  max-width: var(--dialog-lg);
+}
+@utility max-w-dialog-xl {
+  max-width: var(--dialog-xl);
+}
+
+/* ── Motion utilities ───────────────────────────────────────────────────────
+ *
+ * `duration-*` is static in Tailwind (75/100/150/200/300/500/700/1000) with no
+ * theme namespace, so the role-named durations are registered here alongside
+ * them. Each maps 1:1 onto a value already in use, so none of these is dead.
+ * In millisecond terms: 150 -> fast, 200 -> base (the majority, 27 of 53),
+ * 300 -> slow (21 of 53), 500 -> slower, 700 -> deliberate, 1000 -> progress.
+ *
+ * The easings need no registration -- `--ease-*` IS a real theme namespace, so
+ * `ease-standard` and `ease-emphasized` come from `@theme inline` above.
+ *
+ * Each sets both `transition-duration` and `animation-duration`, because
+ * Tailwind's own `duration-*` does the same, and a token that silences a
+ * transition but left a keyframe animation running would be a surprise.
+ */
+@utility duration-fast {
+  transition-duration: var(--duration-fast);
+  animation-duration: var(--duration-fast);
+}
+@utility duration-base {
+  transition-duration: var(--duration-base);
+  animation-duration: var(--duration-base);
+}
+@utility duration-slow {
+  transition-duration: var(--duration-slow);
+  animation-duration: var(--duration-slow);
+}
+@utility duration-slower {
+  transition-duration: var(--duration-slower);
+  animation-duration: var(--duration-slower);
+}
+@utility duration-deliberate {
+  transition-duration: var(--duration-deliberate);
+  animation-duration: var(--duration-deliberate);
+}
+@utility duration-progress {
+  transition-duration: var(--duration-progress);
+  animation-duration: var(--duration-progress);
+}
+
+/* ---------------------------------------------------------------------------
+ * react-toastify: the two keyframes the `unstyled` build does not ship.
+ * ---------------------------------------------------------------------------
+ *
+ * ## The bug this fixes
+ *
+ * Two symptoms, one cause:
+ *   - the progress bar did not move
+ *   - toasts never dismissed themselves
+ *
+ * `utils/toast.jsx` imports from `react-toastify/unstyled`, which ships no
+ * stylesheet at all -- that is the point of it, so toasts can be built from the
+ * app's tokens instead of overriding a stock theme. But the library still
+ * depends on its own CSS for two things it does not do in JS:
+ *
+ *   1. the progress bar is a `scaleX(1) -> scaleX(0)` animation, and
+ *   2. autoClose is NOT timer-driven. It registers `onAnimationEnd` (or
+ *      `onTransitionEnd` when controlled) and calls `closeToast` from that
+ *      event handler.
+ *
+ * With `@keyframes Toastify__trackProgress` absent, the bar renders at full
+ * width and never moves, and `onAnimationEnd` never fires -- so the dismissal
+ * handler never runs. A toast with `autoClose: 3500` stayed up forever.
+ *
+ * The `!important` reduced-motion block above sets `animation-duration` to
+ * 0.01ms rather than removing the animation, which is deliberate and correct
+ * here: an animation that still *runs* and still *ends* still fires its end
+ * event, so dismissing a toast under reduced motion keeps working. Zeroing the
+ * duration instead would fire it instantly; removing `animation-name`
+ * altogether would not fire it at all.
+ *
+ * ## Why these two and not the rest of ReactToastify.css
+ *
+ * Only the keyframes and the bar's own geometry are needed. Everything else in
+ * that file -- bounce-ins, spin, the container, the close button -- is
+ * presentation this app has deliberately replaced, and re-adding it would
+ * reintroduce exactly the "stock theme fighting our tokens" problem the
+ * unstyled import exists to avoid.
+ */
+/* ---------------------------------------------------------------------------
+ * react-toastify: load the library's stylesheet, then theme it.
+ * ---------------------------------------------------------------------------
+ *
+ * The import is here rather than in main.jsx so that the overrides immediately
+ * below can win by source order -- both are unlayered, and the library's rules
+ * are single-class, so a later rule of equal specificity is what takes effect.
+ *
+ * Why the stylesheet at all, when the app previously used `react-toastify/
+ * unstyled`: see the note at the top of `utils/toast.jsx`. In short, `autoClose`
+ * fires from an `onAnimationEnd` handler, so the progress keyframe is
+ * load-bearing -- without the stylesheet, toasts never dismiss and the progress
+ * bar never moves. Everything below is *theming* through the library's 41
+ * `--toastify-*` properties, not a reimplementation of its structure.
+ */
+@import "react-toastify/dist/ReactToastify.css";
+
+/* Colours and metrics, mapped onto the app's semantic tokens. These are the
+   library's own custom properties, so the structural rules it ships (stacking,
+   collapse, the progress animation, enter/exit transitions) keep working and
+   only the appearance changes. */
+:root {
+  --toastify-font-family: var(--font-sans, system-ui, sans-serif);
+  --toastify-z-index: var(--z-toast);
+
+  --toastify-toast-width: 22rem;
+  --toastify-toast-offset: 1rem;
+  --toastify-toast-min-height: 0px;
+  --toastify-toast-max-height: 40rem;
+  --toastify-toast-padding: 0px;
+  --toastify-toast-bd-radius: 0.75rem;
+
+  /* The toast background, border, shadow and text colour all come from
+     `toastClassName` in utils/toast.jsx, which sets them per tone (success /
+     error / warning / info) from the app's `-soft` token pairs. Only the
+     transparent value is set here, because react-toastify uses it to tint the
+     icon and close button of a toast that has no explicit colour. */
+  --toastify-color-transparent: transparent;
+
+  /* The progress bar colour is likewise per-tone via `progressClassName`. The
+     library's gradient default is overridden so a bar can never be a rainbow. */
+  --toastify-color-progress-light: var(--brand);
+  --toastify-color-progress-dark: var(--brand);
+  --toastify-color-progress-bgo: 0.15;
+}
+
+/* The progress bar is a 2px line along the bottom edge.
+ *
+ * The library's stock rule is `height: 100%` on a child of a zero-height
+ * `--wrp` overlay, and its height is set by `h-0.5` in `progressClassName`.
+ * These overrides are unlayered, and an unlayered rule beats a `@layer`ed one
+ * regardless of specificity -- so without them the bar silently fills the whole
+ * toast instead of reading as a thin timer. */
+.Toastify__progress-bar {
+  height: var(--toast-progress-height, 0.125rem);
+}
+
+/* `overflow: hidden` clips the bar to the toast's rounded corners as it reaches
+   scaleX(0), and stops the bar's own box sitting there as a hairline. */
+.Toastify__toast {
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+ * Toast tone colours.
+ * ---------------------------------------------------------------------------
+ *
+ * ## Why these live here and not as Tailwind utilities on the element
+ *
+ * react-toastify paints every toast itself:
+ *
+ *   .Toastify__toast-theme--light { background: var(--toastify-color-light);
+ *                                   color: var(--toastify-text-color-light); }
+ *
+ * That rule is **unlayered**, because it comes from the imported stylesheet.
+ * Our `bg-success-soft` / `text-success-soft-fg` are Tailwind utilities, and
+ * Tailwind emits those inside `@layer components`. In the CSS cascade an
+ * unlayered rule beats a layered one *regardless of specificity* -- both are
+ * 0,1,0 here, so layer order decides and the library wins. The result was a
+ * white box with grey text: the app's theming silently did nothing.
+ *
+ * This is the same trap as the progress-bar height, one rule to the left. The
+ * fix is the same shape: state the colour in unlayered CSS so it is decided on
+ * source order among equals, not by which layer a rule happens to sit in.
+ *
+ * ## Why keyed on the library's class rather than ours
+ *
+ * The toast element always carries `Toastify__toast--<type>`, composed by the
+ * library from the `type` option. Keying on it means the mapping from type to
+ * colour lives in exactly one place -- here, beside the tokens -- instead of
+ * being duplicated as a class string in `toastClassName` and a stylesheet
+ * override that has to agree with it.
+ */
+.Toastify__toast--success {
+  background: var(--success-soft);
+  color: var(--success-soft-fg);
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.Toastify__toast--error {
+  background: var(--danger-soft);
+  color: var(--danger-soft-fg);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.Toastify__toast--warning {
+  background: var(--warning-soft);
+  color: var(--warning-soft-fg);
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+}
+
+.Toastify__toast--info,
+.Toastify__toast--default {
+  background: var(--brand-soft);
+  color: var(--brand-soft-fg);
+  border-color: color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
+/* The library draws its own close button; this app renders one inside the toast
+   body (see `renderContent` in utils/toast.jsx), so the stock one is removed
+   rather than left overlapping it. */
+.Toastify__close-button {
+  display: none;
+}
+
+/* The app's own rhythm for the stack. The library spaces toasts with a
+ * `margin-bottom` on each toast and gives the container no padding, so this is
+ * the inset and width the app wants instead.
+ *
+ * Positioning is deliberately NOT restated here. The library's
+ * `.Toastify__toast-container--top-right` owns it, and an earlier version
+ * re-declared all seven positions by hand. That worked only until a library
+ * detail changed -- and hand-rolled copies of a stylesheet are exactly the thing
+ * that drifts. If the position looks wrong, change `position` on the
+ * ToastContainer rather than adding a rule. */
+.toast-stack {
+  padding: 0.75rem;
+  max-width: calc(100vw - 1.5rem);
 }

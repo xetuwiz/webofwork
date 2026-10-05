@@ -129,6 +129,8 @@ public class ProposalService : IProposalService
         // the admin monitor and the project's `by-project` lookup are both scoped
         // to `RequestedByUserId`. A run attributed to the freelancer would be
         // invisible to the client who is meant to act on it.
+        // Temporarily disabled per user request: Do not trigger the AI Screening Agent automatically.
+        /*
         if (_aiTrigger is not null)
         {
             var clientUserId = await _db.ClientProfiles
@@ -139,6 +141,7 @@ public class ProposalService : IProposalService
             if (clientUserId != Guid.Empty)
                 await _aiTrigger.ScreenProposalsAsync(projectId, clientUserId);
         }
+        */
 
         return await GetProposalResponseAsync(proposal.Id);
     }

@@ -1,9 +1,21 @@
-import axiosInstance from "../../api/axiosInstance.js";
-export const fetchChatRooms = async () => (await axiosInstance.get("/chat/rooms")).data;
-export const createChatRoom = async (contractId) => (await axiosInstance.post("/chat/rooms", { contractId })).data;
-export const fetchChatRoom = async (roomId) => (await axiosInstance.get(`/chat/rooms/${roomId}`)).data;
-export const fetchChatMessages = async ({ roomId, pageSize = 50, beforeMessageId }) => (await axiosInstance.get(`/chat/rooms/${roomId}/messages`, { params: { pageSize, beforeMessageId } })).data;
-export const sendChatMessage = async ({ roomId, content }) => (await axiosInstance.post(`/chat/rooms/${roomId}/messages`, { content })).data;
-export const deleteChatMessage = async ({ roomId, messageId }) => (await axiosInstance.delete(`/chat/rooms/${roomId}/messages/${messageId}`)).data;
-export const archiveChatRoom = async (roomId) => (await axiosInstance.patch(`/chat/rooms/${roomId}/archive`)).data;
-export const markChatRoomRead = async ({ roomId, messageId }) => (await axiosInstance.patch(`/chat/rooms/${roomId}/read`, { messageId })).data;
+import axiosInstance from "../../api/axiosInstance";
+
+export const fetchChatRooms = async () => {
+  const response = await axiosInstance.get("/communication/rooms/");
+  return response.data;
+};
+
+export const fetchMessages = async ({ roomId, pageParam = 1 }) => {
+  const response = await axiosInstance.get(`/communication/rooms/${roomId}/messages/?page=${pageParam}`);
+  return response.data; 
+};
+
+export const getOrCreateRoom = async (userId) => {
+  const response = await axiosInstance.post("/communication/rooms/get_or_create_room/", { user_id: userId });
+  return response.data;
+};
+
+export const deleteMessage = async (messageId) => {
+  const response = await axiosInstance.delete(`/communication/messages/${messageId}/`);
+  return response.data; 
+};

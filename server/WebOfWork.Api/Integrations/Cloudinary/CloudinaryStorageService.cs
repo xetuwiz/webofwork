@@ -10,6 +10,8 @@ namespace WebOfWork.Api.Integrations.Cloudinary;
 public interface ICloudinaryStorageService
 {
     Task<string> UploadPdfAsync(byte[] pdfBytes, string filename);
+        /// <summary>Upload any deliverable asset (image, pdf, archive) to a folder.</summary>
+        Task<string> UploadRawAsync(byte[] bytes, string filename, string folder);
 }
 
 public class CloudinaryStorageService : ICloudinaryStorageService
@@ -45,5 +47,25 @@ public class CloudinaryStorageService : ICloudinaryStorageService
         }
         
         return uploadResult.SecureUrl.ToString();
+    }
+
+    public async Task<string> UploadRawAsync(byte[] bytes, string filename, string folder)
+    {
+        using var stream = new MemoryStream(bytes);
+        var uploadParams = new RawUploadParams()
+        {
+            File = new FileDescription(filename, stream),
+            Folder = folder,
+            UseFilename = true,
+            UniqueFilename = true
+        };
+
+        var result = await _cloudinary.UploadAsync(uploadParams);
+        if (result.Error != null)
+        {
+            throw new Exception($"Cloudinary upload failed: {result.Error.Message}");
+        }
+
+        return result.SecureUrl.ToString();
     }
 }

@@ -1,10 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createInvitation, fetchEligibleJobs, getFreelancerDetails, getFreelancerList } from "./findTalentApi.js";
+import { createInvitation, fetchEligibleJobs, getFreelancerList } from "./findTalentApi";
 
-export const useFreelancerList = (params = {}) => useQuery({ queryKey: ["freelancers", params], queryFn: () => getFreelancerList(params) });
-export const useFreelancerDetails = (id) => useQuery({ queryKey: ["freelancer", id], queryFn: () => getFreelancerDetails(id), enabled: Boolean(id) });
-export const useEligibleProjects = (enabled = true) => useQuery({ queryKey: ["eligible-projects"], queryFn: fetchEligibleJobs, enabled });
-export const useSendInvitation = (options = {}) => {
-  const client = useQueryClient();
-  return useMutation({ mutationFn: createInvitation, ...options, onSuccess: (...args) => { client.invalidateQueries({ queryKey: ["invitations"] }); options.onSuccess?.(...args); } });
+export const useFreelancerList = (params) => {
+  return useQuery({
+    queryKey: ["freelancers-list", params],
+    queryFn: () => getFreelancerList(params),
+    placeholderData: (previousData) => previousData,
+  });
+};
+
+export const useEligibleProjects = (isOpen) => {
+  return useQuery({
+    queryKey: ['eligible-projects'],
+    queryFn: fetchEligibleJobs,
+    enabled: !!isOpen,
+  });
+};
+
+export const useSendInvitation = (options) => { 
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createInvitation,
+    ...options, 
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      if (options?.onSuccess) options.onSuccess(data, variables, context);
+    },
+  });
 };

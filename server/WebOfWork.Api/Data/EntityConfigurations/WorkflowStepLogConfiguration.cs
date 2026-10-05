@@ -18,7 +18,7 @@ public class WorkflowStepLogConfiguration : IEntityTypeConfiguration<WorkflowSte
         builder.Property(x => x.Status).IsRequired().HasMaxLength(50);
 
         builder.HasOne(x => x.WorkflowRun)
-            .WithMany()
+            .WithMany(r => r.StepLogs)
             .HasForeignKey(x => x.WorkflowRunId)
             .OnDelete(DeleteBehavior.Cascade);
 
