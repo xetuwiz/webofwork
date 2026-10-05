@@ -197,11 +197,21 @@ jobs:
       # are development values -- but "it is only development" is how a
       # production key ends up in a file, so the check is mechanical rather
       # than a matter of trust.
+            # mobile/android/app/google-services.json is excluded on purpose, and the
+      # reason is already written down in .gitignore next to the Firebase rules:
+      # it holds the *client* API key and app id, which ship inside the APK by
+      # design and are not secrets. Firebase client keys are restricted by API-key
+      # restrictions, not by secrecy, and the Android Gradle plugin requires the
+      # file to exist. Its current_key matched the AIza pattern and failed the
+      # whole job over it.
+      #
+      # The server-side credential -- *serviceaccount*.json -- is still matched,
+      # and still fails the build, which is the half of this that matters.
       - name: No key material in the repository
         if: always()
         run: |
           if git grep -nEI '(BEGIN (RSA |EC )?PRIVATE KEY|AIza[0-9A-Za-z_-]{35}|sk-[A-Za-z0-9]{32,})' \
-               -- ':!*.md' ':!.github/workflows/*'; then
+               -- ':!*.md' ':!.github/workflows/*' ':!mobile/android/app/google-services.json'; then
             echo "::error::key-shaped material found in a tracked file. Revoke it."
             exit 1
           fi
