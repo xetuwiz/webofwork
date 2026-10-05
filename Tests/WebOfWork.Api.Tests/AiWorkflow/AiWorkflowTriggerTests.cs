@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using WebOfWork.Api.Data;
 using WebOfWork.Api.Models;
@@ -116,12 +117,33 @@ public class AiWorkflowTriggerTests
         return new WebOfWorkDbContext(options);
     }
 
+    /// <summary>
+    /// Builds a trigger whose scoped <see cref="IAiWorkflowService"/> resolves to
+    /// <paramref name="workflows"/>.
+    ///
+    /// The trigger dispatches through <c>_scopeFactory.CreateScope()</c> rather than
+    /// through the injected service, so it needs a scope factory from the moment the
+    /// dependency was introduced. Handing it a loose <c>Mock&lt;IServiceScopeFactory&gt;</c>
+    /// would compile and leave every test green, because the dispatch sits inside a
+    /// <c>catch (Exception)</c> that never propagates -- a null scope would be
+    /// swallowed and the fake would never record a dispatch. That is a test that
+    /// passes because the thing it means to exercise threw. A real scope over the
+    /// same fake keeps the assertions honest.
+    /// </summary>
+    private static AiWorkflowTrigger Trigger(IAiWorkflowService workflows, WebOfWorkDbContext db)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(workflows);
+        var provider = services.BuildServiceProvider();
+        return new AiWorkflowTrigger(workflows, db, provider.GetRequiredService<IServiceScopeFactory>());
+    }
+
     [Fact]
     public async Task AProposal_StartsExactlyOneScreenRun()
     {
         await using var db = EmptyDb(nameof(AProposal_StartsExactlyOneScreenRun));
         var workflows = new RecordingWorkflows(db);
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         var first = await trigger.ScreenProposalsAsync(projectId: 42, requestedByUserId: Guid.NewGuid());
         // A second proposal on the same project must not start a second run.
@@ -140,7 +162,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(TwoDifferentProjects_EachGetTheirOwnScreenRun));
         var workflows = new RecordingWorkflows(db);
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         await trigger.ScreenProposalsAsync(1, Guid.NewGuid());
         await trigger.ScreenProposalsAsync(2, Guid.NewGuid());
@@ -154,7 +176,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(AFailedRun_DoesNotBlockANewOne));
         var workflows = new RecordingWorkflows(db);
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         // A run that failed, as a previous agent crash would leave behind.
         db.WorkflowRuns.Add(new WorkflowRun
@@ -175,7 +197,7 @@ public class AiWorkflowTriggerTests
     public async Task AnAlreadyCancelledRun_DoesNotBlockANewOne()
     {
         await using var db = EmptyDb(nameof(AnAlreadyCancelledRun_DoesNotBlockANewOne));
-        var trigger = new AiWorkflowTrigger(new RecordingWorkflows(db), db);
+        var trigger = Trigger(new RecordingWorkflows(db), db);
 
         db.WorkflowRuns.Add(new WorkflowRun
         {
@@ -192,7 +214,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(AVerifiedPayment_StartsTheRunThatOpensTheManagerGate));
         var workflows = new RecordingWorkflows(db);
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         await trigger.ValidateBeforeContractAsync(99, Guid.NewGuid());
 
@@ -211,7 +233,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(AFailedAgentService_DoesNotPropagate));
         var workflows = new RecordingWorkflows(db) { ThrowOnStart = true };
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         // A freelancer submitting a proposal must not get an error because the
         // AI service is unreachable. The proposal is already committed; this
@@ -226,7 +248,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(AFailedDispatch_DoesNotPropagate));
         var workflows = new RecordingWorkflows(db) { ThrowOnDispatch = true };
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         // The run is created, the agent call fails afterwards. Still no throw.
         var run = await trigger.ScreenProposalsAsync(1, Guid.NewGuid());
@@ -239,7 +261,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(AStartedRun_IsDispatched_AndTheResultIsNotAwaited));
         var workflows = new RecordingWorkflows(db);
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         await trigger.ScreenProposalsAsync(1, Guid.NewGuid());
 
@@ -261,7 +283,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(ARunWhoseRequesterIsHidden_StillSuppressesADuplicate));
         var workflows = new RecordingWorkflows(db);
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         // A run with a requester the soft-delete query filter cannot see. The
         // filter on `WorkflowRun` is `!RequestedByUser.IsDeleted`, and it
@@ -287,7 +309,7 @@ public class AiWorkflowTriggerTests
     {
         await using var db = EmptyDb(nameof(TwoStagesOnOneProject_DoNotCollide));
         var workflows = new RecordingWorkflows(db);
-        var trigger = new AiWorkflowTrigger(workflows, db);
+        var trigger = Trigger(workflows, db);
 
         // Screening and validation are different stages over the same project.
         // The duplicate check is per (project, stage), so neither suppresses the
