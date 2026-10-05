@@ -72,9 +72,16 @@ jobs:
 
       - name: Install and restart
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} <<'REMOTE'
+          # The directory is passed as a positional argument rather than read from
+          # a workflow-level env var. An earlier revision had `API_DIR=$API_DIR`
+          # inside the heredoc: env: defines that on the runner, but `ssh <<REMOTE`
+          # starts a fresh shell on the remote where it does not exist, and set -u
+          # turned the reference into "unbound variable". Both jobs died on line 2,
+          # before the staging directory was touched.
+          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} \
+            "bash -s -- '$API_DIR'" <<'REMOTE'
           set -euo pipefail
-          API_DIR=$API_DIR
+          API_DIR="$1"
           STAGE=/var/www/webofwork-staging
 
           rm -rf "$STAGE"
@@ -146,9 +153,12 @@ jobs:
 
       - name: Install and restart
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} <<'REMOTE'
+          # Positional argument for the same reason as the api job: a workflow
+          # env var is not visible inside an ssh heredoc.
+          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} \
+            "bash -s -- '$AI_DIR'" <<'REMOTE'
           set -euo pipefail
-          AI_DIR=$AI_DIR
+          AI_DIR="$1"
 
           tar -xzf /tmp/ai.tar.gz -C "$AI_DIR"
 
