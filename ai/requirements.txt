@@ -12,3 +12,8 @@ uvicorn[standard]>=0.30
 # tests
 pytest>=8.2
 pytest-asyncio>=0.23
+# test_llm_providers.py and test_llm_resilience.py mock httpx transports to assert
+# on retry, backoff and provider failover without a network. It was importable on
+# the machines that wrote those tests and absent everywhere they were installed
+# from this file, so the suite failed collection in CI and nowhere else.
+respx>=0.21
