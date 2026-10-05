@@ -93,7 +93,22 @@ public class ContractDocumentService : IContractDocumentService
 
     private static async Task<byte[]?> DownloadSignatureAsync(string? signature, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(signature) || !Uri.TryCreate(signature, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) return null;
+        if (string.IsNullOrWhiteSpace(signature)) return null;
+
+        // Signatures are stored as data: URLs (data:image/png;base64,...) by the
+        // signature canvas, not http(s) links. Only http(s) was handled, so the
+        // download returned null and ComposeSignature fell through to
+        // container.Text(signature) -- printing the entire base64 blob into the
+        // PDF and blowing it up to 4 pages of gibberish.
+        if (signature.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            var comma = signature.IndexOf(',');
+            if (comma < 0 || !signature.AsSpan(0, comma).Contains("base64", StringComparison.OrdinalIgnoreCase)) return null;
+            try { return System.Convert.FromBase64String(signature[(comma + 1)..].Trim()); }
+            catch (FormatException) { return null; }
+        }
+
+        if (!Uri.TryCreate(signature, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) return null;
         try
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);

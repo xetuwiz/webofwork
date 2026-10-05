@@ -33,7 +33,8 @@ public sealed class ContractOfferNotificationJob
             .FirstOrDefaultAsync(x => x.Id == recipientId, ct)
             ?? throw new KeyNotFoundException($"Freelancer user {recipientId} was not found.");
 
-        var message = $"You have received a new contract offer for {amount:0.00} USD on WebOfWork!";
+        var contract = await _db.Contracts.AsNoTracking().Include(c => c.Project).Include(c => c.Client).FirstOrDefaultAsync(x => x.Id == contractId, ct) ?? throw new KeyNotFoundException();
+        var message = $"You received a new contract offer for '{contract.Project.Title}' from {contract.Client.User.FullName}";
         var notification = await _publisher.PublishAsync(
             recipientId,
             NotificationType.OfferReceived,

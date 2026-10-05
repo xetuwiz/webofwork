@@ -110,6 +110,7 @@ public class ReviewService : IReviewService
     {
         var userId = _currentUser.Id!.Value;
         var reviews = await _db.Reviews
+            .Include(r => r.Reviewer).Include(r => r.Contract).ThenInclude(c => c!.Project)
             .Where(r => r.RevieweeId == userId && r.Type == ReviewType.Freelancer)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -121,6 +122,7 @@ public class ReviewService : IReviewService
     {
         var userId = _currentUser.Id!.Value;
         var reviews = await _db.Reviews
+            .Include(r => r.Reviewer).Include(r => r.Contract).ThenInclude(c => c!.Project)
             .Where(r => r.RevieweeId == userId && r.Type == ReviewType.Client)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -135,6 +137,7 @@ public class ReviewService : IReviewService
         if (profile == null) throw new KeyNotFoundException("Freelancer profile not found.");
 
         var reviews = await _db.Reviews
+            .Include(r => r.Reviewer).Include(r => r.Contract).ThenInclude(c => c!.Project)
             .Where(r => r.RevieweeId == profile.UserId && r.Type == ReviewType.Freelancer)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -144,7 +147,7 @@ public class ReviewService : IReviewService
 
     public async Task<List<ReviewResponse>> GetAllReviewsAsync(CancellationToken cancellationToken)
     {
-        var reviews = await _db.Reviews.AsNoTracking().OrderByDescending(r => r.CreatedAt).ToListAsync(cancellationToken);
+        var reviews = await _db.Reviews.Include(r => r.Reviewer).Include(r => r.Contract).ThenInclude(c => c!.Project).AsNoTracking().OrderByDescending(r => r.CreatedAt).ToListAsync(cancellationToken);
         return reviews.Select(MapToResponse).ToList();
     }
 
@@ -196,15 +199,41 @@ public class ReviewService : IReviewService
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<WebOfWork.Api.DTOs.Common.PagedResponse<ReviewResponse>> GetClientReviewsPagedAsync(Guid revieweeId, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var p = Math.Max(page, 1);
+        var size = Math.Clamp(pageSize, 1, 100);
+        var query = _db.Reviews
+            .Include(r => r.Reviewer).Include(r => r.Contract).ThenInclude(c => c!.Project)
+            .Include(r => r.Reviewer)
+            .Where(r => r.RevieweeId == revieweeId && r.Type == ReviewType.Client)
+            .OrderByDescending(r => r.CreatedAt);
+        var count = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((p - 1) * size).Take(size).ToListAsync(cancellationToken);
+        return new WebOfWork.Api.DTOs.Common.PagedResponse<ReviewResponse>
+        {
+            Results = items.Select(MapToResponse).ToList(),
+            Count = count,
+            Page = p,
+            PageSize = size
+        };
+    }
+
     private static ReviewResponse MapToResponse(Review r) => new()
     {
         Id = r.Id,
         ContractId = r.ContractId,
+        Contract = r.ContractId,
         ReviewerId = r.ReviewerId,
+        Reviewer = r.ReviewerId,
         RevieweeId = r.RevieweeId,
+        Reviewee = r.RevieweeId,
         Type = r.Type,
         Rating = r.Rating,
         Comment = r.Comment,
-        CreatedAt = r.CreatedAt
+        CreatedAt = r.CreatedAt,
+        ReviewerName = r.Reviewer?.FullName ?? string.Empty,
+        ReviewerPhoto = r.Reviewer?.ProfilePhoto,
+        ProjectTitle = r.Contract?.Project?.Title ?? string.Empty
     };
 }

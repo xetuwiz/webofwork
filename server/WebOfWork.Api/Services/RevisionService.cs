@@ -33,6 +33,12 @@ public class RevisionService : IRevisionService
         var contract = await _context.Contracts
             .Include(c => c.Client)
             .Include(c => c.Freelancer)
+            // Project was never loaded, but the notification below reads
+            // contract.Project.Title -> NullReferenceException AFTER the revision
+            // was already saved. The client got a 500 and no explanation even
+            // though the revision had been created, so every retry then failed with
+            // "This contract already has a pending revision."
+            .Include(c => c.Project)
             .FirstOrDefaultAsync(c => c.Id == contractId);
 
         if (contract == null)
@@ -63,7 +69,7 @@ public class RevisionService : IRevisionService
             await _notificationPublisher.PublishAsync(
                 contract.Freelancer.UserId,
                 NotificationType.RevisionRequested,
-                $"A revision was requested for contract #{contractId}.",
+                $"Revision requested for '{contract.Project.Title}'",
                 "Contract",
                 contractId);
         }
@@ -74,10 +80,9 @@ public class RevisionService : IRevisionService
     public async Task<ContractRevisionResponse> ActionRevisionAsync(int revisionId, Guid freelancerUserId, RevisionActionRequest request)
     {
         var revision = await _context.ContractRevisions
-            .Include(r => r.Contract)
-            .ThenInclude(c => c.Freelancer)
-            .Include(r => r.Contract)
-            .ThenInclude(c => c.Client)
+            .Include(r => r.Contract).ThenInclude(c => c.Freelancer)
+            .Include(r => r.Contract).ThenInclude(c => c.Project)
+            .Include(r => r.Contract).ThenInclude(c => c.Client)
             .FirstOrDefaultAsync(r => r.Id == revisionId);
 
         if (revision == null)
@@ -108,8 +113,8 @@ public class RevisionService : IRevisionService
                 revision.Contract.Client.UserId,
                 request.Accept ? NotificationType.RevisionAccepted : NotificationType.RevisionRejected,
                 request.Accept
-                    ? $"Your revision request for contract #{revision.ContractId} was accepted."
-                    : $"Your revision request for contract #{revision.ContractId} was rejected.",
+                    ? $"Freelancer accepted your revision request for '{revision.Contract.Project.Title}'"
+                    : $"Freelancer declined the revision request for '{revision.Contract.Project.Title}'",
                 "Contract",
                 revision.ContractId);
         }
@@ -153,3 +158,4 @@ public class RevisionService : IRevisionService
         );
     }
 }
+

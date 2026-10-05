@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'package:webofwork/utils/components/app_card.dart';
+import 'package:webofwork/helper/extension/context_extension.dart';
+import 'package:webofwork/helper/extension/string_extension.dart';
+
+class HourlyPriceInfoTile extends StatelessWidget {
+  final price;
+  final priceNote;
+  final status;
+  final color;
+  final isPrice;
+  final String desc;
+  const HourlyPriceInfoTile(
+      {super.key,
+      this.price,
+      this.status,
+      this.color,
+      this.priceNote,
+      this.isPrice = true,
+      required this.desc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: (context.width - 90) / 2,
+      height: context.normalValue * 5.6,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: color,
+      ),
+      child:
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //   children: [
+          Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+              text: TextSpan(
+                  text: isPrice ? "$price".cur : "$price",
+                  style: context.titleMedium?.copyWith().bold6,
+                  children: [
+                TextSpan(
+                  text: priceNote,
+                  style: context.titleSmall?.copyWith(color: context.dProvider.black5),
+                )
+              ])),
+          Text(
+            "$status",
+            style: context.titleSmall?.copyWith(color: context.dProvider.black5),
+          )
+        ],
+      ),
+      // IconButton(
+      //     onPressed: () {
+      //       desc.showToast();
+      //     },
+      //     icon: Icon(
+      //       Icons.info_outline_rounded,
+      //       color: context.dProvider.black5,
+      //     ))
+      //   ],
+      // ),
+    );
+  }
+}

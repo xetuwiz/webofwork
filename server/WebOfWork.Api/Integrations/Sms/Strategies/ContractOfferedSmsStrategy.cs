@@ -6,7 +6,7 @@ public class ContractOfferedSmsStrategy : ISmsMessageStrategy
     {
         if (args.Length > 0 && TryParseAmount(args[0], out var amount))
         {
-            return $"You have received a new contract offer for {amount:0.00} USD on WebOfWork!";
+            return $"You have received a new contract offer for the project.";
         }
 
         return "You have received a new contract offer on WebOfWork!";
@@ -30,3 +30,4 @@ public class ContractOfferedSmsStrategy : ISmsMessageStrategy
         return false;
     }
 }
+
