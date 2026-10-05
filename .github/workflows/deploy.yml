@@ -84,8 +84,12 @@ jobs:
           API_DIR="$1"
           STAGE=/var/www/webofwork-staging
 
-          rm -rf "$STAGE"
-          mkdir -p "$STAGE"
+          # /var/www is root:root 755, so this user cannot create a sibling of
+          # its own service directory. An earlier revision ran `mkdir -p` unprivileged
+          # and died with "Permission denied" before unpacking anything.
+          sudo -n rm -rf "$STAGE"
+          sudo -n mkdir -p "$STAGE"
+          sudo -n chown xetuwiz:xetuwiz "$STAGE"
           tar -xzf /tmp/api.tar.gz -C "$STAGE"
 
           # Move the config and secret aside, unpack the build beside them, then
@@ -98,20 +102,25 @@ jobs:
 
           # Atomic-ish swap: the old tree is kept until the new one is in place,
           # so a failed unpack does not leave the service with nothing to run.
+          #
+          # Every one of these needs sudo, not just the mkdir: renaming a
+          # directory in /var/www requires write permission on /var/www itself,
+          # which is root:root 755. An earlier revision left these unprivileged and
+          # they would have failed on the rename.
           OLD=/var/www/webofwork-api.previous
-          rm -rf "$OLD"
-          mv "$API_DIR" "$OLD"
-          mv "$STAGE" "$API_DIR"
-          rm -rf "$OLD"
+          sudo -n rm -rf "$OLD"
+          sudo -n mv "$API_DIR" "$OLD"
+          sudo -n mv "$STAGE" "$API_DIR"
+          sudo -n rm -rf "$OLD"
 
-          chown -R xetuwiz:xetuwiz "$API_DIR"
-          chmod 600 "$API_DIR/appsettings.Production.json" 2>/dev/null || true
+          sudo -n chown -R xetuwiz:xetuwiz "$API_DIR"
+          sudo -n chmod 600 "$API_DIR/appsettings.Production.json" 2>/dev/null || true
 
           sudo -n systemctl restart webofwork-api
           sleep 12
           curl -fsS --max-time 20 http://127.0.0.1:5000/health
           echo
-          rm -f /tmp/api.tar.gz
+          sudo -n rm -f /tmp/api.tar.gz
           REMOTE
 
   ai:
@@ -174,7 +183,12 @@ jobs:
           grep -q '^DOTNET_BASE_URL=http://127.0.0.1:5000$' "$AI_DIR/ai/.env" \
             || { echo "FATAL: DOTNET_BASE_URL is not pointing at the production API." >&2; exit 1; }
 
-          chown -R xetuwiz:xetuwiz "$AI_DIR"
+          # sudo, because a root-owned file anywhere in the tree -- an .env backup
+          # left by an earlier manual fix, say -- makes an unprivileged `chown -R`
+          # abort the whole deploy with "Operation not permitted". The deploy user
+          # has NOPASSWD: ALL, and taking ownership back is the whole point of the
+          # command.
+          sudo -n chown -R xetuwiz:xetuwiz "$AI_DIR"
           sudo -n systemctl restart webofwork-ai
           sleep 10
           curl -fsS --max-time 20 http://127.0.0.1:8001/health
