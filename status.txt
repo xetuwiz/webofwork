@@ -1,3 +1,0 @@
-?? .github/
-?? execute_plan.ps1
-?? status.txt
