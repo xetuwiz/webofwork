@@ -123,7 +123,19 @@ jobs:
       # -- but blanking it keeps CI independent of a path that means nothing on
       # a Linux runner, and stops the log filling with a service-account error
       # on every run.
-      - name: Test
+      # ── the fast tier: everything that needs no container ──────────────
+      #
+      # 389 of the 503 tests, and they finish in about 75 seconds. Everything
+      # tagged Category=Container starts a Postgres or a Redis container per class
+      # with xunit pinned to maxParallelThreads 1, so those 114 tests take around
+      # twelve minutes on their own. Running both tiers on every push made a
+      # twenty-two minute gate for a repository whose fast suite is under two
+      # minutes.
+      #
+      # The split is a scheduling decision, not a coverage reduction: the
+      # container tier still runs, on every merge to main, and a merge is exactly
+      # when a change to a container-backed test needs to be caught.
+      - name: Test (fast tier)
         env:
           ASPNETCORE_ENVIRONMENT: Development
           Firebase__ProjectId: ""
@@ -132,22 +144,34 @@ jobs:
           dotnet test WebOfWork.sln \
             --configuration Release \
             --no-build \
+            --filter "Category!=Container&Category!=EndToEnd" \
             --collect:"XPlat Code Coverage" \
             --results-directory TestResults \
             --logger "trx;LogFileName=backend.trx"
 
-      # The end-to-end test starts two child processes on loopback ports. Running
-      # it separately, with full output, is deliberate: inside the suite its
-      # diagnostics are interleaved with 300 other tests, and it is the one test
-      # whose failure is hardest to diagnose from a summary line.
-      - name: End-to-end test, with its output
-        if: always()
+      # ── the slow tier: containers and end-to-end, on main only ─────────
+      #
+      # `push` to main, never a pull request. A pull request already waits for a
+      # human anyway, and paying twelve minutes there teaches people to batch
+      # unrelated changes to get through the gate.
+      - name: Test (container and end-to-end tier)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          Firebase__ProjectId: ""
+          Firebase__ServiceAccountPath: ""
         run: |
+          echo "  running the 114 container-backed and end-to-end tests"
           dotnet test WebOfWork.sln \
             --configuration Release \
             --no-build \
-            --filter "FullyQualifiedName~CrossPlatformWorkflowTests" \
+            --filter "Category=Container|Category=EndToEnd" \
             --logger "console;verbosity=detailed"
+
+      # The end-to-end test used to have its own step here, run separately with full
+      # output. It is covered by the container and end-to-end tier above through
+      # Category=EndToEnd, so leaving it would have run those three tests twice on
+      # every merge.
 
       # The Testcontainers tests need a real database. If Docker is unavailable
       # they fail with a message that looks like a product bug, so the runner's

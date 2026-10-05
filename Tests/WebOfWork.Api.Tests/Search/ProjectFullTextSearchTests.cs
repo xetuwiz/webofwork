@@ -28,6 +28,7 @@ namespace WebOfWork.Api.Tests.Search;
 /// "Reactor" for "react" and "WordPress" for "press".
 /// </para>
 /// </remarks>
+[Trait("Category", "Container")]
 public class ProjectFullTextSearchTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _db = new PostgreSqlBuilder()

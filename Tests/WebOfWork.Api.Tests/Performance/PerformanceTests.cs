@@ -46,6 +46,7 @@ namespace WebOfWork.Api.Tests.Performance;
 /// And the measured numbers are written to the test output, so the report quotes
 /// figures that were actually produced rather than figures someone hoped for.
 /// </summary>
+[Trait("Category", "Container")]
 public sealed class PerformanceTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

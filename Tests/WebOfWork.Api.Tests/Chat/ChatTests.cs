@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace WebOfWork.Api.Tests.Chat;
 
+[Trait("Category", "Container")]
 public class ChatTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

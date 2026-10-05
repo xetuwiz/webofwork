@@ -32,6 +32,7 @@ namespace WebOfWork.Api.Tests.Database;
 /// produces two different databases depending on when it was checked out, and
 /// the difference is invisible until a match silently stops scoring.
 /// </summary>
+[Trait("Category", "Container")]
 public class SkillCatalogSeedTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()

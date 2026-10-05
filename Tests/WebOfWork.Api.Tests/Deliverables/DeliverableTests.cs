@@ -12,6 +12,7 @@ using WebOfWork.Api.Services;
 
 namespace WebOfWork.Api.Tests.Deliverables;
 
+[Trait("Category", "Container")]
 public class DeliverableTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

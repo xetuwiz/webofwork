@@ -16,6 +16,7 @@ using Moq;
 
 namespace WebOfWork.Api.Tests.Disputes;
 
+[Trait("Category", "Container")]
 public class DisputeTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

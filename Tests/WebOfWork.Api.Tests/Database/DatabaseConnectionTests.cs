@@ -6,6 +6,7 @@ using Xunit;
 
 namespace WebOfWork.Api.Tests.Database;
 
+[Trait("Category", "Container")]
 public class DatabaseConnectionTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()

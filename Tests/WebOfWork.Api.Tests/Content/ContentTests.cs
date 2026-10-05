@@ -11,6 +11,7 @@ using Xunit;
 
 namespace WebOfWork.Api.Tests.Content;
 
+[Trait("Category", "Container")]
 public sealed class ContentTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()

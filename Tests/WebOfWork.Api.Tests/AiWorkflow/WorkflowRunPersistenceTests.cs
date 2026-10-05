@@ -9,6 +9,7 @@ using Xunit;
 
 namespace WebOfWork.Api.Tests.AiWorkflow;
 
+[Trait("Category", "Container")]
 public class WorkflowRunPersistenceTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
