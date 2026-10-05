@@ -1,0 +1,64 @@
+name: mobile
+
+# The Flutter gate.
+#
+# ## Why analyze is reported but not enforced
+#
+# `flutter analyze` exits non-zero on `info`, and this app currently carries 205 of
+# them: untyped uninitialized fields, `withOpacity` deprecations, missing `const`,
+# a couple of BuildContext-across-async-gap warnings. None is an error and none is
+# a broken build.
+#
+# Enforcing it today would mean the only possible first run is red, and a red gate
+# that cannot be turned green without an unrelated 205-file cleanup gets ignored --
+# which would cost the test run below its attention. So analyze runs on every
+# change, its findings are in the log, and it does not decide the build.
+#
+# When the backlog is cleared, delete `continue-on-error` below. That one line is
+# the whole gate.
+
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # Matches the version this project is developed against (3.47.5). A
+          # floating "stable" means a Dart SDK bump can turn a green main into a
+          # red one with no commit, and the failure looks like the code's.
+          flutter-version: "3.47.5"
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        continue-on-error: true
+        run: flutter analyze
+
+      # Not `flutter test || echo "..."`. Swallowing a test failure makes the
+      # suite look green when it is not, which is the one thing a test gate
+      # exists to prevent.
+      - name: Test
+        run: flutter test

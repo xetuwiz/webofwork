@@ -1,0 +1,68 @@
+name: client
+
+# The React gate.
+#
+# ## Why this is separate from the other three
+#
+# The Python service, the .NET API and the Flutter app each have a different
+# toolchain and a different clock. Splitting them means a red check names the
+# layer that broke, which is worth more than the minutes saved by sharing a job.
+
+on:
+  push:
+    paths:
+      - "client/**"
+      - ".github/workflows/client.yml"
+  pull_request:
+    paths:
+      - "client/**"
+      - ".github/workflows/client.yml"
+
+concurrency:
+  group: client-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22, not 20: vitest 3 and React 19 both want it, and running the
+          # suite on a different major than production risks a green check for a
+          # tree that will not build on the deploy image.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      # `npm ci`, not `npm install`: it installs exactly the lockfile and fails
+      # when package.json and the lock disagree, which is the disagreement worth
+      # hearing about. `npm install` quietly resolves the difference and writes a
+      # lockfile nobody reviewed.
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      # Reported, not enforced: the tree currently carries 56 eslint errors (unused
+      # imports, a useless try/catch) and 12 warnings, none of which break a build.
+      # Enforcing it would mean the gate cannot go green without an unrelated cleanup
+      # of other people's components, and a gate that is always red stops being read.
+      # Delete `continue-on-error` when the backlog is clear.
+      - name: Lint
+        continue-on-error: true
+        run: npm run lint
+
+      # A build that no test covers is still a build that can break: a bad import
+      # path, a chunk that will not roll up, an asset that moved. Vitest
+      # transforms modules and does not go through Rollup, so it cannot see any of
+      # those.
+      - name: Build
+        run: npm run build
