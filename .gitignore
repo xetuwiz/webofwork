@@ -29,6 +29,17 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+## Signing material -- never commit
+*.jks
+*.keystore
+key.properties
+local.properties
+GoogleService-Info.plist
 
 ## OS
 Thumbs.db
@@ -45,8 +56,20 @@ desktop.ini
 ref/
 scratch/
 google-test-key.json
+
 client_backup_premerge/
 backups/
+.git.backup/
+
+## Flutter / mobile build output
+mobile/.dart_tool/
+mobile/.flutter-plugins-dependencies
+mobile/android/.gradle/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/ephemeral/
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
+*.xcuserstate
 
 # Deliverables: `Tests/`, `docs/` and `scripts/` are tracked.
 #

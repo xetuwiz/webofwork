@@ -1,0 +1,1593 @@
+# Skill relationships.
+#
+# ## Why this is a data file and not code
+#
+# Every entry here is a claim a human made about how two skills relate. Putting
+# them in code makes reviewing a change mean reading a diff of logic; putting
+# them in YAML makes it mean reading a list of claims. Given that a wrong edge
+# silently changes who gets hired, the second is much easier to check.
+#
+# ## The four edge types
+#
+# `same_as`      -- literally the same thing. Symmetric. Credit 1.0.
+# `implies`      -- knowing `from` means you can do `to`. Directed. Credit 1.0.
+# `weakly_implies` -- knowing `from` suggests you *might* do `to`. Directed. Credit < 1.
+# `sibling`      -- related, NOT interchangeable. Symmetric. Credit 0.0, and it
+#                   VETOES: checked before anything else, so no other edge can
+#                   rescue a pair the humans decided must not match.
+#
+# ## Why `sibling` exists at all
+#
+# Because a similarity model puts React and Angular right next to each other --
+# both are frontend JavaScript frameworks. That is correct as clustering and
+# catastrophic as a hiring decision. An explicit veto says "yes these are
+# related, and no, a React developer is not an Angular developer", which no
+# distance function can express.
+#
+# ## Direction matters, and both directions are written out
+#
+# C# implies .NET. .NET does NOT imply C# -- a .NET developer may write F# or
+# VB.NET. So the two directions are separate entries with separate weights,
+# rather than one edge plus an inferred inverse. Nothing here is inferred; every
+# pair a human wrote is visible.
+#
+# ## Single hop only
+#
+# `csharp implies aspnet-core` is deliberately absent. C# implies .NET and
+# ASP.NET Core implies .NET, but chaining them would claim a C# developer is an
+# ASP.NET developer, which is false -- they may be writing desktop or games.
+# Scoring never chains. Multi-hop is only ever used for suggestions.
+#
+# ## Coverage
+#
+# This covers the skills a freelancer realistically lists against marketplace
+# briefs. It is not the whole universe, and it does not need to be: every pair
+# absent from it resolves exactly as it did before this file existed.
+
+version: 1
+
+# Canonical -> the spellings people actually type.
+aliases:
+  react:
+    - reactjs
+    - react.js
+    - react js
+    # `react native` is deliberately NOT here. React Native is a different thing
+    # from React: it is not a browser UI library, and a mobile brief must not be
+    # satisfied by web React work. It has its own canonical entry below and the
+    # pair is a `sibling`.
+    # - react native  <- wrong, see siblings
+  node:
+    - nodejs
+    - node.js
+    - node js
+  typescript:
+    - ts
+    - type script
+  javascript:
+    - js
+    - ecmascript
+  csharp:
+    - c#
+    - c sharp
+    - csharp
+  dotnet:
+    - .net
+    - dotnet
+    - dot net
+    - net core
+    - .net core
+    - .net core 8
+  aspnetcore:
+    - asp.net
+    - asp.net core
+    - aspnet
+    - asp.net mvc
+  postgresql:
+    - postgres
+    - psql
+    - postgre sql
+  mongodb:
+    - mongo
+    - mongo db
+  kubernetes:
+    - k8s
+    - kube
+    - k8
+  tailwind:
+    - tailwind css
+    - tailwindcss
+  nextjs:
+    - next.js
+    - next js
+  # All AWS spellings live under the single canonical `aws` further down.
+  #
+  # There used to be a separate `amazonwebservices` canonical, which meant
+  # "Amazon Web Services" resolved to a skill the `siblings` veto never named -- so
+  # `[aws, gcp]` silently failed to fire for the long spelling. The load-time
+  # endpoint guard is what surfaced it; nothing else would have.
+  continuousintegration:
+    - ci
+    - cicd
+    - ci/cd
+    - continuous integration/continuous delivery
+  machinelearning:
+    - ml
+    - machine learning
+  machinelearningops:
+    - mlops
+    - machine learning ops
+  UXDesign:
+    - ux
+    - user experience
+    - user experience design
+  databases:
+    - db
+    - database
+  salesforce:
+    - sfdc
+    - sf crm
+
+  # -- the missing frontend framework names ------------------------------------
+  # These were absent while the `siblings` list already referred to them. That is
+  # the failure this section fixes: a veto naming "vue" never fires for someone who
+  # wrote "VueJS" or "Vue.js", because those normalise to `vuejs` and were not in
+  # the canonical table. The veto silently stopped applying to the spellings people
+  # actually type.
+  # `angularjs` is its own canonical. AngularJS (1.x) and Angular (2+) are a
+  # sibling pair: the first is JavaScript, the second is TypeScript, and hiring
+  # for one and getting the other is a real and expensive mistake.
+  # The bare spelling `AngularJS` belongs here; `angular.js` and `angular js` are
+  # claimed by `angular` below, because they are how Angular 2+ is usually written.
+  # AngularJS (1.x) and Angular (2+) are recorded as ONE canonical, `angular`.
+  #
+  # An earlier attempt gave them two entries. That cannot work: `normalise` strips
+  # separators, so "angular.js", "angular js" and "angularjs" all reduce to the
+  # same string, and the load-time guard rejected the second entry. The version
+  # distinction cannot be expressed in this vocabulary at all.
+  #
+  # What that costs: a client who specifically needs AngularJS 1.x gets partial
+  # treatment. Deliberate, because the alternative -- a canonical that matches
+  # nothing -- is worse. Version-specific requirements belong in the brief text,
+  # which `ai.skills.text_overlap` reads.
+  angular:
+    - angular
+    - angular 2
+    - angularjs
+    - angular.js
+    - angular js
+  jquery:
+    - j query
+    - jquery ui
+  vue:
+    - vuejs
+    - vue.js
+    - vue js
+    - vue 3
+  svelte:
+    - sveltekit
+    - svelte kit
+
+  # -- languages that had no canonical entry ----------------------------------
+  # A bare language name needs an entry so that its common spellings, and any
+  # alias pointing at it, resolve. Without one, "JS" and "JavaScript" could not be
+  # connected to anything.
+  java:
+    - java 8
+    - java 11
+    - java 17
+  python:
+    - python3
+    - py
+    - python 3
+  # The two Python web frameworks the sibling list vetoes. They are separate
+  # frameworks with separate idioms: a Django freelancer is not a Flask one.
+  flask:
+    - flask app
+    - flask application
+    - flask restful
+  django:
+    - django app
+    - django application
+    - django rest framework
+    - django rest
+  php:
+    - php 8
+  # `ruby on rails` and `rails` are claimed by `rubyonrails` below, so that the
+  # framework can carry its own implication edge to `ruby`.
+  ruby:
+    - ruby lang
+    - ruby language
+  # `go` is its own canonical rather than an alias of `golang`, so the Go-vs-Rust
+  # and Go-vs-C# vetoes name a canonical that exists.
+  golang:
+    - go lang
+    - golang
+  go:
+    - go
+  rust:
+    - rust lang
+  kotlin:
+    - kotlin jvm
+  swift:
+    - swift 5
+  digitalocean:
+    - digital ocean
+  executiveassistance:
+    - executive assistance
+    - executive assistant
+    - executive support
+  personalassistance:
+    - personal assistance
+    - personal assistant
+  cpp:
+    - c++
+    - c plus plus
+  objectivec:
+    - objective c
+    - objc
+  powershell:
+    - pwsh
+
+  # -- databases named by the veto -------------------------------------------
+  mysql:
+    - my sql
+    - mariadb
+  mongodb:
+    - mongo
+    - mongo db
+  redis:
+    - redis pubsub
+  elasticsearch:
+    - elastic search
+    - opensearch
+  sqlserver:
+    - sql server
+    - mssql
+    - microsoft sql server
+  cassandra:
+    - apache cassandra
+  dynamodb:
+    - dynamo db
+    - dynamo
+  firebase:
+    - firebase firestore
+    - firestore
+
+  # -- clouds named by the veto ----------------------------------------------
+  # `aws` was previously only an *alias* of amazonwebservices, so the sibling
+  # entry `[aws, azure]` compared the raw normalised strings and happened to work
+  # by accident. Naming the provider explicitly makes that intentional.
+  # One canonical for every AWS spelling, short and long, so the `siblings` veto
+  # naming `aws` fires however the candidate wrote it.
+  aws:
+    - aws
+    - amazon web services
+    - amazonwebservices
+    - ec2
+    - lambda
+    - s3
+    - rds
+    - cloudfront
+    - route 53
+    - ecs
+    - eks
+    - fargate
+    - sagemaker
+  gcp:
+    - google cloud
+    - google cloud platform
+  azure:
+    - microsoft azure
+  cloudflare:
+    - cloud flare
+  vercel:
+    - vercel hosting
+  netlify:
+    - netlify hosting
+
+  # -- backend frameworks ------------------------------------------------------
+  expressjs:
+    - express
+    - express.js
+    - express js
+  nestjs:
+    - nest
+    - nest.js
+    - nest js
+  springboot:
+    - spring boot
+    - spring-boot
+  # `asp net core` / `aspnet core` are claimed by `aspnetcore` above; they must not
+  # be repeated here.
+  dotnetcore:
+    - dotnet core
+    - dot net core
+  entityframework:
+    - entity framework
+    - ef core
+    - efcore
+  # `rest api` / `restful api` are claimed by `restfulapi` below; not repeated.
+  restapi:
+    - rest api
+    - restful api
+    - rest apis
+  openapi:
+    - open api
+    - swagger
+  jwt:
+    - json web token
+    - jsonwebtoken
+  microservices:
+    - micro services
+    - micro-services
+  messagequeue:
+    - message queue
+    - message queues
+    - rabbitmq
+    - kafka
+
+  # -- frontend tooling --------------------------------------------------------
+  html:
+    - html5
+    - html 5
+  css:
+    - css3
+    - css 3
+  sass:
+    - scss
+  webpack:
+    - webpack js
+  vite:
+    - vite js
+  storybook:
+    - story book
+  redux:
+    - redux js
+  reduxtoolkit:
+    - redux toolkit
+    - rtk
+  materialui:
+    - material ui
+    - mui
+  bootstrap:
+    - bootstrap 5
+  # `graphql` is claimed by `apis` above; this entry is the GraphQL-specific
+  # spelling only, and the two are siblings because an API built over REST is not
+  # an API built over GraphQL.
+  graphqlapi:
+    - graph ql
+    - graph ql api
+    - graphql
+    - apollo
+    - apollo client
+  restapi:
+    - rest
+    - restful
+    - rest api
+    - restful api
+    - rest apis
+    - restful services
+  jest:
+    - jest js
+  vitest:
+    - vi test
+  cypress:
+    - cy press
+  playwright:
+    - play write
+
+  # -- mobile ------------------------------------------------------------------
+  # Umbrella terms used as edge endpoints below. They need canonical entries of
+  # their own so the edges resolve; without one, `apis implies x` would silently
+  # never fire.
+  # Umbrella term. It deliberately does NOT claim `rest` or `graphql`: those are
+  # the two specific ways of building an API, they are siblings of each other, and
+  # an umbrella that swallowed both would make that veto unrepresentable.
+  apis:
+    - api
+    - api design
+    - api development
+    - api integration
+    - apis
+    - grpc
+    - soap
+    - webhooks
+    - websockets
+  payments:
+    - payment
+    - payment gateway
+    - payment gateway integration
+    - payment integration
+    - checkout flow
+  ecommerce:
+    - e commerce
+    - electronic commerce
+    - online store
+    - online shop
+    - store setup
+  rag:
+    - retrieval augmented generation
+    - retrieval-augmented generation
+    - graphrag
+    - hybrid search
+  graphicdesign:
+    - graphic design
+    - graphics design
+    - visual design
+  laravel:
+    - laravel framework
+  rubyonrails:
+    - ruby on rails
+    - rails
+    - rails app
+  dart:
+    - dart lang
+  googleanalytics:
+    - google analytics
+    - ga4
+    - google analytics 4
+  ecommerceplatform:
+    - ecommerce platform
+  frontend:
+    - front end
+    - frontend
+    - frontend development
+    - front end developer
+  backend:
+    - back end
+    - backend
+    - backend development
+    - back end developer
+  fullstack:
+    - full stack
+    - fullstack
+    - full stack developer
+  mobileapp:
+    - mobile app
+    - mobile application
+    - mobile app development
+  chatbot:
+    - chat bot
+    - chatbots
+    - conversational ai
+  promptengineering:
+    - prompt engineering
+    - prompt architect
+    - prompt architecture
+  webaccessibility:
+    - web accessibility
+    - accessible web
+    - aria
+  responsiveweb:
+    - responsive web design
+    - responsive layout
+  crossbrowser:
+    - cross browser compatibility
+    - browser compatibility
+  corewebvitals:
+    - core web vitals
+    - page speed optimisation
+    - page speed optimization
+
+  reactnative:
+    - react native
+    - react-native
+  flutter:
+    - flutter 3
+  swiftui:
+    - swift ui
+  firebaseauth:
+    - firebase auth
+  firebasecloud:
+    - cloud functions
+
+  # -- ai / ml -----------------------------------------------------------------
+  openai:
+    - open ai
+    - openai api
+    - open ai api
+    - chatgpt api
+    - gpt4
+    - gpt 4
+    - gpt4o
+  claude:
+    - anthropic
+    - claude ai
+    - claude api
+  gemini:
+    - google gemini
+    - google ai
+  langchain:
+    - lang chain
+  llamaindex:
+    - llama index
+    - llama index
+  huggingface:
+    - hugging face
+    - transformers
+  pytorch:
+    - py torch
+    - torch
+  tensorflow:
+    - tensor flow
+    - tf
+  scikitlearn:
+    - scikit learn
+    - sklearn
+  numpy:
+    - num py
+  pandas:
+    - pan das
+  pydantic:
+    - py dantic
+  mcp:
+    - model context protocol
+  vectorsearch:
+    - vector search
+    - vector db
+    - vector database
+    - embeddings
+  n8n:
+    - n eight n
+  zapier:
+    - zap ier
+  makeautomation:
+    - make
+    - integromat
+  uiptopia:
+    - ui path
+  scrapy:
+    - scrapy spider
+
+  # -- design ------------------------------------------------------------------
+  # The design domain had one catalogue entry and no relationships at all, so a
+  # Figma brief could not distinguish a Figma designer from a Photoshop one.
+  figma:
+    - fig ma
+  sketch:
+    - sketch app
+    - sketch 3
+  adobexd:
+    - adobe xd
+    - xd
+  photoshop:
+    - adobe photoshop
+    - photo shop
+    - ps
+  illustrator:
+    - adobe illustrator
+    - ai
+  indesign:
+    - adobe indesign
+    - id
+  aftereffects:
+    - adobe after effects
+    - after effects
+    - ae
+  premierepro:
+    - adobe premiere pro
+    - premiere pro
+    - premiere
+  lightroom:
+    - adobe lightroom
+  canva:
+    - canva pro
+  framer:
+    - framer io
+  blender:
+    - blender 3d
+  cinema4d:
+    - cinema 4d
+    - c4d
+  maya:
+    - autodesk maya
+  zbrush:
+    - z brush
+  autocad:
+    - auto cad
+  sketchup:
+    - sketch up
+
+  # -- design disciplines ------------------------------------------------------
+  logodesign:
+    - logo design
+    - logo
+  brandidentity:
+    - brand identity
+    - visual identity
+    - brand identity design
+  brandguidelines:
+    - brand guidelines
+    - brand book
+    - style guide
+  typography:
+    - type design
+    - font design
+  packagingdesign:
+    - packaging design
+    - package design
+  editorialdesign:
+    - editorial design
+    - magazine layout
+    - publication design
+  presentationdesign:
+    - presentation design
+    - pitch deck design
+    - pitch decks
+  presentation:
+    - powerpoint
+    - power point
+    - slides
+    - keynote
+    - google slides
+  # Infographics and data visualisation overlap, but they are not the same
+  # deliverable: one is a designed summary, the other is charts. Siblings.
+  infographic:
+    - infographics
+  dataviz:
+    - data visualization
+    - data visualisation
+    - chart design
+    - data viz
+  illustration:
+    - digital illustration
+    - vector illustration
+  icon:
+    - icon design
+    - icon set
+    - icons
+  # `motion graphics` is the deliverable; `motion design` is the broader practice
+  # of animating anything. One implies the other, so one spelling each.
+  motiongraphics:
+    - motion graphics
+    - motiongraphic
+  printdesign:
+    - print design
+    - prepress
+    - large format
+  socialmediagraphics:
+    - social media graphics
+    - social media kit
+  emailtemplates:
+    - email templates
+    - email template
+  webdesign:
+    - web design
+    - website design
+  uidesign:
+    - ui design
+    - user interface design
+    - interface design
+  productdesign:
+    - product design
+  interactiondesign:
+    - interaction design
+  userresearch:
+    - user research
+    - user interviews
+    - usability testing
+  wireframing:
+    - wireframing
+    - wireframe
+    - wire frames
+    - low fidelity wireframes
+  prototyping:
+    - prototyping
+    - prototype
+    - interactive prototypes
+  # Design tokens are a component of a design system, not a synonym for one.
+  # The implication edge records that; the spellings stay separate.
+  designsystem:
+    - design system
+    - design systems
+    - component library
+  designtokens:
+    - design tokens
+  wcag:
+    - accessibility
+    - wcag 2.1
+    - wcag 2.2
+    - a11y
+    - accessible design
+  responsivedesign:
+    - responsive design
+    - mobile first design
+    - mobile first
+  conversionoptimization:
+    - conversion rate optimization
+    - conversion optimisation
+    - cro
+    - landing page optimization
+  landingpagedesign:
+    - landing page design
+
+  # -- photo / video -----------------------------------------------------------
+  photoediting:
+    - photo editing
+    - photo edit
+    - photo manipulation
+  photoretouching:
+    - photo retouching
+    - portrait retouching
+    - product photo editing
+  productphotography:
+    - product photography
+    - still life photography
+  portraitphotography:
+    - portrait photography
+    - headshot photography
+  videoediting:
+    - video editing
+    - video edit
+    - video post production
+  # Colour grading (video) and colour correction (photo) are distinct deliverables
+  # that share vocabulary. Only the grading entry claims the shared spelling; the
+  # two are siblings so neither substitutes for the other.
+  colourgrading:
+    - color grading
+    - colour grading
+  colourcorrection:
+    - color correction
+    - colour correction
+    - color matching
+  colourtheory:
+    - color theory
+    - colour theory
+  sounddesign:
+    - sound design
+    - audio design
+  audiomixing:
+    - audio mixing
+    - audio mastering
+  voiceover:
+    - voice over
+    - voice over recording
+  subtitles:
+    - subtitle
+    - captions
+    - closed captions
+  motiondesign:
+    - motion design
+    - motion animation
+  videoanimation:
+    - video animation
+    - animated video
+  explainervideo:
+    - explainer video
+    - product demo video
+
+  # -- 3d / games --------------------------------------------------------------
+  modelling3d:
+    - 3d modeling
+    - 3d modelling
+    - 3d model
+  rigging:
+    - rigging
+    - character rigging
+  texturing:
+    - texturing
+    - uv mapping
+  unity:
+    - unity 3d
+    - unity engine
+  unrealengine:
+    - unreal engine
+    - ue4
+    - ue5
+  godot:
+    - godot engine
+    - godot 4
+  gamedesign:
+    - game design
+    - level design
+    - game art
+  conceptart:
+    - concept art
+    - character design
+    - environment design
+  productvisualisation:
+    - product visualization
+    - product visualisation
+    - architectural visualization
+    - arch viz
+
+  # -- marketing ---------------------------------------------------------------
+  seo:
+    - search engine optimization
+    - search engine optimisation
+  onpageseo:
+    - on page seo
+  technicalseo:
+    - technical seo
+  offpageseo:
+    - off page seo
+  keywordresearch:
+    - keyword research
+  backlinks:
+    - backlink building
+    - link building
+  contentstrategy:
+    - content strategy
+  contentmarketing:
+    - content marketing
+  sem:
+    - search engine marketing
+    - ppc
+  googleads:
+    - google ads
+    - adwords
+  facebookads:
+    - facebook ads
+    - meta ads
+  instagramads:
+    - instagram ads
+  tiktokads:
+    - tiktok ads
+  socialmedia:
+    - social media marketing
+    - social media management
+  emailmarketing:
+    - email marketing
+    - email campaign
+  leadgeneration:
+    - lead generation
+    - lead gen
+  # The tool names are claimed by `googleanalytics` and the other vendor entries;
+  # this is the discipline.
+  marketinganalytics:
+    - marketing analytics
+    - web analytics
+    - campaign analytics
+  googletagmanager:
+    - google tag manager
+    - gtm
+  hubspot:
+    - hub spot
+  mailchimp:
+    - mail chimp
+  klaviyo:
+    - klaviyo
+  sendgrid:
+    - send grid
+  salesforcecrm:
+    - salesforce crm
+  marketresearch:
+    - market research
+    - customer research
+  copywriting:
+    - copy writing
+    - copywriter
+    - sales copy
+    - ad copy
+    - website copy
+  videomarketing:
+    - video marketing
+
+  # -- writing / translation ---------------------------------------------------
+  contentwriting:
+    - content writing
+    - content writer
+  blogwriting:
+    - blog writing
+    - blogging
+  technicalwriting:
+    - technical writing
+    - technical writer
+  # Copy editing and proofreading are distinct services a client can buy
+  # separately, so they are siblings. Only proofreading claims its own spelling.
+  copyediting:
+    - copy editing
+    - copy editor
+  proofreading:
+    - proof reading
+    - proofreading
+  ghostwriting:
+    - ghost writing
+    - ghost writer
+  academicwriting:
+    - academic writing
+    - research papers
+    - research paper
+  medicalwriting:
+    - medical writing
+  legalwriting:
+    - legal writing
+  grantwriting:
+    - grant writing
+  # `technical writing` is claimed by `technicalwriting` above; this entry covers
+  # documentation artefacts instead.
+  technicaldocumentation:
+    - api documentation
+    - user guides
+    - process documentation
+    - sop writing
+  translation:
+    - translations
+    - translating
+  localisation:
+    - localization
+    - localise
+    - localize
+  transcription:
+    - transcribing
+    - transcription services
+    - closed captioning
+  newsletterwriting:
+    - newsletter writing
+    - email newsletter
+  # `script writing` belongs to scriptwriting below; a speech and a script are
+  # different deliverables even though clients ask for both in one sentence.
+  speechwriting:
+    - speech writing
+    - voiceover scripts
+    - toasts
+  scriptwriting:
+    - script writing
+    - screenplay writing
+  screenwriting:
+    - screen writing
+  resumewriting:
+    - resume writing
+    - cv writing
+  coverletterwriting:
+    - cover letter writing
+  linkedinwriting:
+    - linkedin profile writing
+  proposalwriting:
+    - proposal writing
+    - business plan writing
+  # Fiction and non-fiction are separate commissions; the umbrella term claims
+  # neither of their specific spellings.
+  creativewriting:
+    - creative writing
+    - creative writer
+  fictionwriting:
+    - fiction
+    - fiction writing
+  nonfictionwriting:
+    - non fiction
+    - non fiction writing
+  whitepapers:
+    - white papers
+    - whitepaper
+    - case studies
+    - case study
+
+  # -- data / analytics --------------------------------------------------------
+  dataanalysis:
+    - data analysis
+    - data analytics
+    - analytics
+  dataengineering:
+    - data engineering
+    - data pipeline
+    - etl
+  businessintelligence:
+    - business intelligence
+    - bi
+  powerbi:
+    - power bi
+    - powerbi
+  tableau:
+    - tableau desktop
+  looker:
+    - looker studio
+  databricks:
+    - data bricks
+  snowflake:
+    - snow flake
+  bigquery:
+    - big query
+    - bigquery
+  postgresqlanalytics:
+    - postgre sql analytics
+  spark:
+    - apache spark
+  airflow:
+    - apache airflow
+  dbt:
+    - data build tool
+  statistics:
+    - statistical analysis
+    - stats
+  excel:
+    - advanced excel
+    - ms excel
+    - microsoft excel
+  googlesheets:
+    - google sheets
+  googledocs:
+    - google docs
+    - google workspace
+    - google workspace administrator
+
+  # -- admin / ops -------------------------------------------------------------
+  virtualassistance:
+    - virtual assistance
+    - virtual assistant
+    - va
+  dataentry:
+    - data entry
+    - data entry specialist
+  customersupport:
+    - customer support
+    - customer service
+    - customer service representative
+  technicalsupport:
+    - technical support
+    - it support
+  helpdesk:
+    - help desk
+  zendesk:
+    - zendesk support
+  freshdesk:
+    - fresh desk
+  intercom:
+    - inter com
+  bookkeeping:
+    - book keeping
+    - accounts bookkeeping
+  quickbooks:
+    - quick books
+  xero:
+    - xero accounting
+  accounting:
+    - bookkeeping and accounting
+  # `invoicing` is canonical and claims the noun, so "invoice" in a brief
+  # resolves. A skill catalogue should not silently rewrite a client's own words,
+  # but a noun and its discipline name are the same subject here.
+  invoicing:
+    - invoicing
+    - invoice
+    - invoicing and billing
+  payroll:
+    - payroll processing
+  projectmanagement:
+    - project management
+    - pm
+  agilepm:
+    - agile
+    - scrum
+    - kanban
+  jira:
+    - atlassian jira
+  asana:
+    - a sana
+  clickup:
+    - click up
+  monday:
+    - monday com
+  trello:
+    - tre llo
+  airtable:
+    - air table
+  notion:
+    - notion so
+  basecamp:
+    - base camp
+  recruitment:
+    - recruiting
+    - recruiter
+    - talent acquisition
+  interviewing:
+    - interviewing
+    - candidate interviewing
+  transcriptionops:
+    - typing
+    - stenography
+  dataannotation:
+    - data annotation
+    - data labelling
+    - data labeling
+    - image annotation
+    - content moderation
+
+  # -- payments / commerce -----------------------------------------------------
+  stripe:
+    - stripe payments
+    - stripe connect
+  paypal:
+    - pay pal
+    - paypal payments
+  shopify:
+    - shopify store
+    - shopify plus
+    - shopify liquid
+  woocommerce:
+    - woo commerce
+    - wordpress woocommerce
+  wordpress:
+    - word press
+    - wordpress cms
+  webflow:
+    - web flow
+    - webflow cms
+  wix:
+    - wix site
+    - wix studio
+  squarespace:
+    - square space
+  magento:
+    - magento 2
+    - adobe commerce
+  bigcommerce:
+    - big commerce
+  bubbleio:
+    - bubble io
+    - bubble
+  elementor:
+    - elementor builder
+    - elementor pro
+    - divi
+  gatsby:
+    - gatsby js
+  contentful:
+    - content ful
+  strapi:
+    - strapi cms
+  joomla:
+    - joomla cms
+  drupal:
+    - drupal cms
+  ghostcms:
+    - ghost cms
+  hubspotcrm:
+    - hubspot crm
+  pipedrive:
+    - pipe drive
+  zohocrm:
+    - zoho crm
+  klaviyomarketing:
+    - klaviyo marketing
+
+  # -- devops / infra ----------------------------------------------------------
+  docker:
+    - docker engine
+  dockercompose:
+    - docker compose
+    - compose
+  kubernetes:
+    - k8s
+    - kube
+    - k8
+  helm:
+    - helm charts
+  terraform:
+    - terraform cloud
+  ansible:
+    - ansible playbook
+  pulumi:
+    - pulumi cloud
+  cloudformation:
+    - cloud formation
+  jenkins:
+    - jenkins ci
+  circleci:
+    - circle ci
+  gitlabci:
+    - gitlab ci
+  argocd:
+    - argo cd
+  nginx:
+    - nginx server
+    - reverse proxy
+  linux:
+    - ubuntu
+    - debian
+    - centos
+    - red hat
+    - rhel
+  monitoring:
+    - observability
+    - app monitoring
+  prometheus:
+    - prometheus server
+  grafana:
+    - grafana dashboards
+  datadog:
+    - data dog
+  sentry:
+    - sentry io
+  elkstack:
+    - elk
+    - elastic stack
+  splunk:
+    - splunk enterprise
+  bashscripting:
+    - bash scripting
+    - shell scripting
+  powershellops:
+    - powershell scripting
+
+  # -- qa ----------------------------------------------------------------------
+  manualtesting:
+    - manual testing
+    - manual qa
+  automationtesting:
+    - automation testing
+    - test automation
+  unittesting:
+    - unit testing
+    - unit tests
+  integrationtesting:
+    - integration testing
+  e2etesting:
+    - e2e testing
+    - end to end testing
+  apitesting:
+    - api testing
+    - postman
+  performancetesting:
+    - performance testing
+    - load testing
+    - stress testing
+  securitytesting:
+    - security testing
+    - penetration testing
+    - pentesting
+  restassured:
+    - rest assured
+  jmeter:
+    - j meter
+  selenium:
+    - selenium webdriver
+    - selenium testing
+  appium:
+    - appium testing
+  testrail:
+    - test rail
+  browserstack:
+    - browser stack
+  sauce labs:
+    - sauce labs
+
+  # -- blockchain / web3 -------------------------------------------------------
+  solidity:
+    - solidity smart contracts
+  ethereum:
+    - ethereum blockchain
+    - eth
+  smartcontracts:
+    - smart contracts
+    - smart contract
+  web3:
+    - web 3
+    - web three
+  nftart:
+    - nft art
+    - digital collectibles
+
+# Directed and symmetric edges. `weight` is the credit a match earns.
+edges:
+  # -- platform / language -----------------------------------------------------
+  # A C# developer works on .NET by definition: you cannot write C# without it.
+  - { type: implies, from: csharp, to: dotnet, weight: 1.0 }
+  # The reverse is weaker. Someone who knows .NET may write F# or VB.NET.
+  - { type: weakly_implies, from: dotnet, to: csharp, weight: 0.6 }
+
+  # ASP.NET Core is a framework on the platform, not the language itself, so
+  # these do not chain: having C# does not mean having ASP.NET Core.
+  - { type: implies, from: aspnetcore, to: csharp, weight: 1.0 }
+  - { type: implies, from: aspnetcore, to: dotnet, weight: 1.0 }
+  - { type: weakly_implies, from: dotnet, to: aspnetcore, weight: 0.5 }
+
+  # -- javascript ecosystem ----------------------------------------------------
+  - { type: implies, from: react, to: javascript, weight: 1.0 }
+  - { type: weakly_implies, from: javascript, to: react, weight: 0.6 }
+  - { type: implies, from: nextjs, to: react, weight: 1.0 }
+  - { type: weakly_implies, from: javascript, to: typescript, weight: 0.5 }
+  - { type: implies, from: typescript, to: javascript, weight: 1.0 }
+
+  # -- data --------------------------------------------------------------------
+  - { type: implies, from: postgresql, to: databases, weight: 1.0 }
+  - { type: weakly_implies, from: databases, to: postgresql, weight: 0.5 }
+  - { type: weakly_implies, from: databases, to: mongodb, weight: 0.3 }
+  - { type: implies, from: kubernetes, to: aws, weight: 0.6 }
+  - { type: implies, from: aws, to: continuousintegration, weight: 0.5 }
+
+  # -- non-technical -----------------------------------------------------------
+  - { type: implies, from: machinelearning, to: machinelearningops, weight: 0.6 }
+  - { type: implies, from: uxDesign, to: UXDesign, weight: 1.0 }
+
+  # -- design ------------------------------------------------------------------
+  # A design system is built from tokens, not the other way round. The reverse is
+  # weak: a token file on its own is usually part of a system nobody maintains.
+  - { type: implies, from: designsystem, to: designtokens, weight: 1.0 }
+  - { type: weakly_implies, from: designtokens, to: designsystem, weight: 0.5 }
+
+  # Infographics are a way of presenting data, so one implies the other weakly.
+  # They are not siblings -- an infographic *is* a data visualisation -- but neither
+  # substitutes for the other, so the credit is partial.
+  - { type: weakly_implies, from: infographic, to: dataviz, weight: 0.6 }
+  - { type: weakly_implies, from: dataviz, to: infographic, weight: 0.6 }
+
+  # Motion design is the broader practice; motion graphics is the deliverable.
+  - { type: implies, from: motiondesign, to: motiongraphics, weight: 1.0 }
+  - { type: weakly_implies, from: motiongraphics, to: motiondesign, weight: 0.6 }
+
+  # Colour correction in a photo workflow usually involves grading, and vice
+  # versa. Partial both ways, because a grader is not automatically a photo
+  # retoucher.
+  - { type: weakly_implies, from: colourcorrection, to: colourgrading, weight: 0.5 }
+  - { type: weakly_implies, from: colourgrading, to: colourcorrection, weight: 0.5 }
+
+  # Web design and UI design overlap heavily; UI design is the stronger claim.
+  - { type: weakly_implies, from: webdesign, to: uidesign, weight: 0.7 }
+  - { type: weakly_implies, from: uidesign, to: webdesign, weight: 0.6 }
+
+  # Product design is UX plus UI plus the decisions in between.
+  - { type: implies, from: productdesign, to: UXDesign, weight: 0.9 }
+  - { type: implies, from: productdesign, to: uidesign, weight: 0.9 }
+  - { type: weakly_implies, from: UXDesign, to: productdesign, weight: 0.6 }
+
+  # Interaction design sits between wireframing and prototyping.
+  - { type: weakly_implies, from: interactiondesign, to: prototyping, weight: 0.6 }
+  - { type: weakly_implies, from: prototyping, to: wireframing, weight: 0.6 }
+
+  # Brand identity work normally produces guidelines; the reverse is not true of a
+  # freelance guideline writer who does not do identity.
+  - { type: implies, from: brandidentity, to: brandguidelines, weight: 1.0 }
+  - { type: weakly_implies, from: brandguidelines, to: brandidentity, weight: 0.5 }
+
+  # A logo and a brand identity are deliberately NOT connected here. They are a
+  # sibling pair below, because a client commissioning a full identity needs
+  # someone who does the whole thing -- a logo artist is not automatically that.
+  # The load-time guard caught this contradiction when both lists were added.
+
+  # -- platforms ---------------------------------------------------------------
+  # Anyone using one of these editors can produce the file; the reverse is not
+  # true, so the direction matters.
+  - { type: implies, from: canva, to: graphicdesign, weight: 0.5 }
+  - { type: implies, from: figma, to: designsystem, weight: 0.5 }
+  - { type: weakly_implies, from: designsystem, to: figma, weight: 0.5 }
+
+  - { type: implies, from: wordpress, to: php, weight: 0.9 }
+  - { type: weakly_implies, from: php, to: wordpress, weight: 0.4 }
+
+  # React Native is a sibling of React, not a consequence of it: a mobile brief
+  # must not be satisfied by web React work, which is exactly the substitution the
+  # veto exists to prevent. What React Native genuinely shares is the language.
+  - { type: weakly_implies, from: reactnative, to: javascript, weight: 0.6 }
+  - { type: weakly_implies, from: flutter, to: dart, weight: 0.9 }
+
+  - { type: implies, from: vue, to: javascript, weight: 0.9 }
+  - { type: implies, from: angular, to: typescript, weight: 0.9 }
+  - { type: implies, from: svelte, to: javascript, weight: 0.9 }
+
+  - { type: implies, from: springboot, to: java, weight: 0.9 }
+  - { type: weakly_implies, from: java, to: springboot, weight: 0.4 }
+  - { type: implies, from: laravel, to: php, weight: 0.9 }
+  - { type: implies, from: rubyonrails, to: ruby, weight: 0.9 }
+
+  - { type: weakly_implies, from: graphqlapi, to: apis, weight: 0.8 }
+  - { type: weakly_implies, from: restapi, to: apis, weight: 0.8 }
+  - { type: implies, from: openapi, to: apis, weight: 0.7 }
+
+  - { type: weakly_implies, from: aws, to: continuousintegration, weight: 0.4 }
+  - { type: weakly_implies, from: gcp, to: continuousintegration, weight: 0.4 }
+  - { type: weakly_implies, from: azure, to: continuousintegration, weight: 0.4 }
+
+  - { type: implies, from: kubernetes, to: docker, weight: 0.9 }
+  - { type: weakly_implies, from: docker, to: kubernetes, weight: 0.4 }
+
+  # -- ai ----------------------------------------------------------------------
+  - { type: weakly_implies, from: python, to: machinelearning, weight: 0.5 }
+  - { type: weakly_implies, from: python, to: pytorch, weight: 0.5 }
+  - { type: weakly_implies, from: pytorch, to: python, weight: 0.7 }
+  - { type: weakly_implies, from: tensorflow, to: python, weight: 0.7 }
+  - { type: weakly_implies, from: langchain, to: python, weight: 0.8 }
+  - { type: weakly_implies, from: openai, to: apis, weight: 0.6 }
+  - { type: weakly_implies, from: claude, to: apis, weight: 0.6 }
+  - { type: weakly_implies, from: rag, to: vectorsearch, weight: 0.8 }
+  - { type: weakly_implies, from: vectorsearch, to: databases, weight: 0.6 }
+
+  # -- design software ---------------------------------------------------------
+  # Figma, Sketch and Adobe XD are siblings below, not implications: a client who
+  # asks for Figma work needs someone who works in Figma. The similarity here is
+  # real and that is precisely why it cannot be an edge.
+  - { type: implies, from: photoshop, to: photoediting, weight: 0.9 }
+  - { type: implies, from: illustrator, to: illustration, weight: 0.9 }
+  - { type: implies, from: indesign, to: printdesign, weight: 0.9 }
+  - { type: implies, from: aftereffects, to: motiongraphics, weight: 0.9 }
+  - { type: implies, from: premierepro, to: videoediting, weight: 0.9 }
+  - { type: implies, from: lightroom, to: photoretouching, weight: 0.8 }
+  - { type: implies, from: blender, to: modelling3d, weight: 0.9 }
+  - { type: implies, from: cinema4d, to: modelling3d, weight: 0.8 }
+  - { type: implies, from: unity, to: gamedesign, weight: 0.7 }
+  - { type: implies, from: unrealengine, to: gamedesign, weight: 0.7 }
+  - { type: weakly_implies, from: modelling3d, to: texturing, weight: 0.6 }
+
+  # -- marketing ---------------------------------------------------------------
+  - { type: implies, from: onpageseo, to: seo, weight: 0.9 }
+  - { type: implies, from: technicalseo, to: seo, weight: 0.9 }
+  - { type: implies, from: offpageseo, to: backlinks, weight: 0.9 }
+  - { type: implies, from: contentstrategy, to: contentmarketing, weight: 0.9 }
+  - { type: weakly_implies, from: contentmarketing, to: contentstrategy, weight: 0.5 }
+  - { type: implies, from: googleads, to: sem, weight: 0.9 }
+  - { type: implies, from: keywordresearch, to: seo, weight: 0.7 }
+  - { type: implies, from: googleanalytics, to: marketinganalytics, weight: 0.9 }
+  - { type: weakly_implies, from: marketinganalytics, to: dataanalysis, weight: 0.6 }
+
+  # -- writing -----------------------------------------------------------------
+  - { type: weakly_implies, from: blogwriting, to: contentwriting, weight: 0.9 }
+  - { type: implies, from: seo, to: copywriting, weight: 0.6 }
+  - { type: weakly_implies, from: academicwriting, to: technicalwriting, weight: 0.6 }
+  - { type: weakly_implies, from: technicalwriting, to: technicaldocumentation, weight: 0.6 }
+  - { type: implies, from: whitepapers, to: technicalwriting, weight: 0.7 }
+  # Screenwriting and scriptwriting are a sibling pair below, not an implication.
+
+  # -- data --------------------------------------------------------------------
+  - { type: weakly_implies, from: dataanalysis, to: statistics, weight: 0.8 }
+  - { type: implies, from: dataviz, to: dataanalysis, weight: 0.6 }
+  - { type: implies, from: businessintelligence, to: dataanalysis, weight: 0.8 }
+  - { type: implies, from: powerbi, to: businessintelligence, weight: 0.9 }
+  - { type: implies, from: tableau, to: dataviz, weight: 0.8 }
+  - { type: implies, from: dataengineering, to: databases, weight: 0.6 }
+  - { type: weakly_implies, from: spark, to: dataengineering, weight: 0.8 }
+  - { type: weakly_implies, from: airflow, to: dataengineering, weight: 0.8 }
+
+  # -- admin -------------------------------------------------------------------
+  - { type: implies, from: bookkeeping, to: accounting, weight: 0.9 }
+  - { type: weakly_implies, from: invoicing, to: accounting, weight: 0.7 }
+  - { type: implies, from: projectmanagement, to: agilepm, weight: 0.7 }
+  - { type: implies, from: recruitment, to: interviewing, weight: 0.8 }
+  - { type: weakly_implies, from: customersupport, to: technicalsupport, weight: 0.6 }
+
+  # -- qa ----------------------------------------------------------------------
+  - { type: implies, from: automationtesting, to: apitesting, weight: 0.6 }
+  - { type: implies, from: apitesting, to: restapi, weight: 0.6 }
+  - { type: implies, from: e2etesting, to: automationtesting, weight: 0.8 }
+  - { type: implies, from: performancetesting, to: apitesting, weight: 0.5 }
+  - { type: implies, from: securitytesting, to: apitesting, weight: 0.5 }
+
+  # -- commerce ----------------------------------------------------------------
+  - { type: weakly_implies, from: woocommerce, to: wordpress, weight: 0.9 }
+  - { type: weakly_implies, from: shopify, to: ecommerce, weight: 0.7 }
+  - { type: weakly_implies, from: magento, to: ecommerce, weight: 0.7 }
+  - { type: weakly_implies, from: stripe, to: payments, weight: 0.8 }
+  - { type: weakly_implies, from: paypal, to: payments, weight: 0.8 }
+  - { type: implies, from: elementor, to: wordpress, weight: 0.8 }
+
+# Explicit non-matches. These VETO: a pair listed here earns zero credit no
+# matter what any other rule says, and no inference is drawn from them.
+#
+# ## Every name here must also be an `aliases` key
+#
+# This list used to name skills -- vue, angular, aws, mysql, flask -- that appeared
+# nowhere in `aliases`. The names normalised fine, so the veto fired for the two
+# literal strings and for nothing else: `VueJS` normalised to `vuejs`, which was
+# not in the sibling set, so a Vue developer quietly satisfied a React brief
+# whenever they spelled it the way people actually spell it. There is now a load-
+# time guard in `ai/skills/ontology.py` that rejects an endpoint with no canonical
+# entry, and a test that exercises the veto through real spellings.
+siblings:
+  # -- javascript frameworks: related, and not interchangeable ------------------
+  - [react, angular]
+  - [react, vue]
+  - [angular, vue]
+  - [react, svelte]
+  - [react, reactnative]
+  - [react, jquery]
+
+  # -- languages: one polyglot is not another ----------------------------------
+  - [csharp, java]
+  - [csharp, python]
+  - [csharp, javascript]
+  - [javascript, java]
+  - [java, python]
+  - [java, php]
+  - [node, python]
+  - [go, rust]
+  - [rust, csharp]
+  - [kotlin, java]
+  - [swift, kotlin]
+  - [dart, java]
+  - [dart, swift]
+  - [cpp, csharp]
+  - [php, python]
+  - [ruby, python]
+
+  # -- frontend frameworks vs the platform they sit on -------------------------
+  - [dotnet, java]
+  - [dotnet, node]
+  - [node, dotnet]
+  - [python, dotnet]
+  - [python, node]
+  - [react, dotnet]
+  - [flask, django]
+
+  # -- databases: "I use a database" is not a match ----------------------------
+  - [postgresql, mongodb]
+  - [postgresql, mysql]
+  - [postgresql, sqlserver]
+  - [mysql, postgresql]
+  - [mysql, mongodb]
+  - [mysql, sqlserver]
+  - [mongodb, postgresql]
+  - [mongodb, mysql]
+  - [sqlserver, postgresql]
+  - [redis, mongodb]
+  - [dynamodb, postgresql]
+  - [cassandra, mongodb]
+
+  # -- clouds: multi-cloud experience is not vendor certification ---------------
+  - [aws, azure]
+  - [aws, gcp]
+  - [azure, gcp]
+  - [aws, digitalocean]
+  - [vercel, aws]
+  - [netlify, azure]
+
+  # -- api styles --------------------------------------------------------------
+  - [restapi, graphqlapi]
+
+  # -- design tools: transfer is not the same as specialism --------------------
+  # These matter most: a similarity model would rank a Photoshop user next to a
+  # Figma user, which is close to useless when the brief asks for a design system.
+  - [figma, sketch]
+  - [figma, adobexd]
+  - [figma, canva]
+  - [figma, photoshop]
+  - [sketch, adobexd]
+  - [sketch, canva]
+  - [photoshop, figma]
+  - [photoshop, illustrator]
+  - [photoshop, indesign]
+  - [illustrator, indesign]
+  - [aftereffects, premierepro]
+  - [premierepro, aftereffects]
+  - [blender, cinema4d]
+  - [maya, blender]
+  - [autocad, sketchup]
+  - [canva, adobexd]
+
+  # -- design disciplines ------------------------------------------------------
+  - [uidesign, UXDesign]
+  - [logodesign, brandidentity]
+  - [graphicdesign, uidesign]
+  - [printdesign, webdesign]
+  - [typography, illustration]
+  - [dataviz, illustration]
+  - [wireframing, uidesign]
+  - [packagingdesign, printdesign]
+
+  # -- 3d and games ------------------------------------------------------------
+  - [unity, unrealengine]
+  - [unity, godot]
+  - [unrealengine, godot]
+  - [modelling3d, conceptart]
+  - [gamedesign, modelling3d]
+
+  # -- marketing ---------------------------------------------------------------
+  - [seo, sem]
+  - [onpageseo, technicalseo]
+  - [googleads, seo]
+  - [socialmedia, emailmarketing]
+  - [contentmarketing, socialmedia]
+  - [keywordresearch, backlinks]
+
+  # -- writing -----------------------------------------------------------------
+  - [proofreading, copyediting]
+  - [blogwriting, academicwriting]
+  - [screenwriting, scriptwriting]
+  - [ghostwriting, contentwriting]
+  - [coverletterwriting, resumewriting]
+  - [transcription, proofreading]
+  - [medicalwriting, legalwriting]
+  - [academicwriting, medicalwriting]
+
+  # -- data --------------------------------------------------------------------
+  - [businessintelligence, dataengineering]
+  - [powerbi, tableau]
+  - [dataengineering, dataanalysis]
+
+  # -- admin -------------------------------------------------------------------
+  - [bookkeeping, payroll]
+  - [bookkeeping, invoicing]
+  - [dataentry, dataannotation]
+  - [customersupport, bookkeeping]
+  - [recruitment, projectmanagement]
+  - [virtualassistance, executiveassistance]
+  - [executiveassistance, personalassistance]
+  - [personalassistance, dataentry]

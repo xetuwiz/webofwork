@@ -1,0 +1,15 @@
+# Never commit real keys. The root .gitignore has `**/.env`, and this repeats it
+# so the rule travels with the directory if it is ever copied out on its own.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
