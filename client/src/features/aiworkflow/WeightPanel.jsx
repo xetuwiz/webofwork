@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { SlidersHorizontal, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
+import { SlidersHorizontal, RotateCcw, AlertTriangle } from "lucide-react";
 import Button from "../../components/common/Button";
 import { weightCaption } from "./weightCaption";
 import {
@@ -210,9 +210,9 @@ export default function WeightPanel({
             disabled={disabled || isRerunning || Boolean(problem) || !changed}
             loading={isRerunning}
           >
-            {isRerunning && (
-              <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
-            )}
+            {/* One spinner, from the Button's `loading` prop. This used to draw a
+                second Loader2 beside it; Button renders its own spinner and then
+                renders children, so both animated. */}
             {isRerunning ? "Re-running" : "Re-run with these weights"}
           </Button>
 

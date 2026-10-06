@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2, AlertTriangle, Send, Info, ExternalLink } from "lucide-react";
+import { Check, AlertTriangle, Send, Info, ExternalLink } from "lucide-react";
 import Button from "../../components/common/Button";
 import Dialog from "../../components/common/Dialog";
 import { toastSuccess, toastError } from "../../utils/toast";
@@ -306,11 +306,11 @@ export default function ShortlistApprovalPanel({ workflowRunId, status, shortlis
               Cancel
             </Button>
             <Button variant="primary" onClick={submit} loading={approve.isPending}>
+              {/* Label only; the spinner is Button's own `loading`. Drawing a second
+                  Loader2 here put two spinners on the approve button, which is
+                  the one control on this page a client is told to trust. */}
               {approve.isPending ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
-                  Sending
-                </>
+                "Sending"
               ) : (
                 <>
                   <Send size={16} className="mr-2" aria-hidden="true" />
