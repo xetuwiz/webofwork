@@ -51,7 +51,48 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Templates\Email\**\*.cshtml" CopyToOutputDirectory="PreserveNewest" />
+    <!--
+      `CopyToPublishDirectory` is the load-bearing half.
+
+      The templates were declared with `CopyToOutputDirectory` only, which is why
+      they reached `bin/Release/net8.0/Templates` and then stopped there:
+      `dotnet publish` builds a different item set, and content that does not
+      opt into it is dropped. So `dotnet publish` produced a tree with no
+      `Templates/` directory at all, the deploy tarball carried none, and every
+      OTP email died in the background job with
+
+          System.IO.FileNotFoundException: Email template not found.
+          File name: '/var/www/webofwork-api/Templates/Email/OtpEmail.cshtml'
+
+      while `POST /api/auth/send-otp/` still returned 200 "OTP sent to your
+      email", because the send runs through Hangfire after the response is
+      written. Registration, resend, account deletion and password reset all
+      failed silently; nothing in the response or the request log said so.
+
+      Both attributes are set, and the files are `None` rather than `Content`,
+      because neither half alone was enough:
+
+      - `CopyToOutputDirectory` only reached the *build* output. `dotnet publish`
+        builds a different item set, so a publish had no `Templates/` at all.
+      - Adding `CopyToPublishDirectory` to the existing `Content Update` also
+        did not work: the metadata was visibly on the items
+        (`-getItem:Content` reports it) and still no `.cshtml` reached the
+        publish directory, verified from a clean `obj/`+`bin/`.
+      - Re-including them as `None` works, and is checked by publishing and
+        looking in the output rather than by reading the csproj.
+
+      `Content Remove` first, because these files are default `Content` items
+      for the Web SDK; including them again without removing is
+      `NETSDK1022: Duplicate 'Content' items`.
+
+      This is why every OTP mail failed silently: `SendOtp` returns 200 before
+      the send happens, and the send is a Hangfire background job, so a broken
+      publish looks exactly like a working endpoint.
+    -->
+    <Content Remove="Templates/**/*.cshtml" />
+    <None Include="Templates/**/*.cshtml"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

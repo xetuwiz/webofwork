@@ -61,6 +61,35 @@ jobs:
             --self-contained false \
             -o publish
 
+      - name: Verify publish output is complete
+        run: |
+          # The email templates are the one thing in the output that no compile
+          # step checks and no startup assertion covers. They were declared with
+          # `CopyToOutputDirectory` only, which put them in `bin/` but not in
+          # `dotnet publish` output, so the tarball shipped without a Templates
+          # directory and every OTP mail died in the Hangfire job with
+          #
+          #     System.IO.FileNotFoundException: Email template not found.
+          #     File name: '/var/www/webofwork-api/Templates/Email/OtpEmail.cshtml'
+          #
+          # while `POST /api/auth/send-otp/` kept answering 200 "OTP sent to your
+          # email", because the send happens in a background job after the
+          # response is written. Registration, resend, password reset and account
+          # deletion were all silently broken in production, and nothing in the
+          # response, the request log or the health check said so.
+          #
+          # So assert the files are in the artefact here, where a missing template
+          # fails the deploy instead of the user discovering it.
+          missing=0
+          for tpl in OtpEmail PasswordResetEmail SupportReplyEmail; do
+            if [ ! -f "publish/Templates/Email/$tpl.cshtml" ]; then
+              echo "FATAL: publish output is missing Templates/Email/$tpl.cshtml" >&2
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          echo "All 3 email templates present in the publish output."
+
       - name: Upload
         run: |
           mkdir -p ~/.ssh
