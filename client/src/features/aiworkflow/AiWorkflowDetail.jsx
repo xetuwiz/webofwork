@@ -230,9 +230,8 @@ export default function AiWorkflowDetail() {
               onClick={submit}
               loading={approve.isPending}
             >
-              {approve.isPending && (
-                <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
-              )}
+              {/* Label only. Button draws the spinner from `loading` and then renders these
+                children, so the manual Loader2 here was a second one. */}
               {decision === "approve" ? "Approve" : "Reject"}
             </Button>
           </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Button from "../../components/common/Button";
 import { toastError } from "../../utils/toast";
 import { useStartTalentMatch, useProjectWorkflow } from "./aiWorkflowQueries";
@@ -67,11 +67,14 @@ export default function FindTalentButton({ projectId, disabled = false, classNam
       loading={start.isPending}
       className={className}
     >
+      {/* One spinner, from the Button's own `loading`.
+          Button renders its Loader2 and *then* renders children, so a manual
+          Loader2 here drew a second one beside it -- two spinners on the same
+          button, which is what made this look like a stuck loader rather than a
+          busy one. The label still swaps, because that is text and carries the
+          "Analysing freelancers" explanation the icon cannot. */}
       {start.isPending ? (
-        <>
-          <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
-          Analysing freelancers
-        </>
+        "Analysing freelancers"
       ) : (
         <>
           <Sparkles size={16} className="mr-2" aria-hidden="true" />
