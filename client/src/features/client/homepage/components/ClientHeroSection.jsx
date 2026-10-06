@@ -21,6 +21,7 @@ export default function ClientHeroSection() {
               <Search className="h-5 w-5 md:h-6 md:w-6 text-white" />
               <span className="text-lg md:text-2xl font-bold leading-5 text-white">Find Talents</span>
             </button>
+            <p>Text2</p>
           </div>
         </div>
       </section>
