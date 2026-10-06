@@ -68,19 +68,46 @@ android {
         versionName flutterVersionName
     }
 
-signingConfigs {
-       release {
-           keyAlias keystoreProperties['keyAlias']
-           keyPassword keystoreProperties['keyPassword']
-           storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-           storePassword keystoreProperties['storePassword']
-       }
-   }
+// True only when a keystore is actually configured. `key.properties` and
+    // `key.jks` are gitignored, so on CI this is false -- and declaring a
+    // `signingConfigs.release` with null properties makes `packageRelease` fail
+    // with `SigningConfig "release" is missing required property "storeFile"`.
+    // That is a hard error, not a warning, so an unsigned release build was
+    // impossible without committing a keystore.
+    //
+    // The two cases are genuinely different artefacts and must not be confused:
+    //
+    //   signed   -- a real upload/signing key. Use for anything distributed.
+    //   debug    -- CI only. Proves the release variant compiles, links, packages
+    //               and passes the strict network-security config. NOT installable
+    //               alongside a real build, and not for a store.
+    //
+    // A store upload would reject a debug-signed APK on its own merits, so this
+    // cannot silently ship something unsigned.
+    def hasReleaseKeystore = keystoreProperties['storeFile'] != null &&
+            keystoreProperties['storePassword'] != null
+
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            release {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.release
+            // Falls back to the debug key when no keystore is present, which is
+            // the CI case. The comment that used to sit here claimed it always
+            // signed with the debug keys, which was false: with a keystore
+            // configured it signed properly, and a comment claiming a scoping the
+            // build did not implement is worse than none.
+            signingConfig hasReleaseKeystore
+                    ? signingConfigs.release
+                    : signingConfigs.debug
         }
     }
 }
