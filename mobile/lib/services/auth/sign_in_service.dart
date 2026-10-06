@@ -21,14 +21,37 @@ class SignInService with ChangeNotifier {
     );
 
     if (responseData != null && responseData.containsKey('access')) {
+      final user = responseData['user'];
+
+      // This app is freelancer-only, and the check happens here -- before the
+      // tokens are persisted.
+      //
+      // The ordering is the whole point. Once `setToken` has run the session
+      // exists, and a rejection afterwards has to unwind it; a half-unwound
+      // session is how a client ends up signed in and staring at freelancer
+      // screens hitting freelancer endpoints. So the gate runs against a
+      // response that has not been committed yet, and the credentials are simply
+      // discarded.
+      //
+      // `AuthController.Login` already returns `is_freelancer` alongside the
+      // tokens, so this costs no extra request. `current_role` is deliberately
+      // not used: it reflects `CurrentRole`, which a user can switch, whereas
+      // `is_freelancer` is the fact of having a freelancer profile -- the thing
+      // the screens in this app actually need.
+      if (!(user is Map && user['is_freelancer'] == true)) {
+        'This app is for freelancers. Please sign in on the website.'.showToast();
+        return null;
+      }
+
       LocalKeys.signedInSuccessfully.showToast();
 
       token = responseData['access']?.toString() ?? '';
       refreshToken = responseData['refresh']?.toString() ?? '';
 
-      final user = responseData['user'];
-      email = user is Map ? user['email']?.toString() ?? '' : '';
-      userId = user is Map ? user['id']?.toString() ?? '' : '';
+      // No `is Map` re-check: the gate above returns unless `user` is a Map, so the
+      // analyzer has already narrowed it here.
+      email = user['email']?.toString() ?? '';
+      userId = user['id']?.toString() ?? '';
 
       // Persist both tokens. Awaited rather than fired and forgotten: a
       // sign-in that reports success while the keystore write is still in

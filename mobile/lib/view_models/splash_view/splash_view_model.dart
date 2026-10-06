@@ -76,8 +76,36 @@ class SplashViewModel {
       // spinner for the full timeout whenever the server was briefly
       // unreachable (`getApi` swallows the failure and returns null, so the
       // `.then` below never ran).
-      Provider.of<ProfileInfoService>(context, listen: false)
+
+      // This app is freelancer-only, and sign-in/sign-up both enforce that. But
+      // an app update does not revoke an existing token, so anyone who signed in
+      // before the gate existed still holds one. The shell's endpoints are all
+      // `[Authorize(Policy = "RequireFreelancer")]`, so without this they land in
+      // the app and see a set of 403s.
+      //
+      // Best-effort by design: a network error must not strand a legitimate
+      // freelancer at the splash, so only an explicit `isFreelancer == false`
+      // signs them out. `fetchProfileInfo` leaves its previous model in place
+      // when both source requests fail, so a null `isFreelancer` here means
+      // "cannot prove otherwise" -- older server, or a request that never
+      // completed -- and is let through.
+      await Provider.of<ProfileInfoService>(context, listen: false)
           .fetchProfileInfo();
+
+      final isFreelancer = Provider.of<ProfileInfoService>(context, listen: false)
+          .profileInfoModel
+          .data
+          ?.isFreelancer;
+
+      if (isFreelancer == false) {
+        await clearTokens();
+        'This app is for freelancers. Please sign in on the website.'
+            .showToast();
+        SignInViewModel.instance.initSavedInfo();
+        context.toUntilPage(const SignInView());
+        return;
+      }
+
       context.toUntilPage(const OnboardingView());
     }
   }
