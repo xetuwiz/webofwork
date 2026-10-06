@@ -28,7 +28,11 @@ import {
   startTalentMatch,
   startWorkflow,
 } from "./aiWorkflowApi";
-import { normaliseWorkflowStatus, TERMINAL_STATUSES } from "./workflowDisplay";
+import {
+  isTerminalStatus,
+  normaliseWorkflowStatus,
+  TERMINAL_STATUSES,
+} from "./workflowDisplay";
 
 /**
  * Settle the status casing on the way in.
@@ -131,7 +135,20 @@ export function useDraft(workflowRunId, { enabled = true } = {}) {
     enabled: Boolean(workflowRunId) && enabled,
     // `completed` is the server's own answer rather than a guess from the
     // status enum, so a new terminal state cannot leave this polling forever.
-    refetchInterval: ({ state }) => (state.data?.completed ? false : 2500),
+    //
+    // It is not sufficient on its own, though. AiDraftController sets
+    // `completed = status is Completed or Failed`, so Cancelled -- and any future
+    // terminal state the controller has not been taught about -- arrives with
+    // `completed: false`, and this polled a dead run every 2.5 seconds for as long
+    // as the dialog stayed open. The terminal check is a second gate, not a
+    // replacement: the first catches states the server calls finished, the second
+    // catches the ones it does not.
+    refetchInterval: ({ state }) => {
+      const data = state.data;
+      if (data?.completed) return false;
+      if (isTerminalStatus(data?.status)) return false;
+      return 2500;
+    },
   });
 }
 
