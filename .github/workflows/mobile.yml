@@ -62,3 +62,56 @@ jobs:
       # exists to prevent.
       - name: Test
         run: flutter test
+
+  # The job that would have caught the release endpoint.
+  #
+  # `flutter analyze` does not evaluate a `String.fromEnvironment` default, and
+  # `flutter test` runs in debug mode where `kReleaseMode` is false -- so
+  # `_assertReleaseEndpointIsSecure` is skipped and a plain-http or LAN endpoint
+  # passes every other gate in this workflow. The build then ships an APK that
+  # rejects every request at the socket layer with no Dart-side error, which on a
+  # device you cannot attach a debugger to is indistinguishable from a dead API.
+  #
+  # Not hypothetical: the default was `http://192.168.8.100:5000` and this
+  # workflow was green throughout.
+  #
+  # Building also catches the release-variant-only failures -- the strict
+  # `src/main/res/xml/network_security_config.xml` and the release signing config,
+  # neither of which any debug or test run loads.
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # Same pin as the mobile job above, deliberately: a floating "stable"
+          # would let a Dart SDK bump turn this red with no commit.
+          flutter-version: "3.47.5"
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        # No --dart-define, deliberately. This asserts the *default* endpoint
+        # yields a working release build, which is exactly what passing an
+        # explicit --dart-define here would hide.
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: webofwork-mobile-release
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

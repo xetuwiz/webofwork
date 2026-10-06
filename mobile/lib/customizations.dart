@@ -1,23 +1,32 @@
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 
-// A physical device cannot reach this machine via "localhost" -- on the phone
-// that means the phone itself. Use the LAN IP of the dev box (ipconfig), or
-// 10.0.2.2 on an Android emulator. Plain HTTP because the dev Kestrel cert is
-// self-signed; the debug and profile network security configs are what permit
-// that, at android/app/src/{debug,profile}/res/xml/network_security_config.xml.
+// Production, and the default. `https://api.xetuwiz.de` is the deployed API
+// (cert valid to 2027-01-03) and it is reachable from a real device, so a
+// release build works with no flags at all:
+//
+//   flutter build apk --release
+//
+// This default used to be `http://192.168.8.100:5000` -- a LAN address off
+// somebody's dev machine. Every path was correct, but no released APK could
+// reach anything: the host does not exist outside that one network, and plain
+// HTTP is refused by the release network policy below. The failure mode was a
+// silent socket-layer rejection indistinguishable from a dead server.
+//
+// Note there is no `/api` suffix here. `AppUrls` builds paths as
+// `$baseEndPoint/api/...`, so this must be the bare host.
+//
+// To develop against a local API, override it. A physical device cannot reach
+// this machine via "localhost" -- on the phone that means the phone itself. Use
+// the LAN IP of the dev box (ipconfig), or 10.0.2.2 on an Android emulator.
+// Plain HTTP works for that because the debug and profile network security
+// configs permit cleartext and trust the self-signed dev certificate, at
+// android/app/src/{debug,profile}/res/xml/network_security_config.xml.
 //
 //   flutter run --dart-define=API_BASE=http://<lan-ip>:5000
-//
-// A release build uses the strict config in src/main, which sets
-// `cleartextTrafficPermitted="false"`. So a release APK pointed at plain HTTP
-// cannot open a socket at all -- see _assertReleaseEndpointIsSecure below for
-// why that fails loudly instead.
-//
-//   flutter build apk --release --dart-define=API_BASE=https://api.example.com
 const String siteLink = String.fromEnvironment(
   'API_BASE',
-  defaultValue: 'http://192.168.8.100:5000',
+  defaultValue: 'https://api.xetuwiz.de',
 );
 
 /// Fails fast when a release build is configured to talk plain HTTP.
@@ -50,6 +59,9 @@ void _assertReleaseEndpointIsSecure() {
       'cleartextTrafficPermitted="false", so every request would fail at the '
       'socket layer with no Dart-side error.\n'
       'Rebuild with:\n'
+      '  flutter build apk --release\n'
+      '\n'
+      'or point it somewhere explicitly:\n'
       '  flutter build apk --release --dart-define=API_BASE=https://your-api-host\n'
       'Debug and profile builds are unaffected: their configs permit cleartext '
       'for the self-signed development certificate.',
