@@ -42,6 +42,15 @@ class Data {
   String? image;
   String? experienceLevel;
 
+  /// Whether the account has a freelancer profile.
+  ///
+  /// Tri-state on purpose: `null` means "the server did not say", which is
+  /// different from `false` meaning "it said no". This app is freelancer-only,
+  /// and the splash uses that difference to decide whether to sign someone out --
+  /// treating `null` as `false` would sign out every user whenever the profile
+  /// request merely failed.
+  bool? isFreelancer;
+
   /// Location is not modelled by this backend (the location editors were
   /// dropped), so these stay null. They are kept only because the profile-edit
   /// view and its service still reference them.
@@ -60,6 +69,7 @@ class Data {
     this.phone,
     this.image,
     this.experienceLevel,
+    this.isFreelancer,
     this.country,
     this.countryId,
     this.state,
@@ -80,6 +90,12 @@ class Data {
       image: resolveMediaUrl(user['profile_photo']?.toString()),
       phone: profile['phone']?.toString(),
       experienceLevel: profile['experience_level']?.toString(),
+      // `/api/auth/me/` returns a JSON boolean here. Parsed strictly rather than
+      // as truthiness: `user['is_freelancer'] == true` yields null for a
+      // missing key, which is the "cannot prove otherwise" case the splash
+      // relies on. A truthiness check would collapse that into false and sign
+      // people out on a failed request.
+      isFreelancer: user['is_freelancer'] is bool ? user['is_freelancer'] : null,
     );
   }
 

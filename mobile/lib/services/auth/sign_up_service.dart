@@ -112,6 +112,20 @@ class SignUpService with ChangeNotifier {
     final userEmail = user is Map ? user['email']?.toString() ?? '' : '';
     role = user is Map ? user['current_role']?.toString() : null;
 
+    // A newly registered account is a client by default, so this rejects the
+    // signup path for anyone who is not a freelancer -- same rule as sign-in,
+    // and for the same reason: `role` was being captured and then never checked,
+    // so the session was persisted regardless and the user landed in freelancer
+    // screens that 403 on every `[Authorize(Policy = "RequireFreelancer")]`
+    // route.
+    //
+    // Checked before `setToken`, so a rejected signup leaves no session behind.
+    if (role != 'freelancer') {
+      'This app is for freelancers. Please sign up on the website.'.showToast();
+      pendingEmail = null;
+      return false;
+    }
+
     await setToken(access);
     // The refresh token also arrives as an HttpOnly cookie, which `package:http`
     // has no jar for -- so the body is the only copy a native client can keep.
