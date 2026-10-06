@@ -92,6 +92,64 @@ export function useListState({ defaults = {}, persist, prefix = "" } = {}) {
     [setParams, name],
   );
 
+  /**
+   * Replace several keys in one navigation.
+   *
+   * ## Why this exists
+   *
+   * `set` looks atomic but is not. React Router applies each `setSearchParams`
+   * call against the params **as of that render**, so two calls in one handler
+   * do not compose -- the second is computed from a snapshot that does not
+   * contain the first, and it wins:
+   *
+   *     set("categoryId", "2");   // writes categoryId=2
+   *     set("minPrice", "10");    // writes minPrice=10, computed from the state
+   *                              // *before* categoryId was set
+   *     // URL: ?minPrice=10      -- categoryId is gone
+   *
+   * Nothing throws and no request fires with the lost value, so this is
+   * invisible until you look at the URL. On Find Talent it meant pressing
+   * "Apply Filters" filtered by nothing at all: `handleApplyFilters` sets three
+   * keys, and the last one won, so a category selection was discarded.
+   *
+   * Six pages had this shape (FindTalent, FindJobs, ClientContracts, Contracts,
+   * MyProjects). Fixing each call site would have left the next one to
+   * reintroduce it, so the batched form is the fix and the call sites just use
+   * it.
+   *
+   * ## Why not fix `set` itself
+   *
+   * A ref-accumulator inside `set` would fix it without touching call sites, but
+   * it would also make `set` depend on render timing -- the accumulated value
+   * would have to be flushed somehow, and a component that unmounts mid-handler
+   * would drop it. An explicit batch has no hidden state and no flush to get
+   * wrong.
+   *
+   * @param {Record<string, string|null|undefined>} values Keys to replace.
+   * @param {{ resetPage?: boolean }} [options]
+   */
+  const setMany = useCallback(
+    (values, { resetPage = true } = {}) => {
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const [key, value] of Object.entries(values)) {
+            const k = name(key);
+            if (value === "" || value === null || value === undefined) {
+              next.delete(k);
+            } else {
+              next.set(k, String(value));
+            }
+          }
+          if (resetPage) next.delete(name("page"));
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams, name],
+  );
+
   const setPage = useCallback(
     (next) => {
       setParams(
@@ -166,6 +224,7 @@ export function useListState({ defaults = {}, persist, prefix = "" } = {}) {
     filters,
     get,
     set,
+    setMany,
     setPage,
     setPageSize,
     resetFilters,

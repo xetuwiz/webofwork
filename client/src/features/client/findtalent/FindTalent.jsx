@@ -33,6 +33,7 @@ export default function FindTalent() {
     pageSize,
     filters: appliedFilters,
     set: setFilter,
+    setMany,
     setPage,
     setPageSize,
     hasActiveFilters,
@@ -135,11 +136,11 @@ export default function FindTalent() {
       toastError(budgetError);
       return;
     }
-    // Each write drops `page`, so the three of them together are also
-    // "return to page 1".
-    setFilter("categoryId", categoryId);
-    setFilter("minPrice", minPrice);
-    setFilter("maxPrice", maxPrice);
+    // One write for all three keys. Three `setFilter` calls did not compose --
+    // the last one won and the other two were discarded -- so pressing Apply
+    // applied only the budget, and the category was silently dropped. See
+    // `setMany` in useListState.
+    setMany({ categoryId, minPrice, maxPrice });
     setShowMobileFilters(false);
   };
 

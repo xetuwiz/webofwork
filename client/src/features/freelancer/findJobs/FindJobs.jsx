@@ -19,6 +19,7 @@ export default function FindJobs() {
     pageSize,
     filters,
     set: setFilter,
+    setMany,
     setPage,
     setPageSize,
     hasActiveFilters,
@@ -204,7 +205,7 @@ export default function FindJobs() {
               </PopoverTrigger>
               <PopoverContent aria-label="Budget" className="w-48">
                 <PopoverItem
-                  onClick={() => { setFilter("min_price", ""); setFilter("max_price", ""); }}
+                  onClick={() => setMany({ min_price: "", max_price: "" })}
                   className="text-brand font-medium border-b border-line-soft rounded-none"
                 >
                   All Budgets
@@ -212,7 +213,7 @@ export default function FindJobs() {
                 {[500, 1000, 5000, 10000, 50000].map((amount) => (
                   <PopoverItem
                     key={amount}
-                    onClick={() => { setFilter("min_price", "0"); setFilter("max_price", String(amount)); }}
+                    onClick={() => setMany({ min_price: "0", max_price: String(amount) })}
                   >
                     Up to ${amount}
                   </PopoverItem>
