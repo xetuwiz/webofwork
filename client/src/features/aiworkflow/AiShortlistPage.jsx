@@ -1,11 +1,12 @@
 import React, { useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Loader2, ArrowLeft, Sparkles } from "lucide-react";
+import { Loader2, ArrowLeft, Sparkles, Clock } from "lucide-react";
 import ShortlistApprovalPanel from "./ShortlistApprovalPanel";
 import WeightPanel from "./WeightPanel";
 import { useAiWorkflow, useShortlist, useStartTalentMatch } from "./aiWorkflowQueries";
 import {
   describeStatus,
+  isActivelyRunning,
   isTerminalStatus,
   normaliseWorkflowStatus,
 } from "./workflowDisplay";
@@ -249,8 +250,11 @@ function StatusPanel({ status, copy, isLoading, isError, summary, rationale }) {
   return (
     <section className="rounded-2xl border border-line bg-surface p-6 sm:p-8">
       <div className="flex items-start gap-3">
-        {!isDone(status) && (
+        {isActivelyRunning(status) && (
           <Loader2 size={18} className="text-brand animate-spin shrink-0 mt-0.5" aria-hidden="true" />
+        )}
+        {!isActivelyRunning(status) && !isDone(status) && (
+          <Clock size={18} className="text-fg-subtle shrink-0 mt-0.5" aria-hidden="true" />
         )}
         <div className="min-w-0">
           <h2 className="font-semibold text-fg text-sm">{copy.label}</h2>

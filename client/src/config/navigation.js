@@ -44,6 +44,7 @@ import {
   AlertCircle,
   Repeat,
   Wallet,
+  Bot,
   Settings,
   User,
   Edit3,
@@ -93,6 +94,12 @@ export const NAVIGATION = [
   { label: "Transactions", path: "/admin/transactions", icon: Repeat, group: "Admin", roles: ["admin"] },
   { label: "Payment Release", path: "/admin/payment-release", icon: Wallet, group: "Admin", roles: ["admin"] },
   { label: "Support", path: "/admin/support", icon: MessageSquare, group: "Admin", roles: ["admin"] },
+  // The route and the screen both exist -- AdminRoutes.jsx declares
+  // `ai-workflows` and `ai-workflows/:id`, and AiWorkflowMonitor lists every run
+  // with its stage, status and agent rationale. Nothing linked to them, so the
+  // only way in was to type the URL. Same omission as the Notifications entry
+  // below: an admin-only screen no admin could reach.
+  { label: "AI Workflows", path: "/admin/ai-workflows", icon: Bot, group: "Admin", roles: ["admin"] },
   { label: "Settings", path: "/admin/settings", icon: Settings, group: "Admin", roles: ["admin"] },
   // Same reason as the client entry: the screen was freelancer-only, so an admin
   // could not manage their own notifications.

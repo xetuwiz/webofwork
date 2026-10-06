@@ -126,6 +126,26 @@ export function normaliseWorkflowStatus(raw) {
 export const canApproveShortlist = (status) =>
   normaliseWorkflowStatus(status) === "PendingClientApproval";
 
+/**
+ * Whether a run is moving on its own, as opposed to waiting for a person.
+ *
+ * Not the same question as `isTerminalStatus`. That is false for the three human
+ * gates and for ValidationFailed, because those runs have not finished and never
+ * will without somebody acting. A spinner keyed on "not finished" animated
+ * forever beside the very approve button the user was asked to press, and read as
+ * a busy server rather than a bug.
+ *
+ * An allow-list, as in pollIntervalFor, so a status added in C# later is not
+ * treated as running.
+ *
+ * @param {unknown} status
+ * @returns {boolean} true only for Pending and Running.
+ */
+export const isActivelyRunning = (status) => {
+  const state = normaliseWorkflowStatus(status);
+  return state === "Pending" || state === "Running";
+};
+
 /** Whether an admin can act on this run right now. */
 export const canApproveContract = (status) => {
   const normalised = normaliseWorkflowStatus(status);

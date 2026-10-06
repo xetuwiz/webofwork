@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Sparkles, Loader2, X, Check } from "lucide-react";
+import { Sparkles, Loader2, X, Check, AlertTriangle } from "lucide-react";
 import Button from "../../components/common/Button";
 import Dialog from "../../components/common/Dialog";
 import { toastError } from "../../utils/toast";
 import { useDraft, useRequestDraft } from "./aiWorkflowQueries";
+import { describeStatus, isTerminalStatus } from "./workflowDisplay";
 import { formatDraftPrice } from "./draftPrice";
 
 /**
@@ -66,6 +67,17 @@ export default function DraftAssistButton({
   const asking = draft.data?.clarification_question;
   const ready = Boolean(draft.data?.draft) && !draft.isLoading;
 
+  // A run that has stopped without producing a draft.
+  //
+  // The server reports `completed: true` for Failed as well as Completed, and
+  // Cancelled is terminal without it -- so a failed run stopped polling while the
+  // dialog below went on showing "Drafting..." behind a spinner that never turned.
+  // There was no branch for it: the spinner was keyed on "no draft and no error",
+  // and a failed run is neither. Nothing in this component ever learns the run
+  // ended badly, so the only honest signal is the status the server already sends.
+  const stopped = isTerminalStatus(draft.data?.status) && !draft.data?.draft;
+  const stoppedLabel = describeStatus(draft.data?.status);
+
   return (
     <>
       <Button
@@ -124,7 +136,21 @@ export default function DraftAssistButton({
             </p>
           )}
 
-          {!request.isPending && !ready && !draft.isError && (
+          {stopped && (
+            <div className="rounded-xl border border-danger-line bg-danger-soft p-4 flex gap-3">
+              <AlertTriangle size={18} className="text-danger-fg shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <h3 className="font-semibold text-danger-fg text-sm">
+                  {stoppedLabel.label}
+                </h3>
+                <p className="text-danger-soft-fg text-sm mt-1.5 leading-relaxed">
+                  {stoppedLabel.blurb} Nothing was saved. Close this and try again.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!request.isPending && !ready && !draft.isError && !stopped && (
             <p className="text-sm text-fg-muted flex items-center gap-2">
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
               Drafting...
